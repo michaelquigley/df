@@ -1,11 +1,15 @@
 package df
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
 	"reflect"
 	"strconv"
 	"strings"
 	"time"
+
+	"gopkg.in/yaml.v3"
 )
 
 // Options configures binding behavior.
@@ -452,4 +456,34 @@ func coerceToFloat64(raw interface{}) (float64, bool) {
 		}
 	}
 	return 0, false
+}
+
+// BindFromJSON reads JSON from the specified file path and binds it to the target struct.
+func BindFromJSON(target interface{}, path string, opts ...*Options) error {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("failed to read JSON file %s: %w", path, err)
+	}
+	
+	var jsonData map[string]any
+	if err := json.Unmarshal(data, &jsonData); err != nil {
+		return fmt.Errorf("failed to parse JSON from %s: %w", path, err)
+	}
+	
+	return Bind(target, jsonData, opts...)
+}
+
+// BindFromYAML reads YAML from the specified file path and binds it to the target struct.
+func BindFromYAML(target interface{}, path string, opts ...*Options) error {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("failed to read YAML file %s: %w", path, err)
+	}
+	
+	var yamlData map[string]any
+	if err := yaml.Unmarshal(data, &yamlData); err != nil {
+		return fmt.Errorf("failed to parse YAML from %s: %w", path, err)
+	}
+	
+	return Bind(target, yamlData, opts...)
 }
