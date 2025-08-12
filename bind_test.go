@@ -246,7 +246,7 @@ func TestBindDynamicSlice(t *testing.T) {
 				return &dynA{Name: name}, nil
 			},
 			"b": func(m map[string]any) (Dynamic, error) {
-				countAny, _ := m["count"]
+				countAny := m["count"]
 				count := 0
 				switch v := countAny.(type) {
 				case int:
@@ -296,7 +296,7 @@ func TestBindDynamicPerFieldBinders(t *testing.T) {
 			},
 			"root.Metric": {
 				"b": func(m map[string]any) (Dynamic, error) {
-					countAny, _ := m["count"]
+					countAny := m["count"]
 					count := 0
 					switch v := countAny.(type) {
 					case int:
@@ -348,7 +348,7 @@ func TestBindDynamicPerFieldSliceBinders(t *testing.T) {
 			},
 			"root.Others": {
 				"b": func(m map[string]any) (Dynamic, error) {
-					countAny, _ := m["count"]
+					countAny := m["count"]
 					count := 0
 					switch v := countAny.(type) {
 					case int:
@@ -408,7 +408,7 @@ func TestUnbindThenBindWithPerFieldBinders(t *testing.T) {
 			},
 			"root.Others": {
 				"b": func(m map[string]any) (Dynamic, error) {
-					countAny, _ := m["count"]
+					countAny := m["count"]
 					count := 0
 					switch v := countAny.(type) {
 					case int:
@@ -471,7 +471,7 @@ func TestUnbindConcreteThenBindWithPerFieldBinders(t *testing.T) {
 			},
 			"rootIface.Bs": {
 				"b": func(m map[string]any) (Dynamic, error) {
-					countAny, _ := m["count"]
+					countAny := m["count"]
 					count := 0
 					switch v := countAny.(type) {
 					case int:

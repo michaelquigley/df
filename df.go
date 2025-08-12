@@ -7,12 +7,25 @@ import (
 )
 
 // Dynamic fields can be used when the concrete type of a field is selected dynamically through the `type` data provided
-// in the incoming `map` that will be passed to `Bind`.
+// in the incoming `map` that will be passed to `Bind`. A polymorphic field type.
 type Dynamic interface {
 	Type() string
 	ToMap() map[string]any
 }
 
+// parseDFTag parses the `df` struct tag on a field.
+//
+// Tag format: df:"[name][,required]"
+//
+// Special cases:
+// - "-"          → skip the field entirely (skip=true)
+// - missing/empty → no override (default name, required=false)
+//
+// Rules:
+// - Tokens are comma-separated; surrounding whitespace is ignored.
+// - If the first token is not "required", it is taken as the external field name.
+// - The presence of a "required" token (any position) sets required=true.
+// - Unrecognized tokens are ignored.
 func parseDFTag(sf reflect.StructField) (name string, required bool, skip bool) {
 	tag := sf.Tag.Get("df")
 	if tag == "-" {
