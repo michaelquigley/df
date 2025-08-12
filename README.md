@@ -229,6 +229,10 @@ result, err := df.Unbind(&notification)
 
 The `type` field in the input data determines which binder function is called to create the appropriate concrete type. During unbind, the `Type()` method ensures the discriminator is preserved for round-trip compatibility.
 
+## Roadmap
+
+df is a foundational component in a _dynamic framework_ approach to building golang applications. A dynamic framework application is designed to reconfigure its internal landscape based on configuration structures.
+
 ## License
 
 See [LICENSE](LICENSE) file for details.
