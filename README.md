@@ -284,8 +284,8 @@ type User struct {
 func (u *User) GetId() string { return u.ID }
 
 type Document struct {
-    ID     string          `df:"id"`
-    Title  string          `df:"title"`
+    ID     string             `df:"id"`
+    Title  string             `df:"title"`
     Author *df.Pointer[*User] `df:"author"`
 }
 
