@@ -16,8 +16,8 @@ import (
 // - `df:"-"` skips the field
 // - when no tag is provided, the key defaults to snake_case of the field name
 //
-// Pointers to values: if nil, the key is omitted; otherwise the pointed value is emitted.
-// Slices, structs, and nested pointers are handled recursively. time.Duration values
+// pointers to values: if nil, the key is omitted; otherwise the pointed value is emitted.
+// slices, structs, and nested pointers are handled recursively. time.Duration values
 // are emitted as strings using Duration.String() (e.g., "30s"). Interface fields are
 // not supported, except for fields of type `Dynamic` (and slices of `Dynamic`), which
 // are converted via their ToMap() method. Map-typed fields are not supported.
@@ -76,10 +76,10 @@ func structToMap(structVal reflect.Value) (map[string]any, error) {
 }
 
 // valueToInterface converts a reflected value into an interface suitable for maps.
-// Returns (value, present, error). present=false indicates the value should be omitted
+// returns (value, present, error). present=false indicates the value should be omitted
 // (e.g., nil pointer). For time.Duration, emits its String() representation.
 func valueToInterface(v reflect.Value) (interface{}, bool, error) {
-	// Handle pointers
+	// handle pointers
 	if v.Kind() == reflect.Ptr {
 		if v.IsNil() {
 			return nil, false, nil
@@ -122,7 +122,7 @@ func valueToInterface(v reflect.Value) (interface{}, bool, error) {
 	case reflect.Slice:
 		length := v.Len()
 		arr := make([]interface{}, 0, length)
-		// Special handling for slices of Dynamic (either interface type or concrete types implementing it)
+		// special handling for slices of Dynamic (either interface type or concrete types implementing it)
 		elemType := v.Type().Elem()
 		isDynamicElem := false
 		if elemType.Kind() == reflect.Interface {
@@ -136,7 +136,7 @@ func valueToInterface(v reflect.Value) (interface{}, bool, error) {
 					arr = append(arr, nil)
 					continue
 				}
-				// Recover the Dynamic interface from the original element value
+				// recover the Dynamic interface from the original element value
 				dynIfaceVal := v.Index(i).Interface()
 				if dynIfaceVal == nil {
 					arr = append(arr, nil)
@@ -166,12 +166,12 @@ func valueToInterface(v reflect.Value) (interface{}, bool, error) {
 		return arr, true, nil
 
 	case reflect.Interface:
-		// Omit nil interfaces
+		// omit nil interfaces
 		if v.IsNil() {
 			return nil, false, nil
 		}
-		// Support Dynamic interface by delegating to ToMap()
-		// Handle both when the field type is Dynamic and when the concrete value implements it
+		// support Dynamic interface by delegating to ToMap(); handle both when the field type is Dynamic and when the
+		// concrete value implements it
 		if v.Type().Implements(dynamicInterfaceType) || reflect.TypeOf(v.Interface()).Implements(dynamicInterfaceType) {
 			dyn := v.Interface().(Dynamic)
 			return dynamicToMap(dyn), true, nil
@@ -191,9 +191,8 @@ func valueToInterface(v reflect.Value) (interface{}, bool, error) {
 	return nil, false, fmt.Errorf("unsupported kind %s", v.Kind())
 }
 
-// dynamicToMap converts a Dynamic value to a map and enforces that the
-// discriminator key "type" is present and consistent with d.Type().
-// If ToMap() returns nil, an empty map is created.
+// dynamicToMap converts a Dynamic value to a map and enforces that the discriminator key "type" is present and
+// consistent with d.Type(). if ToMap() returns nil, an empty map is created.
 func dynamicToMap(d Dynamic) map[string]any {
 	m := d.ToMap()
 	if m == nil {
@@ -212,7 +211,7 @@ func pointerToMap(pointerValue reflect.Value) (interface{}, bool, error) {
 
 	ref := refField.String()
 	if ref == "" {
-		// Empty reference - could omit entirely or include empty $ref
+		// empty reference - could omit entirely or include empty $ref
 		return nil, false, nil
 	}
 

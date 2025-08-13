@@ -219,7 +219,7 @@ func TestSliceTypeCompatibility(t *testing.T) {
 }
 
 func TestSnakeCaseDefault(t *testing.T) {
-	// Verify that untagged field names default to snake_case keys
+	// verify that untagged field names default to snake_case keys
 	s := &struct{ OhWow int }{}
 	data := map[string]any{"oh_wow": 42}
 	err := Bind(s, data)
@@ -387,17 +387,17 @@ func TestUnbindThenBindWithPerFieldBinders(t *testing.T) {
 		Others []Dynamic
 	}
 
-	// Start with concrete dynamic values
+	// start with concrete dynamic values
 	r1 := &root{
 		Action: &dynA{Name: "alpha"},
 		Others: []Dynamic{&dynB{Count: 1}, &dynB{Count: 2}},
 	}
 
-	// Unbind to map
+	// unbind to map
 	m, err := Unbind(r1)
 	assert.NoError(t, err)
 
-	// Bind back using per-field dynamic binders
+	// bind back using per-field dynamic binders
 	opts := &Options{
 		FieldDynamicBinders: map[string]map[string]func(map[string]any) (Dynamic, error){
 			"root.Action": {
@@ -451,7 +451,7 @@ func TestUnbindConcreteThenBindWithPerFieldBinders(t *testing.T) {
 		Bs  []Dynamic
 	}
 
-	// Start with concrete types implementing Dynamic
+	// start with concrete types implementing Dynamic
 	r1 := &rootConcrete{
 		DoA: dynA{Name: "alpha"},
 		Bs:  []*dynB{{Count: 1}, {Count: 2}},
@@ -460,7 +460,7 @@ func TestUnbindConcreteThenBindWithPerFieldBinders(t *testing.T) {
 	m, err := Unbind(r1)
 	assert.NoError(t, err)
 
-	// Bind into interface-typed fields using per-field binders
+	// bind into interface-typed fields using per-field binders
 	opts := &Options{
 		FieldDynamicBinders: map[string]map[string]func(map[string]any) (Dynamic, error){
 			"rootIface.DoA": {

@@ -73,7 +73,7 @@ func main() {
 	invalidData := map[string]any{
 		"email": "john@example.com",
 		"age":   30,
-		// Missing required "name" field
+		// missing required "name" field
 	}
 
 	var user3 User

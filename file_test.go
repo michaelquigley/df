@@ -85,7 +85,7 @@ func TestUnbindToJSON(t *testing.T) {
 		t.Fatalf("UnbindToJSON failed: %v", err)
 	}
 	
-	// Read back and verify
+	// read back and verify
 	var result TestStruct
 	if err := BindFromJSON(&result, jsonFile); err != nil {
 		t.Fatalf("Failed to read back JSON: %v", err)
@@ -116,7 +116,7 @@ func TestUnbindToYAML(t *testing.T) {
 		t.Fatalf("UnbindToYAML failed: %v", err)
 	}
 	
-	// Read back and verify
+	// read back and verify
 	var result TestStruct
 	if err := BindFromYAML(&result, yamlFile); err != nil {
 		t.Fatalf("Failed to read back YAML: %v", err)

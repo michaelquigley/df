@@ -5,7 +5,7 @@ type nestedType struct {
 	Count int
 }
 
-// Test helpers for Dynamic
+// test helpers for Dynamic
 type dynA struct{ Name string }
 
 func (d *dynA) Type() string          { return "a" }

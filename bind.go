@@ -20,8 +20,8 @@ type Options struct {
 
 	// FieldDynamicBinders allows specifying binder sets per field path. The key is the structured path of the field as
 	// used internally by Bind, e.g.: "Root.Items" for a slice field, "Root.Nested.Field" for nested fields.
-	// Any array indices in the path are ignored for matching purposes.
-	// When present for a field, this map takes precedence over DynamicBinders.
+	// any array indices in the path are ignored for matching purposes.
+	// when present for a field, this map takes precedence over DynamicBinders.
 	FieldDynamicBinders map[string]map[string]func(map[string]any) (Dynamic, error)
 }
 
@@ -30,13 +30,13 @@ type Options struct {
 // presence), `df:"-"` to skip a field, or, when no tag is provided, a best-effort snake_case conversion of the
 // field name.
 //
-// Supported kinds:
+// supported kinds:
 // - primitives: string, bool, all int/uint sizes, float32/64, time.Duration
 // - pointers to the above
 // - structs and pointers to structs (recursively bound from map[string]any)
 // - slices of the above (slice items are bound from []interface{})
 //
-// Interface types and maps are not supported and will return an error if encountered,
+// interface types and maps are not supported and will return an error if encountered,
 // except for fields of type Dynamic which are resolved using Options.DynamicBinders.
 //
 // opts are optional; pass nil or omit to use defaults.
@@ -204,7 +204,7 @@ func setNonPtrValue(fieldVal reflect.Value, raw interface{}, path string, opt *O
 		return nil
 
 	case reflect.Interface:
-		// Support fields of type Dynamic via binder map
+		// support fields of type Dynamic via binder map
 		if fieldVal.Type() == dynamicInterfaceType {
 			subMap, ok := raw.(map[string]any)
 			if !ok {
@@ -245,14 +245,14 @@ func bindDynamic(m map[string]any, path string, opt *Options) (Dynamic, error) {
 	if !ok || strings.TrimSpace(typeStr) == "" {
 		return nil, fmt.Errorf("%s: invalid 'type' discriminator for Dynamic field: %v", path, tVal)
 	}
-	// Prefer field-specific binder set if provided
+	// prefer field-specific binder set if provided
 	var binder func(map[string]any) (Dynamic, error)
 	if opt.FieldDynamicBinders != nil {
 		if perField, ok := opt.FieldDynamicBinders[stripIndices(path)]; ok && perField != nil {
 			binder = perField[typeStr]
 		}
 	}
-	// Fall back to global binders
+	// fall back to global binders
 	if binder == nil && opt.DynamicBinders != nil {
 		binder = opt.DynamicBinders[typeStr]
 	}
@@ -293,8 +293,8 @@ func stripIndices(path string) string {
 	return b.String()
 }
 
-// bindPointer binds data to a Pointer[T] field during the bind phase.
-// Only the $ref field is populated; resolution happens during the Link phase.
+// bindPointer binds data to a Pointer[T] field during the bind phase. only the $ref field is populated; resolution
+// happens during the Link phase.
 func bindPointer(pointerValue reflect.Value, data map[string]any, path string) error {
 	// get the Ref field and set it from the $ref key in the data
 	refField := pointerValue.FieldByName("Ref")
@@ -319,7 +319,7 @@ func bindPointer(pointerValue reflect.Value, data map[string]any, path string) e
 
 func convertAndSet(dst reflect.Value, raw interface{}, path string) error {
 	dstKind := dst.Kind()
-	// Special-case time.Duration (which is an int64 alias)
+	// special-case time.Duration (which is an int64 alias)
 	if dst.Type() == reflect.TypeOf(time.Duration(0)) {
 		switch v := raw.(type) {
 		case string:
