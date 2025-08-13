@@ -64,7 +64,7 @@ func structToMap(structVal reflect.Value) (map[string]any, error) {
 
 		v, ok, err := valueToInterface(fieldVal)
 		if err != nil {
-			return nil, fmt.Errorf("%s: %w", structType.Name()+"."+field.Name, err)
+			return nil, fmt.Errorf("unbinding field %s.%s to key %q: %w", structType.Name(), field.Name, name, err)
 		}
 		if !ok {
 			// nothing to emit (e.g., nil pointer)

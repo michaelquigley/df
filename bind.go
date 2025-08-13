@@ -88,7 +88,7 @@ func bindStruct(structValue reflect.Value, data map[string]any, path string, opt
 		}
 
 		if err := setField(fieldVal, raw, path+"."+field.Name, opt); err != nil {
-			return err
+			return fmt.Errorf("binding field %s.%s from key %q: %w", path, field.Name, name, err)
 		}
 	}
 	return nil

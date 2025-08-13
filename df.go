@@ -192,7 +192,7 @@ func resolvePointers(value reflect.Value, registry map[string]reflect.Value) err
 
 			fieldValue := value.Field(i)
 			if err := resolvePointersInField(fieldValue, field.Type, registry); err != nil {
-				return fmt.Errorf("field %s: %w", field.Name, err)
+				return fmt.Errorf("resolving pointers in field %s: %w", field.Name, err)
 			}
 		}
 
@@ -204,7 +204,7 @@ func resolvePointers(value reflect.Value, registry map[string]reflect.Value) err
 	case reflect.Slice:
 		for i := 0; i < value.Len(); i++ {
 			if err := resolvePointers(value.Index(i), registry); err != nil {
-				return fmt.Errorf("slice[%d]: %w", i, err)
+				return fmt.Errorf("resolving pointers in slice[%d]: %w", i, err)
 			}
 		}
 	}
