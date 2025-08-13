@@ -1,6 +1,6 @@
 # df
 
-A lightweight Go library for binding and unbinding structured data to/from Go structs using reflection. Supports JSON, YAML, and map[string]any data sources with customizable field mapping via struct tags.
+A lightweight Go library for binding and unbinding structured data to/from Go structs using reflection. df serves as the foundational layer for building dynamic, configuration-driven Go applications that can reconfigure their internal architecture based on runtime configuration.
 
 ## Features
 
@@ -9,6 +9,7 @@ A lightweight Go library for binding and unbinding structured data to/from Go st
 - **Flexible field mapping** with `df` struct tags
 - **Type coercion** for primitives, pointers, slices, and nested structs
 - **Dynamic field resolution** for polymorphic data structures
+- **Pointer references** with cycle handling for complex object relationships
 - **Round-trip compatibility** between bind and unbind operations
 
 ## Quick Start
@@ -54,6 +55,45 @@ func main() {
     fmt.Printf("%+v\n", result) // map[active:true age:30 email:john@example.com name:John Doe]
 }
 ```
+
+## Vision: Dynamic System Construction
+
+df serves as the foundational layer for building dynamic, configuration-driven Go applications. While traditional Go applications have fixed structures determined at compile time, df enables systems that can reconfigure their internal architecture based on runtime configuration.
+
+### The Three Layers
+
+1. **Data Binding Layer** (Current): Robust mapping between structured data and Go types
+2. **Component Registry Layer** (Planned): Dynamic instantiation of registered component types  
+3. **System Orchestration Layer** (Planned): Lifecycle management and dependency injection
+
+### From Static to Dynamic
+
+```go
+// Traditional static approach
+server := &http.Server{
+    Handler: &MyHandler{},
+    Addr:    ":8080",
+}
+
+// df-enabled dynamic approach  
+config := map[string]any{
+    "type": "http_server",
+    "addr": ":8080", 
+    "handler": map[string]any{
+        "type": "my_handler",
+        "routes": []any{...},
+    },
+}
+
+var server Component
+df.Bind(&server, config)  // Creates the right concrete types
+```
+
+This foundation enables applications that can be reconfigured without recompilation, supporting use cases like:
+- **Plugin architectures** - Load and configure components dynamically
+- **A/B testing** - Switch between different component implementations
+- **Environment-specific topologies** - Different system layouts per environment  
+- **Configuration-driven composition** - Assemble complex systems from simple parts
 
 ## Struct Tags
 
@@ -292,9 +332,39 @@ author := container.Documents[0].Author.Resolve()
 
 See [examples/df_pointers](examples/df_pointers) for a complete working example.
 
+## Current Capabilities
+
+The current df implementation provides the essential data binding layer with these key capabilities:
+
+### Core Binding Operations
+- **Bidirectional data mapping** between Go structs and structured data (JSON, YAML, maps)
+- **Type-safe conversion** with support for primitives, pointers, slices, and nested structures
+- **Flexible field mapping** via struct tags with custom naming and validation rules
+
+### Advanced Features  
+- **Polymorphic data structures** via the Dynamic interface for runtime type selection
+- **Object references** with cycle-safe pointer resolution using df.Pointer[T]
+- **Round-trip compatibility** ensuring data integrity across bind/unbind operations
+
+### Foundation for Dynamic Systems
+Today's df provides the building blocks that future layers will leverage:
+- **Structured data normalization** - Converting various input formats to Go types
+- **Type discrimination** - Runtime selection of concrete types based on configuration
+- **Object relationship mapping** - Managing complex interconnected data structures
+
 ## Roadmap
 
-df is a foundational component in a _dynamic framework_ approach to building golang applications. A dynamic framework application is designed to reconfigure its internal landscape based on configuration structures.
+df is the foundational component in a _dynamic framework_ approach to building Go applications. The next phases will build upon this solid data binding foundation:
+
+### Phase 2: Component Registry
+- Registration and discovery of component types
+- Factory pattern integration with df binding
+- Plugin loading and configuration
+
+### Phase 3: System Orchestration  
+- Dependency injection and lifecycle management
+- Configuration validation and schema enforcement
+- Hot-reload capabilities for runtime reconfiguration
 
 ## License
 
