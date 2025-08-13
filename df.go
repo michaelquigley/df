@@ -82,8 +82,22 @@ func parseDFTag(sf reflect.StructField) (name string, required bool, skip bool) 
 }
 
 func toSnakeCase(in string) string {
+	if in == "" {
+		return ""
+	}
+	
+	// Count uppercase letters to estimate capacity more accurately
+	upperCount := 0
+	for _, r := range in {
+		if unicode.IsUpper(r) {
+			upperCount++
+		}
+	}
+	
+	// Allocate precise capacity: original length + underscores needed
 	var b strings.Builder
-	b.Grow(len(in) + len(in)/2)
+	b.Grow(len(in) + upperCount - 1) // -1 because first upper doesn't get underscore
+	
 	for i, r := range in {
 		if unicode.IsUpper(r) {
 			if i > 0 {

@@ -1,0 +1,88 @@
+package df
+
+import (
+	"testing"
+)
+
+// Benchmark tests for string operations to measure optimization impact
+
+func BenchmarkToSnakeCase(b *testing.B) {
+	testCases := []string{
+		"SimpleCase",
+		"VeryLongFieldNameWithManyUpperCaseLetters",
+		"HTMLParser",
+		"XMLHttpRequest",
+		"getUserIDFromToken",
+		"A",
+		"ABC",
+		"getHTTPStatusCode",
+	}
+	
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		for _, tc := range testCases {
+			_ = toSnakeCase(tc)
+		}
+	}
+}
+
+func BenchmarkStripIndices(b *testing.B) {
+	testCases := []string{
+		"Root.Items[0].Action",
+		"Container.Users[42].Profile.Settings[1].Value",
+		"Simple.Path.Without.Indices",
+		"Deep[0].Nested[1].Array[2].Access[3].Pattern[4]",
+		"Mixed.Path[100].With.Some[999].Indices",
+	}
+	
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		for _, tc := range testCases {
+			_ = stripIndices(tc)
+		}
+	}
+}
+
+// Test to verify our string optimizations produce correct results
+func TestStringOptimizationsCorrectness(t *testing.T) {
+	// Test toSnakeCase correctness
+	testCases := []struct {
+		input    string
+		expected string
+	}{
+		{"", ""},
+		{"A", "a"},
+		{"ABC", "a_b_c"},
+		{"SimpleCase", "simple_case"},
+		{"HTMLParser", "h_t_m_l_parser"},
+		{"getUserID", "get_user_i_d"},
+		{"XMLHttpRequest", "x_m_l_http_request"},
+	}
+	
+	for _, tc := range testCases {
+		result := toSnakeCase(tc.input)
+		if result != tc.expected {
+			t.Errorf("toSnakeCase(%q) = %q, expected %q", tc.input, result, tc.expected)
+		}
+	}
+	
+	// Test stripIndices correctness
+	stripTestCases := []struct {
+		input    string
+		expected string
+	}{
+		{"Root.Items[0].Action", "Root.Items.Action"},
+		{"Container.Users[42].Profile", "Container.Users.Profile"},
+		{"Simple.Path.Without.Indices", "Simple.Path.Without.Indices"},
+		{"Deep[0].Nested[1].Array[2]", "Deep.Nested.Array"},
+		{"", ""},
+		{"NoIndices", "NoIndices"},
+	}
+	
+	for _, tc := range stripTestCases {
+		result := stripIndices(tc.input)
+		if result != tc.expected {
+			t.Errorf("stripIndices(%q) = %q, expected %q", tc.input, result, tc.expected)
+		}
+	}
+}

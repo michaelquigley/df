@@ -272,8 +272,24 @@ func stripIndices(path string) string {
 	if strings.IndexByte(path, '[') == -1 {
 		return path
 	}
+	
+	// Count brackets to estimate result size more accurately
+	bracketCount := 0
+	for _, r := range path {
+		if r == '[' || r == ']' {
+			bracketCount++
+		}
+	}
+	
+	// Estimate capacity: original length minus approximate bracket content
+	// Assume average index is 2 chars (e.g., "[0]", "[12]")
+	estimatedSize := len(path) - (bracketCount/2)*3 // bracketCount/2 pairs, ~3 chars each
+	if estimatedSize < 0 {
+		estimatedSize = len(path) / 2
+	}
+	
 	var b strings.Builder
-	b.Grow(len(path))
+	b.Grow(estimatedSize)
 	skip := 0
 	for _, r := range path {
 		switch r {
