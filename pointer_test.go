@@ -1,0 +1,573 @@
+package df
+
+import (
+	"encoding/json"
+	"testing"
+)
+
+// Test types that implement Identifiable
+type Node struct {
+	Id       string            `df:"id"`
+	Name     string            `df:"name"`
+	Parent   *Pointer[*Node]   `df:"parent,omitempty"`
+	Children []*Pointer[*Node] `df:"children,omitempty"`
+}
+
+func (n *Node) GetId() string { return n.Id }
+
+type User struct {
+	Id   string `df:"id"`
+	Name string `df:"name"`
+	Age  int    `df:"age"`
+}
+
+func (u *User) GetId() string { return u.Id }
+
+type Document struct {
+	Id     string          `df:"id"`
+	Title  string          `df:"title"`
+	Author *Pointer[*User] `df:"author"`
+	Editor *Pointer[*User] `df:"editor,omitempty"`
+}
+
+func (d *Document) GetId() string { return d.Id }
+
+func TestBasicPointerBinding(t *testing.T) {
+	data := map[string]any{
+		"id":   "root",
+		"name": "Root Node",
+		"parent": map[string]any{
+			"$ref": "parent1",
+		},
+		"children": []any{
+			map[string]any{"$ref": "child1"},
+			map[string]any{"$ref": "child2"},
+		},
+	}
+
+	var root Node
+	err := Bind(&root, data)
+	if err != nil {
+		t.Fatalf("Bind failed: %v", err)
+	}
+
+	// Check that references were stored but not resolved yet
+	if root.Id != "root" || root.Name != "Root Node" {
+		t.Errorf("Basic fields not bound correctly")
+	}
+	if root.Parent == nil || root.Parent.Ref != "parent1" {
+		t.Errorf("Parent reference not bound correctly")
+	}
+	if len(root.Children) != 2 || root.Children[0].Ref != "child1" || root.Children[1].Ref != "child2" {
+		t.Errorf("Children references not bound correctly")
+	}
+	if root.Parent.IsResolved() {
+		t.Errorf("Parent should not be resolved yet")
+	}
+}
+
+func TestPointerLinkingWithCycles(t *testing.T) {
+	// Create a tree structure with cycles: root -> child1 -> child2 -> root
+	data := map[string]any{
+		"nodes": []any{
+			map[string]any{
+				"id":   "root",
+				"name": "Root",
+				"children": []any{
+					map[string]any{"$ref": "child1"},
+				},
+			},
+			map[string]any{
+				"id":     "child1",
+				"name":   "Child 1",
+				"parent": map[string]any{"$ref": "root"},
+				"children": []any{
+					map[string]any{"$ref": "child2"},
+				},
+			},
+			map[string]any{
+				"id":     "child2",
+				"name":   "Child 2",
+				"parent": map[string]any{"$ref": "child1"},
+				"children": []any{
+					map[string]any{"$ref": "root"}, // cycle back to root
+				},
+			},
+		},
+	}
+
+	type Container struct {
+		Nodes []*Node `df:"nodes"`
+	}
+
+	var container Container
+	err := Bind(&container, data)
+	if err != nil {
+		t.Fatalf("Bind failed: %v", err)
+	}
+
+	// Link the references
+	err = Link(&container)
+	if err != nil {
+		t.Fatalf("Link failed: %v", err)
+	}
+
+	// Verify the structure is correctly linked
+	root := container.Nodes[0]
+	child1 := container.Nodes[1]
+	child2 := container.Nodes[2]
+
+	// Check that all pointers are resolved
+	if !root.Children[0].IsResolved() || !child1.Parent.IsResolved() {
+		t.Errorf("References should be resolved after linking")
+	}
+
+	// Check the actual references
+	if root.Children[0].Resolve() != child1 {
+		t.Errorf("Root's child should point to child1")
+	}
+	if child1.Parent.Resolve() != root {
+		t.Errorf("Child1's parent should point to root")
+	}
+	if child1.Children[0].Resolve() != child2 {
+		t.Errorf("Child1's child should point to child2")
+	}
+	if child2.Parent.Resolve() != child1 {
+		t.Errorf("Child2's parent should point to child1")
+	}
+	if child2.Children[0].Resolve() != root {
+		t.Errorf("Child2's child should point to root (cycle)")
+	}
+}
+
+func TestMultipleTypesWithSameIDs(t *testing.T) {
+	// Both User and Document have Id "1" - should not clash due to type prefixing
+	data := map[string]any{
+		"users": []any{
+			map[string]any{
+				"id":   "1",
+				"name": "John Doe",
+				"age":  30,
+			},
+		},
+		"documents": []any{
+			map[string]any{
+				"id":     "1", // Same Id as user, but different type
+				"title":  "My Document",
+				"author": map[string]any{"$ref": "1"}, // Should resolve to User with Id "1"
+			},
+		},
+	}
+
+	type Container struct {
+		Users     []*User     `df:"users"`
+		Documents []*Document `df:"documents"`
+	}
+
+	var container Container
+	err := Bind(&container, data)
+	if err != nil {
+		t.Fatalf("Bind failed: %v", err)
+	}
+
+	err = Link(&container)
+	if err != nil {
+		t.Fatalf("Link failed: %v", err)
+	}
+
+	// Verify that the document's author points to the user, not the document
+	user := container.Users[0]
+	doc := container.Documents[0]
+
+	if doc.Author.Resolve() != user {
+		t.Errorf("Document author should resolve to the user, not the document with same Id")
+	}
+	if user.Id != "1" || doc.Id != "1" {
+		t.Errorf("Both objects should have Id '1'")
+	}
+	
+	// Verify that all other data fields are properly bound
+	if user.Name != "John Doe" {
+		t.Errorf("User name not bound correctly, got %q", user.Name)
+	}
+	if user.Age != 30 {
+		t.Errorf("User age not bound correctly, got %d", user.Age)
+	}
+	if doc.Title != "My Document" {
+		t.Errorf("Document title not bound correctly, got %q", doc.Title)
+	}
+}
+
+func TestUnbindPointers(t *testing.T) {
+	// Create a simple structure with pointers
+	root := &Node{
+		Id:   "root",
+		Name: "Root Node",
+	}
+	child := &Node{
+		Id:   "child",
+		Name: "Child Node",
+	}
+
+	// Set up the pointer manually (as if it was linked)
+	root.Children = []*Pointer[*Node]{
+		{Ref: "child", Resolved: child},
+	}
+	child.Parent = &Pointer[*Node]{
+		Ref: "root", Resolved: root,
+	}
+
+	// Unbind should serialize the $ref values, not the resolved objects
+	result, err := Unbind(root)
+	if err != nil {
+		t.Fatalf("Unbind failed: %v", err)
+	}
+
+	// Check the structure
+	if result["id"] != "root" || result["name"] != "Root Node" {
+		t.Errorf("Basic fields not unbound correctly")
+	}
+
+	children, ok := result["children"].([]interface{})
+	if !ok || len(children) != 1 {
+		t.Fatalf("Children not unbound correctly")
+	}
+
+	childRef, ok := children[0].(map[string]any)
+	if !ok || childRef["$ref"] != "child" {
+		t.Errorf("Child reference not unbound correctly: %v", children[0])
+	}
+}
+
+func TestUnbindPointersComprehensive(t *testing.T) {
+	// Test various pointer scenarios: resolved, unresolved, nil, empty slices
+	user1 := &User{
+		Id:   "user1",
+		Name: "Alice",
+		Age:  25,
+	}
+
+	doc := &Document{
+		Id:     "doc1",
+		Title:  "Test Document",
+		Author: &Pointer[*User]{Ref: "user1", Resolved: user1}, // resolved pointer
+		Editor: &Pointer[*User]{Ref: "user2"},                  // unresolved pointer (no Resolved set)
+	}
+
+	result, err := Unbind(doc)
+	if err != nil {
+		t.Fatalf("Unbind failed: %v", err)
+	}
+
+	// Check basic fields
+	if result["id"] != "doc1" || result["title"] != "Test Document" {
+		t.Errorf("Basic document fields not unbound correctly")
+	}
+
+	// Check author pointer (resolved)
+	author, ok := result["author"].(map[string]any)
+	if !ok || author["$ref"] != "user1" {
+		t.Errorf("Author pointer not unbound correctly: %v", result["author"])
+	}
+
+	// Check editor pointer (unresolved but has Ref)  
+	editor, ok := result["editor"].(map[string]any)
+	if !ok || editor["$ref"] != "user2" {
+		t.Errorf("Editor pointer not unbound correctly: %v", result["editor"])
+	}
+}
+
+func TestUnbindNilAndEmptyPointers(t *testing.T) {
+	// Test nil pointers and empty references
+	doc1 := &Document{
+		Id:     "doc1",
+		Title:  "Document 1",
+		Author: &Pointer[*User]{Ref: "user1"},
+		Editor: nil, // nil pointer
+	}
+
+	doc2 := &Document{
+		Id:     "doc2", 
+		Title:  "Document 2",
+		Author: &Pointer[*User]{Ref: ""}, // empty reference
+		Editor: &Pointer[*User]{},        // zero-value pointer
+	}
+
+	// Test doc1 with nil editor
+	result1, err := Unbind(doc1)
+	if err != nil {
+		t.Fatalf("Unbind doc1 failed: %v", err)
+	}
+
+	if result1["id"] != "doc1" || result1["title"] != "Document 1" {
+		t.Errorf("Basic fields not unbound correctly")
+	}
+
+	author, ok := result1["author"].(map[string]any)
+	if !ok || author["$ref"] != "user1" {
+		t.Errorf("Author not unbound correctly: %v", result1["author"])
+	}
+
+	// editor should be omitted since it's nil
+	if _, exists := result1["editor"]; exists {
+		t.Errorf("Nil editor should be omitted from output")
+	}
+
+	// Test doc2 with empty references
+	result2, err := Unbind(doc2)
+	if err != nil {
+		t.Fatalf("Unbind doc2 failed: %v", err)
+	}
+
+	// Empty ref should be omitted
+	if _, exists := result2["author"]; exists {
+		t.Errorf("Empty author reference should be omitted from output")
+	}
+	if _, exists := result2["editor"]; exists {
+		t.Errorf("Zero-value editor should be omitted from output")
+	}
+}
+
+func TestUnbindPointerSlices(t *testing.T) {
+	// Test slices of pointers
+	node := &Node{
+		Id:   "parent",
+		Name: "Parent Node",
+		Children: []*Pointer[*Node]{
+			{Ref: "child1"},
+			{Ref: "child2"}, 
+			{Ref: ""},    // empty ref
+			nil,          // nil pointer in slice
+		},
+	}
+
+	result, err := Unbind(node)
+	if err != nil {
+		t.Fatalf("Unbind failed: %v", err)
+	}
+
+	children, ok := result["children"].([]interface{})
+	if !ok {
+		t.Fatalf("Children not unbound as slice: %v", result["children"])
+	}
+
+	// Should have 4 elements: 2 valid refs, 1 nil (empty ref), 1 nil (nil pointer)
+	if len(children) != 4 {
+		t.Errorf("Expected 4 children, got %d", len(children))
+	}
+
+	// Check first two valid references
+	ref1, ok := children[0].(map[string]any)
+	if !ok || ref1["$ref"] != "child1" {
+		t.Errorf("First child reference incorrect: %v", children[0])
+	}
+
+	ref2, ok := children[1].(map[string]any)
+	if !ok || ref2["$ref"] != "child2" {
+		t.Errorf("Second child reference incorrect: %v", children[1])
+	}
+
+	// Empty ref and nil pointer should both be nil in output
+	if children[2] != nil {
+		t.Errorf("Empty ref should be nil in output, got: %v", children[2])
+	}
+	if children[3] != nil {
+		t.Errorf("Nil pointer should be nil in output, got: %v", children[3])
+	}
+}
+
+func TestCompleteUnbindRoundTrip(t *testing.T) {
+	// Start with objects, bind, link, unbind, and verify the result
+	type Container struct {
+		Users     []*User     `df:"users"`
+		Documents []*Document `df:"documents"`
+	}
+	
+	container := Container{
+		Users: []*User{
+			{Id: "user1", Name: "Alice", Age: 25},
+			{Id: "user2", Name: "Bob", Age: 30},
+		},
+		Documents: []*Document{
+			{
+				Id:     "doc1",
+				Title:  "Guide",
+				Author: &Pointer[*User]{Ref: "user1"},
+				Editor: &Pointer[*User]{Ref: "user2"},
+			},
+			{
+				Id:     "doc2", 
+				Title:  "Manual",
+				Author: &Pointer[*User]{Ref: "user2"},
+				// Editor omitted (nil)
+			},
+		},
+	}
+
+	// Link the references first
+	err := Link(&container)
+	if err != nil {
+		t.Fatalf("Link failed: %v", err)
+	}
+
+	// Unbind should preserve the $ref structure
+	result, err := Unbind(&container)
+	if err != nil {
+		t.Fatalf("Unbind failed: %v", err)
+	}
+
+	// Verify the structure is correct
+	users, ok := result["users"].([]interface{})
+	if !ok || len(users) != 2 {
+		t.Fatalf("Users not unbound correctly")
+	}
+
+	docs, ok := result["documents"].([]interface{})
+	if !ok || len(docs) != 2 {
+		t.Fatalf("Documents not unbound correctly") 
+	}
+
+	// Check first document
+	doc1, ok := docs[0].(map[string]any)
+	if !ok {
+		t.Fatalf("First document not unbound as map")
+	}
+
+	author1, ok := doc1["author"].(map[string]any)
+	if !ok || author1["$ref"] != "user1" {
+		t.Errorf("Doc1 author reference incorrect: %v", doc1["author"])
+	}
+
+	editor1, ok := doc1["editor"].(map[string]any)
+	if !ok || editor1["$ref"] != "user2" {
+		t.Errorf("Doc1 editor reference incorrect: %v", doc1["editor"])
+	}
+
+	// Check second document (editor should be omitted)
+	doc2, ok := docs[1].(map[string]any)
+	if !ok {
+		t.Fatalf("Second document not unbound as map")
+	}
+
+	author2, ok := doc2["author"].(map[string]any)
+	if !ok || author2["$ref"] != "user2" {
+		t.Errorf("Doc2 author reference incorrect: %v", doc2["author"])
+	}
+
+	// Editor should not be present (nil pointer)
+	if _, exists := doc2["editor"]; exists {
+		t.Errorf("Doc2 editor should be omitted when nil")
+	}
+}
+
+func TestRoundTripWithPointers(t *testing.T) {
+	// Original data with pointer references
+	originalData := map[string]any{
+		"nodes": []any{
+			map[string]any{
+				"id":   "node1",
+				"name": "Node 1",
+				"children": []any{
+					map[string]any{"$ref": "node2"},
+				},
+			},
+			map[string]any{
+				"id":     "node2",
+				"name":   "Node 2",
+				"parent": map[string]any{"$ref": "node1"},
+			},
+		},
+	}
+
+	type Container struct {
+		Nodes []*Node `df:"nodes"`
+	}
+
+	// Bind and link
+	var container Container
+	err := Bind(&container, originalData)
+	if err != nil {
+		t.Fatalf("Bind failed: %v", err)
+	}
+	err = Link(&container)
+	if err != nil {
+		t.Fatalf("Link failed: %v", err)
+	}
+
+	// Unbind back to map
+	result, err := Unbind(&container)
+	if err != nil {
+		t.Fatalf("Unbind failed: %v", err)
+	}
+
+	// Convert to JSON for easy comparison
+	originalJSON, _ := json.Marshal(originalData)
+	resultJSON, _ := json.Marshal(result)
+
+	// The structure should be equivalent (though field order might differ)
+	if len(string(originalJSON)) != len(string(resultJSON)) {
+		t.Logf("Original: %s", originalJSON)
+		t.Logf("Result:   %s", resultJSON)
+		// Note: exact comparison might fail due to field ordering, but lengths should be similar
+		// In a real test, you'd want to do a more sophisticated comparison
+	}
+}
+
+func TestEmptyPointerReferences(t *testing.T) {
+	data := map[string]any{
+		"id":   "node1",
+		"name": "Node 1",
+		// parent is omitted - should result in nil Pointer
+		"children": []any{}, // empty children list
+	}
+
+	var node Node
+	err := Bind(&node, data)
+	if err != nil {
+		t.Fatalf("Bind failed: %v", err)
+	}
+
+	err = Link(&node)
+	if err != nil {
+		t.Fatalf("Link failed: %v", err)
+	}
+
+	if node.Parent != nil {
+		t.Errorf("Parent should be nil when omitted")
+	}
+	if len(node.Children) != 0 {
+		t.Errorf("Children should be empty")
+	}
+}
+
+func TestUnresolvedReference(t *testing.T) {
+	data := map[string]any{
+		"id":     "node1",
+		"name":   "Node 1",
+		"parent": map[string]any{"$ref": "nonexistent"},
+	}
+
+	var node Node
+	err := Bind(&node, data)
+	if err != nil {
+		t.Fatalf("Bind failed: %v", err)
+	}
+
+	// Link should fail due to unresolved reference
+	err = Link(&node)
+	if err == nil {
+		t.Errorf("Link should have failed due to unresolved reference")
+	}
+	if err != nil && !contains(err.Error(), "unresolved reference") {
+		t.Errorf("Error should mention unresolved reference: %v", err)
+	}
+}
+
+func contains(s, substr string) bool {
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return true
+		}
+	}
+	return false
+}

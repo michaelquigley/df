@@ -87,7 +87,7 @@ func valueToInterface(v reflect.Value) (interface{}, bool, error) {
 		return valueToInterface(v.Elem())
 	}
 
-	// Special-case time.Duration (alias of int64)
+	// special-case time.Duration (alias of int64)
 	if v.Type() == reflect.TypeOf(time.Duration(0)) {
 		d := time.Duration(v.Int())
 		return d.String(), true, nil
@@ -95,7 +95,12 @@ func valueToInterface(v reflect.Value) (interface{}, bool, error) {
 
 	switch v.Kind() {
 	case reflect.Struct:
-		// If the concrete struct implements Dynamic (directly or via pointer receiver),
+		// check if this is a Pointer[T] type
+		if isPointerType(v.Type()) {
+			return pointerToMap(v)
+		}
+
+		// if the concrete struct implements Dynamic (directly or via pointer receiver),
 		// prefer serializing via ToMap() to preserve the discriminator and schema.
 		if v.Type().Implements(dynamicInterfaceType) {
 			dyn := v.Interface().(Dynamic)
@@ -198,22 +203,38 @@ func dynamicToMap(d Dynamic) map[string]any {
 	return m
 }
 
+// pointerToMap converts a Pointer[T] struct to a map containing the $ref field.
+func pointerToMap(pointerValue reflect.Value) (interface{}, bool, error) {
+	refField := pointerValue.FieldByName("Ref")
+	if !refField.IsValid() || refField.Kind() != reflect.String {
+		return nil, false, fmt.Errorf("invalid Pointer type: missing Ref field")
+	}
+
+	ref := refField.String()
+	if ref == "" {
+		// Empty reference - could omit entirely or include empty $ref
+		return nil, false, nil
+	}
+
+	return map[string]any{"$ref": ref}, true, nil
+}
+
 // UnbindToJSON converts a struct to map using Unbind, then writes it as JSON to the specified file path.
 func UnbindToJSON(source interface{}, path string) error {
 	data, err := Unbind(source)
 	if err != nil {
 		return fmt.Errorf("failed to unbind source: %w", err)
 	}
-	
+
 	jsonData, err := json.MarshalIndent(data, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal to JSON: %w", err)
 	}
-	
+
 	if err := os.WriteFile(path, jsonData, 0644); err != nil {
 		return fmt.Errorf("failed to write JSON file %s: %w", path, err)
 	}
-	
+
 	return nil
 }
 
@@ -223,15 +244,15 @@ func UnbindToYAML(source interface{}, path string) error {
 	if err != nil {
 		return fmt.Errorf("failed to unbind source: %w", err)
 	}
-	
+
 	yamlData, err := yaml.Marshal(data)
 	if err != nil {
 		return fmt.Errorf("failed to marshal to YAML: %w", err)
 	}
-	
+
 	if err := os.WriteFile(path, yamlData, 0644); err != nil {
 		return fmt.Errorf("failed to write YAML file %s: %w", path, err)
 	}
-	
+
 	return nil
 }

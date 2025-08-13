@@ -220,6 +220,14 @@ func setNonPtrValue(fieldVal reflect.Value, raw interface{}, path string, opt *O
 		return fmt.Errorf("%s: interface fields are not supported", path)
 
 	default:
+		// check if this is a Pointer[T] type before falling back to convertAndSet
+		if isPointerType(fieldVal.Type()) {
+			subMap, ok := raw.(map[string]any)
+			if !ok {
+				return fmt.Errorf("%s: expected object for Pointer, got %T", path, raw)
+			}
+			return bindPointer(fieldVal, subMap, path)
+		}
 		return convertAndSet(fieldVal, raw, path)
 	}
 }
@@ -283,6 +291,30 @@ func stripIndices(path string) string {
 		}
 	}
 	return b.String()
+}
+
+// bindPointer binds data to a Pointer[T] field during the bind phase.
+// Only the $ref field is populated; resolution happens during the Link phase.
+func bindPointer(pointerValue reflect.Value, data map[string]any, path string) error {
+	// get the Ref field and set it from the $ref key in the data
+	refField := pointerValue.FieldByName("Ref")
+	if !refField.IsValid() || !refField.CanSet() || refField.Kind() != reflect.String {
+		return fmt.Errorf("%s: invalid Pointer type: missing or non-settable Ref field", path)
+	}
+
+	refVal, ok := data["$ref"]
+	if !ok {
+		// empty reference is valid
+		return nil
+	}
+
+	refStr, ok := refVal.(string)
+	if !ok {
+		return fmt.Errorf("%s: $ref must be a string, got %T", path, refVal)
+	}
+
+	refField.SetString(refStr)
+	return nil
 }
 
 func convertAndSet(dst reflect.Value, raw interface{}, path string) error {
@@ -464,12 +496,12 @@ func BindFromJSON(target interface{}, path string, opts ...*Options) error {
 	if err != nil {
 		return fmt.Errorf("failed to read JSON file %s: %w", path, err)
 	}
-	
+
 	var jsonData map[string]any
 	if err := json.Unmarshal(data, &jsonData); err != nil {
 		return fmt.Errorf("failed to parse JSON from %s: %w", path, err)
 	}
-	
+
 	return Bind(target, jsonData, opts...)
 }
 
@@ -479,11 +511,11 @@ func BindFromYAML(target interface{}, path string, opts ...*Options) error {
 	if err != nil {
 		return fmt.Errorf("failed to read YAML file %s: %w", path, err)
 	}
-	
+
 	var yamlData map[string]any
 	if err := yaml.Unmarshal(data, &yamlData); err != nil {
 		return fmt.Errorf("failed to parse YAML from %s: %w", path, err)
 	}
-	
+
 	return Bind(target, yamlData, opts...)
 }

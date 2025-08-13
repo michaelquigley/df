@@ -229,6 +229,69 @@ result, err := df.Unbind(&notification)
 
 The `type` field in the input data determines which binder function is called to create the appropriate concrete type. During unbind, the `Type()` method ensures the discriminator is preserved for round-trip compatibility.
 
+## Pointer References
+
+Support object references with cycle handling using `df.Pointer[T]` and the `df.Identifiable` interface.
+
+### Basic Usage
+
+```go
+type User struct {
+    ID   string `df:"id"`
+    Name string `df:"name"`
+}
+
+func (u *User) GetId() string { return u.ID }
+
+type Document struct {
+    ID     string          `df:"id"`
+    Title  string          `df:"title"`
+    Author *df.Pointer[*User] `df:"author"`
+}
+
+func (d *Document) GetId() string { return d.ID }
+```
+
+### Two-Phase Process
+
+```go
+// Phase 1: Bind data with $ref strings
+var container Container
+df.Bind(&container, data)
+
+// Phase 2: Resolve all pointer references
+df.Link(&container)
+
+// Access resolved objects
+author := container.Documents[0].Author.Resolve()
+```
+
+### JSON Structure
+
+```json
+{
+  "users": [
+    {"id": "user1", "name": "Alice"}
+  ],
+  "documents": [
+    {
+      "id": "doc1",
+      "title": "Guide", 
+      "author": {"$ref": "user1"}
+    }
+  ]
+}
+```
+
+### Key Features
+
+- **Type Safety**: Generic `Pointer[T]` ensures compile-time type checking
+- **Cycle Support**: Two-phase binding naturally handles circular references
+- **ID Namespacing**: Objects with same ID but different types don't clash (e.g., `User:1` vs `Document:1`)
+- **Round-trip Compatible**: Bind/Link/Unbind preserves reference structure
+
+See [examples/df_pointers](examples/df_pointers) for a complete working example.
+
 ## Roadmap
 
 df is a foundational component in a _dynamic framework_ approach to building golang applications. A dynamic framework application is designed to reconfigure its internal landscape based on configuration structures.
