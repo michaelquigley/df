@@ -215,7 +215,7 @@ func (l *Linker) collectIdentifiableObjects(value reflect.Value, registry map[st
 			if field.PkgPath != "" { // skip unexported fields
 				continue
 			}
-			_, _, skip := parseDFTag(field)
+			_, _, skip := parseDfTag(field)
 			if skip {
 				continue
 			}
@@ -243,7 +243,7 @@ func (l *Linker) resolvePointers(value reflect.Value, registry map[string]reflec
 			if field.PkgPath != "" { // skip unexported fields
 				continue
 			}
-			_, _, skip := parseDFTag(field)
+			_, _, skip := parseDfTag(field)
 			if skip {
 				continue
 			}

@@ -116,13 +116,13 @@ For types that require custom logic for binding and unbinding, `df` supports the
 
 ### The Unmarshaler Interface
 
-A type implements the `Unmarshaler` interface by defining an `UnmarshalDF` method. When `df.Bind` encounters a type that satisfies this interface, it will call this method to populate the struct, bypassing the default reflection-based binding logic for that type.
+A type implements the `Unmarshaler` interface by defining an `UnmarshalDf` method. When `df.Bind` encounters a type that satisfies this interface, it will call this method to populate the struct, bypassing the default reflection-based binding logic for that type.
 
 ```go
 // Unmarshaler is the interface implemented by types that can unmarshal a
 // df description of themselves.
 type Unmarshaler interface {
-    UnmarshalDF(data any) error
+    UnmarshalDf(data any) error
 }
 ```
 
@@ -139,8 +139,8 @@ type CustomTime struct {
     time.Time
 }
 
-// UnmarshalDF implements the df.Unmarshaler interface.
-func (c *CustomTime) UnmarshalDF(data any) error {
+// UnmarshalDf implements the df.Unmarshaler interface.
+func (c *CustomTime) UnmarshalDf(data any) error {
     if dateStr, ok := data.(string); ok {
         t, err := time.Parse("2006-01-02", dateStr)
         if err != nil {
@@ -155,21 +155,21 @@ func (c *CustomTime) UnmarshalDF(data any) error {
 
 ### The Marshaler Interface
 
-A type implements the `Marshaler` interface by defining a `MarshalDF` method. When `df.Unbind` encounters a type that satisfies this interface, it will call this method to convert the type into its data representation, bypassing the default reflection-based unbinding logic.
+A type implements the `Marshaler` interface by defining a `MarshalDf` method. When `df.Unbind` encounters a type that satisfies this interface, it will call this method to convert the type into its data representation, bypassing the default reflection-based unbinding logic.
 
 ```go
 // Marshaler is the interface implemented by types that can marshal themselves
 // into a df description.
 type Marshaler interface {
-    MarshalDF() (any, error)
+    MarshalDf() (any, error)
 }
 ```
 
 #### Example
 
 ```go
-// MarshalDF implements the df.Marshaler interface.
-func (c CustomTime) MarshalDF() (any, error) {
+// MarshalDf implements the df.Marshaler interface.
+func (c CustomTime) MarshalDf() (any, error) {
     return c.Time.Format("2006-01-02"), nil
 }
 ```

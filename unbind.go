@@ -44,7 +44,7 @@ func structToMap(structVal reflect.Value) (map[string]any, error) {
 			continue
 		}
 
-		name, _, skip := parseDFTag(field)
+		name, _, skip := parseDfTag(field)
 		if skip {
 			continue
 		}
@@ -80,13 +80,13 @@ func valueToInterface(v reflect.Value) (interface{}, bool, error) {
 		if v.Kind() == reflect.Ptr && v.IsNil() {
 			return nil, false, nil
 		}
-		m, err := v.Interface().(Marshaler).MarshalDF()
+		m, err := v.Interface().(Marshaler).MarshalDf()
 		return m, true, err
 	}
 	if v.CanAddr() {
 		ptr := v.Addr()
 		if ptr.Type().Implements(marshalerInterfaceType) {
-			m, err := ptr.Interface().(Marshaler).MarshalDF()
+			m, err := ptr.Interface().(Marshaler).MarshalDf()
 			return m, true, err
 		}
 	}
@@ -213,6 +213,3 @@ func dynamicToMap(d Dynamic) map[string]any {
 	m["type"] = d.Type()
 	return m
 }
-
-
-

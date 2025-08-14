@@ -73,7 +73,7 @@ func bindStruct(structValue reflect.Value, data map[string]any, path string, opt
 		}
 
 		fieldVal := structValue.Field(i)
-		name, required, skip := parseDFTag(field)
+		name, required, skip := parseDfTag(field)
 		if skip {
 			continue
 		}
@@ -115,7 +115,7 @@ func bindStruct(structValue reflect.Value, data map[string]any, path string, opt
 	return nil
 }
 
-// unmarshalFromMap handles calling the UnmarshalDF method on a field.
+// unmarshalFromMap handles calling the UnmarshalDf method on a field.
 func unmarshalFromMap(fieldVal reflect.Value, raw interface{}, path string) error {
 	subMap, ok := raw.(map[string]any)
 	if !ok {
@@ -130,7 +130,7 @@ func unmarshalFromMap(fieldVal reflect.Value, raw interface{}, path string) erro
 			if fieldVal.Kind() == reflect.Ptr && fieldVal.IsNil() {
 				fieldVal.Set(reflect.New(fieldVal.Type().Elem()))
 			}
-			return ptr.Interface().(Unmarshaler).UnmarshalDF(subMap)
+			return ptr.Interface().(Unmarshaler).UnmarshalDf(subMap)
 		}
 	}
 
@@ -139,7 +139,7 @@ func unmarshalFromMap(fieldVal reflect.Value, raw interface{}, path string) erro
 		if fieldVal.Kind() == reflect.Ptr && fieldVal.IsNil() {
 			fieldVal.Set(reflect.New(fieldVal.Type().Elem()))
 		}
-		return fieldVal.Interface().(Unmarshaler).UnmarshalDF(subMap)
+		return fieldVal.Interface().(Unmarshaler).UnmarshalDf(subMap)
 	}
 
 	return fmt.Errorf("%s: internal error: field does not implement unmarshaler", path) // should be unreachable
@@ -323,7 +323,7 @@ func stripIndices(path string) string {
 	if strings.IndexByte(path, '[') == -1 {
 		return path
 	}
-	
+
 	// Count brackets to estimate result size more accurately
 	bracketCount := 0
 	for _, r := range path {
@@ -331,14 +331,14 @@ func stripIndices(path string) string {
 			bracketCount++
 		}
 	}
-	
+
 	// Estimate capacity: original length minus approximate bracket content
 	// Assume average index is 2 chars (e.g., "[0]", "[12]")
 	estimatedSize := len(path) - (bracketCount/2)*3 // bracketCount/2 pairs, ~3 chars each
 	if estimatedSize < 0 {
 		estimatedSize = len(path) / 2
 	}
-	
+
 	var b strings.Builder
 	b.Grow(estimatedSize)
 	skip := 0

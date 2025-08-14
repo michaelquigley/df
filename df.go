@@ -20,15 +20,15 @@ type Identifiable interface {
 
 // Marshaler allows a type to define its own marshalling logic to a map[string]any.
 type Marshaler interface {
-	MarshalDF() (map[string]any, error)
+	MarshalDf() (map[string]any, error)
 }
 
 // Unmarshaler allows a type to define its own unmarshalling logic from a map[string]any.
 type Unmarshaler interface {
-	UnmarshalDF(data map[string]any) error
+	UnmarshalDf(data map[string]any) error
 }
 
-// parseDFTag parses the `df` struct tag on a field.
+// parseDfTag parses the `df` struct tag on a field.
 //
 // tag format: df:"[name][,required]"
 //
@@ -41,7 +41,7 @@ type Unmarshaler interface {
 // - if the first token is not "required", it is taken as the external field name.
 // - the presence of a "required" token (any position) sets required=true.
 // - unrecognized tokens are ignored.
-func parseDFTag(sf reflect.StructField) (name string, required bool, skip bool) {
+func parseDfTag(sf reflect.StructField) (name string, required bool, skip bool) {
 	tag := sf.Tag.Get("df")
 	if tag == "-" {
 		return "", false, true

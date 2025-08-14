@@ -449,8 +449,8 @@ type customBindType struct {
 	Value string
 }
 
-// UnmarshalDF implements the Unmarshaler interface for *customBindType
-func (c *customBindType) UnmarshalDF(data map[string]any) error {
+// UnmarshalDf implements the Unmarshaler interface for *customBindType
+func (c *customBindType) UnmarshalDf(data map[string]any) error {
 	if val, ok := data["value"].(string); ok {
 		c.Value = "custom-" + val
 		return nil
@@ -493,13 +493,13 @@ func TestBindCustomUnmarshaler(t *testing.T) {
 }
 
 // dependentUnmarshaler is a test type that checks if another field in the parent struct has been bound before its
-// UnmarshalDF method is called.
+// UnmarshalDf method is called.
 type dependentUnmarshaler struct {
 	Value          string
 	CheckOtherFunc func()
 }
 
-func (d *dependentUnmarshaler) UnmarshalDF(data map[string]any) error {
+func (d *dependentUnmarshaler) UnmarshalDf(data map[string]any) error {
 	// when this is called, the check function should be able to verify that the other field is already bound.
 	if d.CheckOtherFunc != nil {
 		d.CheckOtherFunc()
@@ -516,7 +516,7 @@ func TestBindDeferredUnmarshaler(t *testing.T) {
 		Dep        dependentUnmarshaler `df:"dep"`
 	}{}
 
-	// check function that will be called from within UnmarshalDF
+	// check function that will be called from within UnmarshalDf
 	target.Dep.CheckOtherFunc = func() {
 		// this assertion runs during the Bind process. it verifies that the OtherField has already been populated.
 		assert.Equal(t, "was bound", target.OtherField)

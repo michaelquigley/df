@@ -143,25 +143,25 @@ func TestUnbindOmitNilPtr(t *testing.T) {
 }
 
 func TestUnbindDynamicSlice(t *testing.T) {
-    type root struct {
-        Items []Dynamic
-    }
+	type root struct {
+		Items []Dynamic
+	}
 
-    r := &root{
-        Items: []Dynamic{
-            &dynA{Name: "alpha"},
-            &dynB{Count: 42},
-        },
-    }
+	r := &root{
+		Items: []Dynamic{
+			&dynA{Name: "alpha"},
+			&dynB{Count: 42},
+		},
+	}
 
-    m, err := Unbind(r)
-    assert.NoError(t, err)
-    assert.Equal(t, map[string]any{
-        "items": []interface{}{
-            map[string]any{"type": "a", "name": "alpha"},
-            map[string]any{"type": "b", "count": 42},
-        },
-    }, m)
+	m, err := Unbind(r)
+	assert.NoError(t, err)
+	assert.Equal(t, map[string]any{
+		"items": []interface{}{
+			map[string]any{"type": "a", "name": "alpha"},
+			map[string]any{"type": "b", "count": 42},
+		},
+	}, m)
 }
 
 // customMarshalType is a custom type for testing Marshaler
@@ -169,8 +169,8 @@ type customMarshalType struct {
 	Value string
 }
 
-// MarshalDF implements the Marshaler interface for *customMarshalType
-func (c *customMarshalType) MarshalDF() (map[string]any, error) {
+// MarshalDf implements the Marshaler interface for *customMarshalType
+func (c *customMarshalType) MarshalDf() (map[string]any, error) {
 	return map[string]any{
 		"value": "custom-" + c.Value,
 	}, nil
@@ -211,4 +211,3 @@ func TestUnbindCustomMarshaler(t *testing.T) {
 		assert.Equal(t, expected, m)
 	})
 }
-
