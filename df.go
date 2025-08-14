@@ -28,6 +28,18 @@ type Unmarshaler interface {
 	UnmarshalDf(data map[string]any) error
 }
 
+// Converter defines a bidirectional type conversion interface for custom field types.
+// it allows users to define how their custom types should be converted to/from the raw data.
+type Converter interface {
+	// FromRaw converts a raw value (from the data map) to the target type.
+	// the input can be any type that appears in the data map (string, int, bool, etc.).
+	FromRaw(raw interface{}) (interface{}, error)
+	
+	// ToRaw converts a typed value back to a raw value for serialization.
+	// the output should be a type that can be marshaled (string, int, bool, etc.).
+	ToRaw(value interface{}) (interface{}, error)
+}
+
 // parseDfTag parses the `df` struct tag on a field.
 //
 // tag format: df:"[name][,required]"
@@ -100,3 +112,4 @@ var dynamicInterfaceType = reflect.TypeOf((*Dynamic)(nil)).Elem()
 var identifiableInterfaceType = reflect.TypeOf((*Identifiable)(nil)).Elem()
 var marshalerInterfaceType = reflect.TypeOf((*Marshaler)(nil)).Elem()
 var unmarshalerInterfaceType = reflect.TypeOf((*Unmarshaler)(nil)).Elem()
+var converterInterfaceType = reflect.TypeOf((*Converter)(nil)).Elem()

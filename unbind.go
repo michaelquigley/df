@@ -17,7 +17,9 @@ import (
 // are emitted as strings using Duration.String() (e.g., "30s"). Interface fields are
 // not supported, except for fields of type `Dynamic` (and slices of `Dynamic`), which
 // are converted via their ToMap() method. Map-typed fields are not supported.
-func Unbind(source interface{}) (map[string]any, error) {
+//
+// opts are optional; pass nil or omit to use defaults.
+func Unbind(source interface{}, opts ...*Options) (map[string]any, error) {
 	if source == nil {
 		return nil, fmt.Errorf("nil source provided")
 	}
@@ -31,10 +33,16 @@ func Unbind(source interface{}) (map[string]any, error) {
 	if val.Kind() != reflect.Struct {
 		return nil, fmt.Errorf("source must be a struct or pointer to struct; got %T", source)
 	}
-	return structToMap(val)
+	var opt *Options
+	if len(opts) == 1 {
+		opt = opts[0]
+	} else if len(opts) > 1 {
+		return nil, fmt.Errorf("only one option allowed, got %d", len(opts))
+	}
+	return structToMap(val, opt)
 }
 
-func structToMap(structVal reflect.Value) (map[string]any, error) {
+func structToMap(structVal reflect.Value, opt *Options) (map[string]any, error) {
 	out := make(map[string]any)
 	structType := structVal.Type()
 	for i := 0; i < structVal.NumField(); i++ {
@@ -58,7 +66,7 @@ func structToMap(structVal reflect.Value) (map[string]any, error) {
 			continue
 		}
 
-		v, ok, err := valueToInterface(fieldVal)
+		v, ok, err := valueToInterface(fieldVal, opt)
 		if err != nil {
 			return nil, fmt.Errorf("unbinding field %s.%s to key %q: %w", structType.Name(), field.Name, name, err)
 		}
@@ -74,8 +82,22 @@ func structToMap(structVal reflect.Value) (map[string]any, error) {
 // valueToInterface converts a reflected value into an interface suitable for maps.
 // returns (value, present, error). present=false indicates the value should be omitted
 // (e.g., nil pointer). For time.Duration, emits its String() representation.
-func valueToInterface(v reflect.Value) (interface{}, bool, error) {
-	// check for custom marshaler implementation first
+func valueToInterface(v reflect.Value, opt *Options) (interface{}, bool, error) {
+	// check for custom converter first
+	if opt != nil && opt.Converters != nil {
+		if converter, ok := opt.Converters[v.Type()]; ok {
+			if v.Kind() == reflect.Ptr && v.IsNil() {
+				return nil, false, nil
+			}
+			raw, err := converter.ToRaw(v.Interface())
+			if err != nil {
+				return nil, false, fmt.Errorf("custom converter failed: %w", err)
+			}
+			return raw, true, nil
+		}
+	}
+
+	// check for custom marshaler implementation
 	if v.Type().Implements(marshalerInterfaceType) {
 		if v.Kind() == reflect.Ptr && v.IsNil() {
 			return nil, false, nil
@@ -96,7 +118,7 @@ func valueToInterface(v reflect.Value) (interface{}, bool, error) {
 		if v.IsNil() {
 			return nil, false, nil
 		}
-		return valueToInterface(v.Elem())
+		return valueToInterface(v.Elem(), opt)
 	}
 
 	// special-case time.Duration (alias of int64)
@@ -125,7 +147,7 @@ func valueToInterface(v reflect.Value) (interface{}, bool, error) {
 				return dynamicToMap(dyn), true, nil
 			}
 		}
-		m, err := structToMap(v)
+		m, err := structToMap(v, opt)
 		if err != nil {
 			return nil, false, err
 		}
@@ -164,7 +186,7 @@ func valueToInterface(v reflect.Value) (interface{}, bool, error) {
 		}
 		for i := 0; i < length; i++ {
 			elem := v.Index(i)
-			converted, present, err := valueToInterface(elem)
+			converted, present, err := valueToInterface(elem, opt)
 			if err != nil {
 				return nil, false, fmt.Errorf("index %d: %w", i, err)
 			}

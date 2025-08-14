@@ -8,7 +8,23 @@ import (
 	"time"
 )
 
-func convertAndSet(dst reflect.Value, raw interface{}, path string) error {
+func convertAndSet(dst reflect.Value, raw interface{}, path string, opt *Options) error {
+	// check for custom converter first
+	if opt != nil && opt.Converters != nil {
+		if converter, ok := opt.Converters[dst.Type()]; ok {
+			converted, err := converter.FromRaw(raw)
+			if err != nil {
+				return fmt.Errorf("%s: custom converter failed: %w", path, err)
+			}
+			convertedValue := reflect.ValueOf(converted)
+			if !convertedValue.Type().AssignableTo(dst.Type()) {
+				return fmt.Errorf("%s: custom converter returned incompatible type %T, expected %s", path, converted, dst.Type())
+			}
+			dst.Set(convertedValue)
+			return nil
+		}
+	}
+
 	dstKind := dst.Kind()
 	// special-case time.Duration (which is an int64 alias)
 	if dst.Type() == reflect.TypeOf(time.Duration(0)) {

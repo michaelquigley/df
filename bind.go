@@ -17,6 +17,11 @@ type Options struct {
 	// any array indices in the path are ignored for matching purposes.
 	// when present for a field, this map takes precedence over DynamicBinders.
 	FieldDynamicBinders map[string]map[string]func(map[string]any) (Dynamic, error)
+
+	// Converters maps Go types to custom converters for type conversion.
+	// the key is the reflect.Type of the target field, and the value is a Converter
+	// that handles bidirectional conversion between raw data and the target type.
+	Converters map[reflect.Type]Converter
 }
 
 // Bind populates the exported fields of target (a pointer to a struct) from the given data map. Keys are matched using
@@ -176,6 +181,22 @@ func setField(fieldVal reflect.Value, raw interface{}, path string, opt *Options
 }
 
 func setNonPtrValue(fieldVal reflect.Value, raw interface{}, path string, opt *Options) error {
+	// check for custom converter first
+	if opt != nil && opt.Converters != nil {
+		if converter, ok := opt.Converters[fieldVal.Type()]; ok {
+			converted, err := converter.FromRaw(raw)
+			if err != nil {
+				return fmt.Errorf("%s: custom converter failed: %w", path, err)
+			}
+			convertedValue := reflect.ValueOf(converted)
+			if !convertedValue.Type().AssignableTo(fieldVal.Type()) {
+				return fmt.Errorf("%s: custom converter returned incompatible type %T, expected %s", path, converted, fieldVal.Type())
+			}
+			fieldVal.Set(convertedValue)
+			return nil
+		}
+	}
+
 	switch fieldVal.Kind() {
 	case reflect.Struct:
 		subMap, ok := raw.(map[string]any)
@@ -246,7 +267,7 @@ func setNonPtrValue(fieldVal reflect.Value, raw interface{}, path string, opt *O
 				out = reflect.Append(out, elemVal)
 				continue
 			}
-			if err := convertAndSet(elemVal, item, itemPath); err != nil {
+			if err := convertAndSet(elemVal, item, itemPath, opt); err != nil {
 				return err
 			}
 			out = reflect.Append(out, elemVal)
@@ -279,7 +300,7 @@ func setNonPtrValue(fieldVal reflect.Value, raw interface{}, path string, opt *O
 			}
 			return bindPointer(fieldVal, subMap, path)
 		}
-		return convertAndSet(fieldVal, raw, path)
+		return convertAndSet(fieldVal, raw, path, opt)
 	}
 }
 

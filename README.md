@@ -8,6 +8,7 @@ A lightweight Go library for binding and unbinding structured data to/from Go st
 - **Unbind** Go structs back to maps, JSON, and YAML files
 - **Flexible field mapping** with `df` struct tags
 - **Type coercion** for primitives, pointers, slices, and nested structs
+- **Custom field converters** for specialized type conversion and validation
 - **Dynamic field resolution** for polymorphic data structures
 - **Pointer references** with cycle handling for complex object relationships (see `Pointer`)
 - **Custom marshaling/unmarshaling** with `Marshaler` and `Unmarshaler` interfaces
@@ -175,6 +176,80 @@ func (c CustomTime) MarshalDf() (any, error) {
 ```
 
 With these interfaces, you can integrate types that don't follow standard struct conventions seamlessly into the `df` binding and unbinding process.
+
+## Custom Field Converters
+
+For specialized type conversion and validation, df supports custom field converters through the `Converter` interface. This is particularly useful for domain-specific types, validation during binding, or handling multiple input formats for the same logical type.
+
+### The Converter Interface
+
+```go
+// Converter defines a bidirectional type conversion interface for custom field types.
+type Converter interface {
+    // FromRaw converts a raw value (from the data map) to the target type.
+    FromRaw(raw interface{}) (interface{}, error)
+    
+    // ToRaw converts a typed value back to a raw value for serialization.
+    ToRaw(value interface{}) (interface{}, error)
+}
+```
+
+### Example: Email Validation Converter
+
+```go
+// Email represents a validated email address
+type Email string
+
+// EmailConverter handles conversion and validation
+type EmailConverter struct{}
+
+func (c *EmailConverter) FromRaw(raw interface{}) (interface{}, error) {
+    s, ok := raw.(string)
+    if !ok {
+        return nil, fmt.Errorf("expected string for email, got %T", raw)
+    }
+    
+    // basic email validation
+    if !strings.Contains(s, "@") {
+        return nil, fmt.Errorf("invalid email format: %s", s)
+    }
+    
+    return Email(s), nil
+}
+
+func (c *EmailConverter) ToRaw(value interface{}) (interface{}, error) {
+    email, ok := value.(Email)
+    if !ok {
+        return nil, fmt.Errorf("expected Email, got %T", value)
+    }
+    return string(email), nil
+}
+
+// Usage
+opts := &df.Options{
+    Converters: map[reflect.Type]df.Converter{
+        reflect.TypeOf(Email("")): &EmailConverter{},
+    },
+}
+
+type User struct {
+    Email Email `df:"email"`
+    Name  string `df:"name"`
+}
+
+var user User
+err := df.Bind(&user, data, opts) // validates email during binding
+```
+
+### Benefits
+
+- **Type Safety**: Ensures data conforms to expected formats before binding
+- **Validation**: Built-in validation during the binding process  
+- **Flexibility**: Supports multiple input formats for the same logical type
+- **Reusability**: Converters can be used across different struct definitions
+- **Bidirectional**: Works seamlessly with both bind and unbind operations
+
+See the `examples/df_converters` directory for a complete example with multiple converter types.
 
 ## File Operations
 
