@@ -48,10 +48,31 @@ func Bind(target interface{}, data map[string]any, opts ...*Options) error {
 	if err != nil {
 		return err
 	}
-	return bindStruct(elem, data, elem.Type().Name(), opt)
+	return bindStruct(elem, data, elem.Type().Name(), opt, false)
 }
 
-func bindStruct(structValue reflect.Value, data map[string]any, path string, opt *Options) error {
+// BindTo populates the exported fields of an existing target struct from the given data map, preserving
+// any existing field values that are not present in the data. This allows binding partial data to
+// pre-initialized structs with default values.
+//
+// uses the same field mapping rules as Bind: struct tags, snake_case conversion, etc.
+//
+// supported kinds are the same as Bind.
+//
+// opts are optional; pass nil or omit to use defaults.
+func BindTo(target interface{}, data map[string]any, opts ...*Options) error {
+	elem, err := validateTarget(target)
+	if err != nil {
+		return err
+	}
+	opt, err := getOptions(opts...)
+	if err != nil {
+		return err
+	}
+	return bindStruct(elem, data, elem.Type().Name(), opt, true)
+}
+
+func bindStruct(structValue reflect.Value, data map[string]any, path string, opt *Options, preserveExisting bool) error {
 	structType := structValue.Type()
 
 	type deferredUnmarshal struct {
@@ -96,7 +117,7 @@ func bindStruct(structValue reflect.Value, data map[string]any, path string, opt
 			continue
 		}
 
-		if err := setField(fieldVal, raw, path+"."+field.Name, opt); err != nil {
+		if err := setField(fieldVal, raw, path+"."+field.Name, opt, preserveExisting); err != nil {
 			return fmt.Errorf("binding field %s.%s from key %q: %w", path, field.Name, name, err)
 		}
 	}
@@ -141,37 +162,45 @@ func unmarshalFromMap(fieldVal reflect.Value, raw interface{}, path string) erro
 	return fmt.Errorf("%s: internal error: field does not implement unmarshaler", path) // should be unreachable
 }
 
-func setField(fieldVal reflect.Value, raw interface{}, path string, opt *Options) error {
+func setField(fieldVal reflect.Value, raw interface{}, path string, opt *Options, preserveExisting bool) error {
 	fieldType := fieldVal.Type()
 
 	// handle pointers by allocating as needed then setting the element
 	if fieldType.Kind() == reflect.Ptr {
-		// if pointer to struct, allocate new struct and bind into it
 		elemType := fieldType.Elem()
-		newPtr := reflect.New(elemType)
 		if elemType.Kind() == reflect.Struct {
 			subMap, ok := raw.(map[string]any)
 			if !ok {
 				return fmt.Errorf("%s: expected object for struct pointer, got %T", path, raw)
 			}
-			if err := bindStruct(newPtr.Elem(), subMap, path, opt); err != nil {
-				return err
+			// if preserveExisting and pointer is not nil, bind to existing struct
+			if preserveExisting && !fieldVal.IsNil() {
+				if err := bindStruct(fieldVal.Elem(), subMap, path, opt, preserveExisting); err != nil {
+					return err
+				}
+			} else {
+				// allocate new struct and bind into it
+				newPtr := reflect.New(elemType)
+				if err := bindStruct(newPtr.Elem(), subMap, path, opt, preserveExisting); err != nil {
+					return err
+				}
+				fieldVal.Set(newPtr)
 			}
-			fieldVal.Set(newPtr)
 			return nil
 		}
 		// pointer to primitive or slice
-		if err := setNonPtrValue(newPtr.Elem(), raw, path, opt); err != nil {
+		newPtr := reflect.New(elemType)
+		if err := setNonPtrValue(newPtr.Elem(), raw, path, opt, preserveExisting); err != nil {
 			return err
 		}
 		fieldVal.Set(newPtr)
 		return nil
 	}
 
-	return setNonPtrValue(fieldVal, raw, path, opt)
+	return setNonPtrValue(fieldVal, raw, path, opt, preserveExisting)
 }
 
-func setNonPtrValue(fieldVal reflect.Value, raw interface{}, path string, opt *Options) error {
+func setNonPtrValue(fieldVal reflect.Value, raw interface{}, path string, opt *Options, preserveExisting bool) error {
 	// check for custom converter first
 	if converted, wasConverted, err := tryCustomConverter(fieldVal.Type(), raw, opt, true); err != nil {
 		return fmt.Errorf("%s: %w", path, err)
@@ -186,7 +215,7 @@ func setNonPtrValue(fieldVal reflect.Value, raw interface{}, path string, opt *O
 		if !ok {
 			return fmt.Errorf("%s: expected object for struct, got %T", path, raw)
 		}
-		return bindStruct(fieldVal, subMap, path, opt)
+		return bindStruct(fieldVal, subMap, path, opt, preserveExisting)
 
 	case reflect.Slice:
 		rawVal := reflect.ValueOf(raw)
@@ -223,14 +252,14 @@ func setNonPtrValue(fieldVal reflect.Value, raw interface{}, path string, opt *O
 					if !ok {
 						return fmt.Errorf("%s: expected object for struct slice element, got %T", itemPath, item)
 					}
-					if err := bindStruct(elemPtr.Elem(), subMap, itemPath, opt); err != nil {
+					if err := bindStruct(elemPtr.Elem(), subMap, itemPath, opt, preserveExisting); err != nil {
 						return err
 					}
 					out = reflect.Append(out, elemPtr)
 					continue
 				}
 				// pointer to primitive element
-				if err := setNonPtrValue(elemPtr.Elem(), item, itemPath, opt); err != nil {
+				if err := setNonPtrValue(elemPtr.Elem(), item, itemPath, opt, preserveExisting); err != nil {
 					return err
 				}
 				out = reflect.Append(out, elemPtr)
@@ -244,7 +273,7 @@ func setNonPtrValue(fieldVal reflect.Value, raw interface{}, path string, opt *O
 				if !ok {
 					return fmt.Errorf("%s: expected object for struct slice element, got %T", itemPath, item)
 				}
-				if err := bindStruct(elemVal, subMap, itemPath, opt); err != nil {
+				if err := bindStruct(elemVal, subMap, itemPath, opt, preserveExisting); err != nil {
 					return err
 				}
 				out = reflect.Append(out, elemVal)
