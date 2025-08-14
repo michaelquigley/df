@@ -292,13 +292,13 @@ func bindDynamic(m map[string]any, path string, opt *Options) (Dynamic, error) {
 	if opt == nil {
 		return nil, fmt.Errorf("%s: no options provided to resolve Dynamic field", path)
 	}
-	tVal, ok := m["type"]
+	tVal, ok := m[TypeKey]
 	if !ok {
-		return nil, fmt.Errorf("%s: missing 'type' discriminator for Dynamic field", path)
+		return nil, fmt.Errorf("%s: missing '%v' discriminator for Dynamic field", path, TypeKey)
 	}
 	typeStr, ok := tVal.(string)
 	if !ok || strings.TrimSpace(typeStr) == "" {
-		return nil, fmt.Errorf("%s: invalid 'type' discriminator for Dynamic field: %v", path, tVal)
+		return nil, fmt.Errorf("%s: invalid '%v' discriminator for Dynamic field: %v", path, TypeKey, tVal)
 	}
 	// prefer field-specific binder set if provided
 	var binder func(map[string]any) (Dynamic, error)

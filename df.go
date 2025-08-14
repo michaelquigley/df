@@ -109,6 +109,12 @@ func toSnakeCase(in string) string {
 	return b.String()
 }
 
+// Magic string constants for special keys to avoid typos
+const (
+	TypeKey = "type" // discriminator key for Dynamic types
+	RefKey  = "$ref" // reference key for Pointer types
+)
+
 var dynamicInterfaceType = reflect.TypeOf((*Dynamic)(nil)).Elem()
 var identifiableInterfaceType = reflect.TypeOf((*Identifiable)(nil)).Elem()
 var marshalerInterfaceType = reflect.TypeOf((*Marshaler)(nil)).Elem()

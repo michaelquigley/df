@@ -226,6 +226,6 @@ func dynamicToMap(d Dynamic) map[string]any {
 	if m == nil {
 		m = make(map[string]any)
 	}
-	m["type"] = d.Type()
+	m[TypeKey] = d.Type()
 	return m
 }

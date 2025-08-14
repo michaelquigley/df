@@ -3,6 +3,7 @@ package df
 import (
 	"fmt"
 	"reflect"
+	"strings"
 )
 
 // Pointer represents a reference to an object of type T that implements Identifiable.
@@ -295,17 +296,41 @@ func (l *Linker) resolvePointersInField(fieldValue reflect.Value, fieldType refl
 }
 
 // isPointerType checks if the given type is a Pointer[T] generic type.
+// performs more robust checking including package path and struct tags.
 func isPointerType(t reflect.Type) bool {
 	if t.Kind() != reflect.Struct {
 		return false
 	}
-	// check if it has the structure of Pointer[T]: a "Ref" field and a "Resolved" field
-	if t.NumField() >= 2 {
-		field0 := t.Field(0)
-		field1 := t.Field(1)
-		return field0.Name == "Ref" && field0.Type.Kind() == reflect.String && field1.Name == "Resolved"
+
+	// check if the type name starts with "Pointer[" (generic instantiation)
+	if typeName := t.Name(); typeName != "" && !strings.HasPrefix(typeName, "Pointer[") {
+		return false
 	}
-	return false
+
+	// check if it has the exact structure of Pointer[T]: a "Ref" field with df:"$ref" tag and a "Resolved" field
+	if t.NumField() != 2 {
+		return false
+	}
+
+	field0 := t.Field(0)
+	field1 := t.Field(1)
+
+	// verify first field is "Ref" with correct type and tag
+	if field0.Name != "Ref" || field0.Type.Kind() != reflect.String {
+		return false
+	}
+
+	// verify the df struct tag matches our RefKey
+	if dfTag := field0.Tag.Get("df"); dfTag != RefKey {
+		return false
+	}
+
+	// verify second field is "Resolved"
+	if field1.Name != "Resolved" {
+		return false
+	}
+
+	return true
 }
 
 // resolvePointerField resolves a single Pointer[T] field.
@@ -364,7 +389,7 @@ func bindPointer(pointerValue reflect.Value, data map[string]any, path string) e
 		return fmt.Errorf("%s: invalid Pointer type: missing or non-settable Ref field", path)
 	}
 
-	refVal, ok := data["$ref"]
+	refVal, ok := data[RefKey]
 	if !ok {
 		// empty reference is valid
 		return nil
@@ -372,7 +397,7 @@ func bindPointer(pointerValue reflect.Value, data map[string]any, path string) e
 
 	refStr, ok := refVal.(string)
 	if !ok {
-		return fmt.Errorf("%s: $ref must be a string, got %T", path, refVal)
+		return fmt.Errorf("%s: '%s' must be a string, got '%T'", path, RefKey, refVal)
 	}
 
 	refField.SetString(refStr)
@@ -392,5 +417,5 @@ func pointerToMap(pointerValue reflect.Value) (interface{}, bool, error) {
 		return nil, false, nil
 	}
 
-	return map[string]any{"$ref": ref}, true, nil
+	return map[string]any{RefKey: ref}, true, nil
 }
