@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// test types that implement Identifiable
+// test types that implement identifiable
 type Node struct {
 	Id       string            `df:"id"`
 	Name     string            `df:"name"`
@@ -53,16 +53,16 @@ func TestBasicPointerBinding(t *testing.T) {
 
 	// check that references were stored but not resolved yet
 	if root.Id != "root" || root.Name != "Root Node" {
-		t.Errorf("Basic fields not bound correctly")
+		t.Errorf("basic fields not bound correctly")
 	}
 	if root.Parent == nil || root.Parent.Ref != "parent1" {
-		t.Errorf("Parent reference not bound correctly")
+		t.Errorf("parent reference not bound correctly")
 	}
 	if len(root.Children) != 2 || root.Children[0].Ref != "child1" || root.Children[1].Ref != "child2" {
-		t.Errorf("Children references not bound correctly")
+		t.Errorf("children references not bound correctly")
 	}
 	if root.Parent.IsResolved() {
-		t.Errorf("Parent should not be resolved yet")
+		t.Errorf("parent should not be resolved yet")
 	}
 }
 
@@ -119,29 +119,29 @@ func TestPointerLinkingWithCycles(t *testing.T) {
 
 	// check that all pointers are resolved
 	if !root.Children[0].IsResolved() || !child1.Parent.IsResolved() {
-		t.Errorf("References should be resolved after linking")
+		t.Errorf("references should be resolved after linking")
 	}
 
 	// check the actual references
 	if root.Children[0].Resolve() != child1 {
-		t.Errorf("Root's child should point to child1")
+		t.Errorf("root's child should point to child1")
 	}
 	if child1.Parent.Resolve() != root {
-		t.Errorf("Child1's parent should point to root")
+		t.Errorf("child1's parent should point to root")
 	}
 	if child1.Children[0].Resolve() != child2 {
-		t.Errorf("Child1's child should point to child2")
+		t.Errorf("child1's child should point to child2")
 	}
 	if child2.Parent.Resolve() != child1 {
-		t.Errorf("Child2's parent should point to child1")
+		t.Errorf("child2's parent should point to child1")
 	}
 	if child2.Children[0].Resolve() != root {
-		t.Errorf("Child2's child should point to root (cycle)")
+		t.Errorf("child2's child should point to root (cycle)")
 	}
 }
 
 func TestMultipleTypesWithSameIDs(t *testing.T) {
-	// both User and Document have Id "1" - should not clash due to type prefixing
+	// both User and Document have id "1" - should not clash due to type prefixing
 	data := map[string]any{
 		"users": []any{
 			map[string]any{
@@ -152,9 +152,9 @@ func TestMultipleTypesWithSameIDs(t *testing.T) {
 		},
 		"documents": []any{
 			map[string]any{
-				"id":     "1", // Same Id as user, but different type
+				"id":     "1", // same id as user, but different type
 				"title":  "My Document",
-				"author": map[string]any{"$ref": "1"}, // Should resolve to User with Id "1"
+				"author": map[string]any{"$ref": "1"}, // should resolve to User with id "1"
 			},
 		},
 	}
@@ -180,12 +180,12 @@ func TestMultipleTypesWithSameIDs(t *testing.T) {
 	doc := container.Documents[0]
 
 	if doc.Author.Resolve() != user {
-		t.Errorf("Document author should resolve to the user, not the document with same Id")
+		t.Errorf("document author should resolve to the user, not the document with same id")
 	}
 	if user.Id != "1" || doc.Id != "1" {
-		t.Errorf("Both objects should have Id '1'")
+		t.Errorf("both objects should have id '1'")
 	}
-	
+
 	// verify that all other data fields are properly bound
 	if user.Name != "John Doe" {
 		t.Errorf("User name not bound correctly, got %q", user.Name)
@@ -225,17 +225,17 @@ func TestUnbindPointers(t *testing.T) {
 
 	// check the structure
 	if result["id"] != "root" || result["name"] != "Root Node" {
-		t.Errorf("Basic fields not unbound correctly")
+		t.Errorf("basic fields not unbound correctly")
 	}
 
 	children, ok := result["children"].([]interface{})
 	if !ok || len(children) != 1 {
-		t.Fatalf("Children not unbound correctly")
+		t.Fatalf("children not unbound correctly")
 	}
 
 	childRef, ok := children[0].(map[string]any)
 	if !ok || childRef["$ref"] != "child" {
-		t.Errorf("Child reference not unbound correctly: %v", children[0])
+		t.Errorf("child reference not unbound correctly: %v", children[0])
 	}
 }
 
@@ -261,19 +261,19 @@ func TestUnbindPointersComprehensive(t *testing.T) {
 
 	// check basic fields
 	if result["id"] != "doc1" || result["title"] != "Test Document" {
-		t.Errorf("Basic document fields not unbound correctly")
+		t.Errorf("basic document fields not unbound correctly")
 	}
 
 	// check author pointer (resolved)
 	author, ok := result["author"].(map[string]any)
 	if !ok || author["$ref"] != "user1" {
-		t.Errorf("Author pointer not unbound correctly: %v", result["author"])
+		t.Errorf("author pointer not unbound correctly: %v", result["author"])
 	}
 
-	// check editor pointer (unresolved but has Ref)  
+	// check editor pointer (unresolved but has Ref)
 	editor, ok := result["editor"].(map[string]any)
 	if !ok || editor["$ref"] != "user2" {
-		t.Errorf("Editor pointer not unbound correctly: %v", result["editor"])
+		t.Errorf("editor pointer not unbound correctly: %v", result["editor"])
 	}
 }
 
@@ -287,7 +287,7 @@ func TestUnbindNilAndEmptyPointers(t *testing.T) {
 	}
 
 	doc2 := &Document{
-		Id:     "doc2", 
+		Id:     "doc2",
 		Title:  "Document 2",
 		Author: &Pointer[*User]{Ref: ""}, // empty reference
 		Editor: &Pointer[*User]{},        // zero-value pointer
@@ -300,7 +300,7 @@ func TestUnbindNilAndEmptyPointers(t *testing.T) {
 	}
 
 	if result1["id"] != "doc1" || result1["title"] != "Document 1" {
-		t.Errorf("Basic fields not unbound correctly")
+		t.Errorf("basic fields not unbound correctly")
 	}
 
 	author, ok := result1["author"].(map[string]any)
@@ -335,9 +335,9 @@ func TestUnbindPointerSlices(t *testing.T) {
 		Name: "Parent Node",
 		Children: []*Pointer[*Node]{
 			{Ref: "child1"},
-			{Ref: "child2"}, 
-			{Ref: ""},    // empty ref
-			nil,          // nil pointer in slice
+			{Ref: "child2"},
+			{Ref: ""}, // empty ref
+			nil,       // nil pointer in slice
 		},
 	}
 
@@ -382,7 +382,7 @@ func TestCompleteUnbindRoundTrip(t *testing.T) {
 		Users     []*User     `df:"users"`
 		Documents []*Document `df:"documents"`
 	}
-	
+
 	container := Container{
 		Users: []*User{
 			{Id: "user1", Name: "Alice", Age: 25},
@@ -396,7 +396,7 @@ func TestCompleteUnbindRoundTrip(t *testing.T) {
 				Editor: &Pointer[*User]{Ref: "user2"},
 			},
 			{
-				Id:     "doc2", 
+				Id:     "doc2",
 				Title:  "Manual",
 				Author: &Pointer[*User]{Ref: "user2"},
 				// editor omitted (nil)
@@ -424,7 +424,7 @@ func TestCompleteUnbindRoundTrip(t *testing.T) {
 
 	docs, ok := result["documents"].([]interface{})
 	if !ok || len(docs) != 2 {
-		t.Fatalf("Documents not unbound correctly") 
+		t.Fatalf("Documents not unbound correctly")
 	}
 
 	// check first document
@@ -570,4 +570,444 @@ func contains(s, substr string) bool {
 		}
 	}
 	return false
+}
+
+func TestLinkerBasicFunctionality(t *testing.T) {
+	// create test data
+	data := map[string]any{
+		"nodes": []any{
+			map[string]any{
+				"id":   "node1",
+				"name": "Node 1",
+				"children": []any{
+					map[string]any{"$ref": "node2"},
+				},
+			},
+			map[string]any{
+				"id":     "node2",
+				"name":   "Node 2",
+				"parent": map[string]any{"$ref": "node1"},
+			},
+		},
+	}
+
+	type Container struct {
+		Nodes []*Node `df:"nodes"`
+	}
+
+	var container Container
+	err := Bind(&container, data)
+	if err != nil {
+		t.Fatalf("Bind failed: %v", err)
+	}
+
+	// test with default linker
+	err = Link(&container)
+	if err != nil {
+		t.Fatalf("Linker.Link failed: %v", err)
+	}
+
+	// verify linking worked
+	node1 := container.Nodes[0]
+	node2 := container.Nodes[1]
+
+	if !node1.Children[0].IsResolved() {
+		t.Errorf("node1's child should be resolved")
+	}
+	if node1.Children[0].Resolve() != node2 {
+		t.Errorf("node1's child should point to node2")
+	}
+	if !node2.Parent.IsResolved() {
+		t.Errorf("node2's parent should be resolved")
+	}
+	if node2.Parent.Resolve() != node1 {
+		t.Errorf("node2's parent should point to node1")
+	}
+}
+
+func TestLinkerCaching(t *testing.T) {
+	type Container struct {
+		Nodes []*Node `df:"nodes"`
+	}
+
+	// create test data that we'll use twice
+	createTestData := func() (Container, error) {
+		data := map[string]any{
+			"nodes": []any{
+				map[string]any{
+					"id":   "cached1",
+					"name": "Cached Node 1",
+					"children": []any{
+						map[string]any{"$ref": "cached2"},
+					},
+				},
+				map[string]any{
+					"id":     "cached2",
+					"name":   "Cached Node 2",
+					"parent": map[string]any{"$ref": "cached1"},
+				},
+			},
+		}
+
+		var container Container
+		err := Bind(&container, data)
+		return container, err
+	}
+
+	// create linker with caching enabled
+	linker := NewLinker(LinkerOptions{EnableCaching: true})
+
+	// first linking operation - should populate cache
+	container1, err := createTestData()
+	if err != nil {
+		t.Fatalf("First bind failed: %v", err)
+	}
+
+	err = linker.Link(&container1)
+	if err != nil {
+		t.Fatalf("First link failed: %v", err)
+	}
+
+	// second linking operation - should use cache
+	container2, err := createTestData()
+	if err != nil {
+		t.Fatalf("Second bind failed: %v", err)
+	}
+
+	err = linker.Link(&container2)
+	if err != nil {
+		t.Fatalf("Second link failed: %v", err)
+	}
+
+	// verify both containers are properly linked
+	if !container1.Nodes[0].Children[0].IsResolved() {
+		t.Errorf("Container1 not properly linked")
+	}
+	if !container2.Nodes[0].Children[0].IsResolved() {
+		t.Errorf("Container2 not properly linked")
+	}
+
+	// clear cache and try again
+	linker.ClearCache()
+	container3, err := createTestData()
+	if err != nil {
+		t.Fatalf("Third bind failed: %v", err)
+	}
+
+	err = linker.Link(&container3)
+	if err != nil {
+		t.Fatalf("Third link after cache clear failed: %v", err)
+	}
+
+	if !container3.Nodes[0].Children[0].IsResolved() {
+		t.Errorf("Container3 not properly linked after cache clear")
+	}
+}
+
+func TestLinkerMultiStage(t *testing.T) {
+	// create separate data sources
+	source1 := map[string]any{
+		"users": []any{
+			map[string]any{
+				"id":   "user1",
+				"name": "Alice",
+				"age":  25,
+			},
+		},
+	}
+
+	source2 := map[string]any{
+		"documents": []any{
+			map[string]any{
+				"id":     "doc1",
+				"title":  "Document 1",
+				"author": map[string]any{"$ref": "user1"}, // references user from source1
+			},
+		},
+	}
+
+	type Source1 struct {
+		Users []*User `df:"users"`
+	}
+
+	type Source2 struct {
+		Documents []*Document `df:"documents"`
+	}
+
+	var s1 Source1
+	var s2 Source2
+
+	err := Bind(&s1, source1)
+	if err != nil {
+		t.Fatalf("bind source1 failed: %v", err)
+	}
+
+	err = Bind(&s2, source2)
+	if err != nil {
+		t.Fatalf("bind source2 failed: %v", err)
+	}
+
+	// use multi-stage linking
+	linker := NewLinker(LinkerOptions{EnableCaching: true})
+
+	// register from source1
+	err = linker.Register(&s1)
+	if err != nil {
+		t.Fatalf("register from source1 failed: %v", err)
+	}
+
+	// register from source2 (won't find any new Identifiables, but that's ok)
+	err = linker.Register(&s2)
+	if err != nil {
+		t.Fatalf("register from source2 failed: %v", err)
+	}
+
+	// now resolve references in source2
+	err = linker.ResolveReferences(&s2)
+	if err != nil {
+		t.Fatalf("resolveReferences failed: %v", err)
+	}
+
+	// verify the cross-reference worked
+	if !s2.Documents[0].Author.IsResolved() {
+		t.Errorf("document author should be resolved")
+	}
+
+	resolvedAuthor := s2.Documents[0].Author.Resolve()
+	if resolvedAuthor != s1.Users[0] {
+		t.Errorf("document author should point to user from source1")
+	}
+}
+
+func TestLinkerPartialResolution(t *testing.T) {
+	data := map[string]any{
+		"id":     "node1",
+		"name":   "Node 1",
+		"parent": map[string]any{"$ref": "nonexistent"},
+	}
+
+	var node Node
+	err := Bind(&node, data)
+	if err != nil {
+		t.Fatalf("bind failed: %v", err)
+	}
+
+	// with partial resolution disabled (default), should fail
+	linker1 := NewLinker()
+	err = linker1.Link(&node)
+	if err == nil {
+		t.Errorf("link should have failed with unresolved reference")
+	}
+
+	// with partial resolution enabled, should succeed
+	linker2 := NewLinker(LinkerOptions{AllowPartialResolution: true})
+	err = linker2.Link(&node)
+	if err != nil {
+		t.Fatalf("link with partial resolution should have succeeded: %v", err)
+	}
+
+	// the reference should remain unresolved
+	if node.Parent == nil {
+		t.Errorf("parent pointer should not be nil")
+	}
+	if node.Parent.IsResolved() {
+		t.Errorf("parent should not be resolved when reference is missing")
+	}
+	if node.Parent.Ref != "nonexistent" {
+		t.Errorf("parent ref should still contain the unresolved reference")
+	}
+}
+
+func TestVariadicLink(t *testing.T) {
+	// create separate data sources that reference each other
+	source1 := map[string]any{
+		"users": []any{
+			map[string]any{
+				"id":   "user1",
+				"name": "Alice",
+				"age":  25,
+			},
+		},
+	}
+
+	source2 := map[string]any{
+		"documents": []any{
+			map[string]any{
+				"id":     "doc1",
+				"title":  "Document 1",
+				"author": map[string]any{"$ref": "user1"}, // references user from source1
+			},
+		},
+	}
+
+	type Source1 struct {
+		Users []*User `df:"users"`
+	}
+
+	type Source2 struct {
+		Documents []*Document `df:"documents"`
+	}
+
+	var s1 Source1
+	var s2 Source2
+
+	err := Bind(&s1, source1)
+	if err != nil {
+		t.Fatalf("bind source1 failed: %v", err)
+	}
+
+	err = Bind(&s2, source2)
+	if err != nil {
+		t.Fatalf("bind source2 failed: %v", err)
+	}
+
+	// test variadic Link function
+	err = Link(&s1, &s2)
+	if err != nil {
+		t.Fatalf("variadic Link failed: %v", err)
+	}
+
+	// verify the cross-reference worked
+	if !s2.Documents[0].Author.IsResolved() {
+		t.Errorf("document author should be resolved")
+	}
+
+	resolvedAuthor := s2.Documents[0].Author.Resolve()
+	if resolvedAuthor != s1.Users[0] {
+		t.Errorf("document author should point to user from source1")
+	}
+}
+
+func TestVariadicLinkerLink(t *testing.T) {
+	// create test data similar to the basic functionality test but split across multiple objects
+	source1 := map[string]any{
+		"nodes": []any{
+			map[string]any{
+				"id":   "node1",
+				"name": "Node 1",
+				"children": []any{
+					map[string]any{"$ref": "node2"},
+				},
+			},
+		},
+	}
+
+	source2 := map[string]any{
+		"nodes": []any{
+			map[string]any{
+				"id":     "node2",
+				"name":   "Node 2",
+				"parent": map[string]any{"$ref": "node1"},
+			},
+		},
+	}
+
+	type Container struct {
+		Nodes []*Node `df:"nodes"`
+	}
+
+	var container1, container2 Container
+
+	err := Bind(&container1, source1)
+	if err != nil {
+		t.Fatalf("bind container1 failed: %v", err)
+	}
+
+	err = Bind(&container2, source2)
+	if err != nil {
+		t.Fatalf("bind container2 failed: %v", err)
+	}
+
+	// test linker with variadic Link
+	linker := NewLinker()
+	err = linker.Link(&container1, &container2)
+	if err != nil {
+		t.Fatalf("linker variadic Link failed: %v", err)
+	}
+
+	// verify linking worked
+	node1 := container1.Nodes[0]
+	node2 := container2.Nodes[0]
+
+	if !node1.Children[0].IsResolved() {
+		t.Errorf("node1's child should be resolved")
+	}
+	if node1.Children[0].Resolve() != node2 {
+		t.Errorf("node1's child should point to node2")
+	}
+	if !node2.Parent.IsResolved() {
+		t.Errorf("node2's parent should be resolved")
+	}
+	if node2.Parent.Resolve() != node1 {
+		t.Errorf("node2's parent should point to node1")
+	}
+}
+
+func TestVariadicRegister(t *testing.T) {
+	// create separate data sources
+	source1 := map[string]any{
+		"users": []any{
+			map[string]any{
+				"id":   "user1",
+				"name": "Alice",
+				"age":  25,
+			},
+		},
+	}
+
+	source2 := map[string]any{
+		"documents": []any{
+			map[string]any{
+				"id":     "doc1",
+				"title":  "Document 1",
+				"author": map[string]any{"$ref": "user1"}, // references user from source1
+			},
+		},
+	}
+
+	type Source1 struct {
+		Users []*User `df:"users"`
+	}
+
+	type Source2 struct {
+		Documents []*Document `df:"documents"`
+	}
+
+	var s1 Source1
+	var s2 Source2
+
+	err := Bind(&s1, source1)
+	if err != nil {
+		t.Fatalf("bind source1 failed: %v", err)
+	}
+
+	err = Bind(&s2, source2)
+	if err != nil {
+		t.Fatalf("bind source2 failed: %v", err)
+	}
+
+	// use multi-stage linking with variadic Register
+	linker := NewLinker(LinkerOptions{EnableCaching: true})
+
+	// register both sources in one call
+	err = linker.Register(&s1, &s2)
+	if err != nil {
+		t.Fatalf("variadic register failed: %v", err)
+	}
+
+	// now resolve references in source2
+	err = linker.ResolveReferences(&s2)
+	if err != nil {
+		t.Fatalf("resolveReferences failed: %v", err)
+	}
+
+	// verify the cross-reference worked
+	if !s2.Documents[0].Author.IsResolved() {
+		t.Errorf("document author should be resolved")
+	}
+
+	resolvedAuthor := s2.Documents[0].Author.Resolve()
+	if resolvedAuthor != s1.Users[0] {
+		t.Errorf("document author should point to user from source1")
+	}
 }

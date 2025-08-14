@@ -29,10 +29,78 @@ func (p *Pointer[T]) IsResolved() bool {
 	return !v.IsZero()
 }
 
-// Link resolves all pointer references in the target object by building a registry of all
-// Identifiable objects and then resolving Pointer fields to their target objects.
-// objects are namespaced by their concrete type to prevent Id clashes between different types.
-func Link(target interface{}) error {
+// LinkerOptions configures the behavior of a Linker instance.
+type LinkerOptions struct {
+	// EnableCaching enables registry caching for repeated linking operations
+	EnableCaching bool
+	// AllowPartialResolution allows linking to succeed even if some references can't be resolved
+	AllowPartialResolution bool
+}
+
+// Linker encapsulates the linking process, providing enhanced state management and advanced features.
+type Linker struct {
+	options LinkerOptions
+	cache   map[string]reflect.Value // cached registry for repeated operations
+}
+
+// NewLinker creates a new Linker with optional options.
+// If no options are provided, default options are used.
+func NewLinker(opts ...LinkerOptions) *Linker {
+	var options LinkerOptions
+	if len(opts) > 0 {
+		options = opts[0]
+	}
+
+	l := &Linker{
+		options: options,
+	}
+	if options.EnableCaching {
+		l.cache = make(map[string]reflect.Value)
+	}
+	return l
+}
+
+// ClearCache clears the internal registry cache if caching is enabled.
+func (l *Linker) ClearCache() {
+	if l.cache != nil {
+		l.cache = make(map[string]reflect.Value)
+	}
+}
+
+// Register performs phase 1 of linking: collecting all Identifiable objects.
+// This can be used for multi-stage linking where you want to register objects from
+// multiple sources before resolving references.
+func (l *Linker) Register(targets ...interface{}) error {
+	if len(targets) == 0 {
+		return fmt.Errorf("no targets provided")
+	}
+
+	// ensure cache is available for collection
+	if l.cache == nil {
+		l.cache = make(map[string]reflect.Value)
+	}
+
+	for i, target := range targets {
+		if target == nil {
+			return fmt.Errorf("nil target provided at index %d", i)
+		}
+		value := reflect.ValueOf(target)
+		if value.Kind() != reflect.Ptr || value.IsNil() {
+			return fmt.Errorf("target at index %d must be a non-nil pointer to struct; got %T", i, target)
+		}
+		elem := value.Elem()
+		if elem.Kind() != reflect.Struct {
+			return fmt.Errorf("target at index %d must be a pointer to struct; got %T", i, target)
+		}
+
+		l.collectIdentifiableObjects(elem, l.cache)
+	}
+	return nil
+}
+
+// ResolveReferences performs phase 2 of linking: resolving all pointer references using
+// the collected registry. This can be used after collecting from multiple sources.
+func (l *Linker) ResolveReferences(target interface{}) error {
 	if target == nil {
 		return fmt.Errorf("nil target provided")
 	}
@@ -45,17 +113,92 @@ func Link(target interface{}) error {
 		return fmt.Errorf("target must be a pointer to struct; got %T", target)
 	}
 
-	// phase 1: collect all Identifiable objects with type-prefixed keys
-	registry := make(map[string]reflect.Value)
-	collectIdentifiableObjects(elem, registry)
+	if l.cache == nil {
+		return fmt.Errorf("no registry available - call Register first")
+	}
 
-	// phase 2: resolve all pointer references
-	return resolvePointers(elem, registry)
+	return l.resolvePointers(elem, l.cache)
+}
+
+// Link resolves all pointer references in the target objects by building a registry of all
+// Identifiable objects and then resolving Pointer fields to their target objects.
+// objects are namespaced by their concrete type to prevent Id clashes between different types.
+func (l *Linker) Link(targets ...interface{}) error {
+	if len(targets) == 0 {
+		return fmt.Errorf("no targets provided")
+	}
+
+	// phase 1: collect all Identifiable objects with type-prefixed keys
+	var registry map[string]reflect.Value
+	if l.options.EnableCaching && l.cache != nil {
+		registry = l.cache
+		// only collect if cache is empty or we want to refresh it
+		if len(registry) == 0 {
+			for i, target := range targets {
+				if err := l.validateAndCollect(target, i, registry); err != nil {
+					return err
+				}
+			}
+		}
+	} else {
+		registry = make(map[string]reflect.Value)
+		for i, target := range targets {
+			if err := l.validateAndCollect(target, i, registry); err != nil {
+				return err
+			}
+		}
+	}
+
+	// phase 2: resolve all pointer references in all targets
+	for i, target := range targets {
+		if target == nil {
+			return fmt.Errorf("nil target provided at index %d", i)
+		}
+		value := reflect.ValueOf(target)
+		if value.Kind() != reflect.Ptr || value.IsNil() {
+			return fmt.Errorf("target at index %d must be a non-nil pointer to struct; got %T", i, target)
+		}
+		elem := value.Elem()
+		if elem.Kind() != reflect.Struct {
+			return fmt.Errorf("target at index %d must be a pointer to struct; got %T", i, target)
+		}
+
+		if err := l.resolvePointers(elem, registry); err != nil {
+			return fmt.Errorf("resolving pointers in target %d: %w", i, err)
+		}
+	}
+	return nil
+}
+
+// validateAndCollect validates a target and collects its identifiable objects.
+func (l *Linker) validateAndCollect(target interface{}, index int, registry map[string]reflect.Value) error {
+	if target == nil {
+		return fmt.Errorf("nil target provided at index %d", index)
+	}
+	value := reflect.ValueOf(target)
+	if value.Kind() != reflect.Ptr || value.IsNil() {
+		return fmt.Errorf("target at index %d must be a non-nil pointer to struct; got %T", index, target)
+	}
+	elem := value.Elem()
+	if elem.Kind() != reflect.Struct {
+		return fmt.Errorf("target at index %d must be a pointer to struct; got %T", index, target)
+	}
+
+	l.collectIdentifiableObjects(elem, registry)
+	return nil
+}
+
+// Link resolves all pointer references in the target objects by building a registry of all
+// Identifiable objects and then resolving Pointer fields to their target objects.
+// objects are namespaced by their concrete type to prevent Id clashes between different types.
+func Link(targets ...interface{}) error {
+	linker := NewLinker()
+	return linker.Link(targets...)
 }
 
 // collectIdentifiableObjects recursively traverses the object tree and collects all
 // objects that implement Identifiable, storing them with type-prefixed IDs.
-func collectIdentifiableObjects(value reflect.Value, registry map[string]reflect.Value) {
+func (l *Linker) collectIdentifiableObjects(value reflect.Value, registry map[string]reflect.Value) {
 	switch value.Kind() {
 	case reflect.Struct:
 		// check if this struct implements Identifiable
@@ -76,23 +219,23 @@ func collectIdentifiableObjects(value reflect.Value, registry map[string]reflect
 			if skip {
 				continue
 			}
-			collectIdentifiableObjects(value.Field(i), registry)
+			l.collectIdentifiableObjects(value.Field(i), registry)
 		}
 
 	case reflect.Ptr:
 		if !value.IsNil() {
-			collectIdentifiableObjects(value.Elem(), registry)
+			l.collectIdentifiableObjects(value.Elem(), registry)
 		}
 
 	case reflect.Slice:
 		for i := 0; i < value.Len(); i++ {
-			collectIdentifiableObjects(value.Index(i), registry)
+			l.collectIdentifiableObjects(value.Index(i), registry)
 		}
 	}
 }
 
 // resolvePointers recursively traverses the object tree and resolves all Pointer fields.
-func resolvePointers(value reflect.Value, registry map[string]reflect.Value) error {
+func (l *Linker) resolvePointers(value reflect.Value, registry map[string]reflect.Value) error {
 	switch value.Kind() {
 	case reflect.Struct:
 		for i := 0; i < value.NumField(); i++ {
@@ -106,19 +249,19 @@ func resolvePointers(value reflect.Value, registry map[string]reflect.Value) err
 			}
 
 			fieldValue := value.Field(i)
-			if err := resolvePointersInField(fieldValue, field.Type, registry); err != nil {
+			if err := l.resolvePointersInField(fieldValue, field.Type, registry); err != nil {
 				return fmt.Errorf("resolving pointers in field %s: %w", field.Name, err)
 			}
 		}
 
 	case reflect.Ptr:
 		if !value.IsNil() {
-			return resolvePointers(value.Elem(), registry)
+			return l.resolvePointers(value.Elem(), registry)
 		}
 
 	case reflect.Slice:
 		for i := 0; i < value.Len(); i++ {
-			if err := resolvePointers(value.Index(i), registry); err != nil {
+			if err := l.resolvePointers(value.Index(i), registry); err != nil {
 				return fmt.Errorf("resolving pointers in slice[%d]: %w", i, err)
 			}
 		}
@@ -127,30 +270,30 @@ func resolvePointers(value reflect.Value, registry map[string]reflect.Value) err
 }
 
 // resolvePointersInField handles pointer resolution for a specific field.
-func resolvePointersInField(fieldValue reflect.Value, fieldType reflect.Type, registry map[string]reflect.Value) error {
+func (l *Linker) resolvePointersInField(fieldValue reflect.Value, fieldType reflect.Type, registry map[string]reflect.Value) error {
 	switch fieldValue.Kind() {
 	case reflect.Ptr:
 		if !fieldValue.IsNil() {
 			// check if this is a Pointer[T] type
 			if isPointerType(fieldType.Elem()) {
-				return resolvePointerField(fieldValue.Elem(), fieldType.Elem(), registry)
+				return l.resolvePointerField(fieldValue.Elem(), fieldType.Elem(), registry)
 			}
 			// regular pointer, recurse into it
-			return resolvePointersInField(fieldValue.Elem(), fieldType.Elem(), registry)
+			return l.resolvePointersInField(fieldValue.Elem(), fieldType.Elem(), registry)
 		}
 
 	case reflect.Struct:
 		// check if this is a Pointer[T] type
 		if isPointerType(fieldType) {
-			return resolvePointerField(fieldValue, fieldType, registry)
+			return l.resolvePointerField(fieldValue, fieldType, registry)
 		}
 		// regular struct, recurse into it
-		return resolvePointers(fieldValue, registry)
+		return l.resolvePointers(fieldValue, registry)
 
 	case reflect.Slice:
 		for i := 0; i < fieldValue.Len(); i++ {
 			elemType := fieldType.Elem()
-			if err := resolvePointersInField(fieldValue.Index(i), elemType, registry); err != nil {
+			if err := l.resolvePointersInField(fieldValue.Index(i), elemType, registry); err != nil {
 				return fmt.Errorf("[%d]: %w", i, err)
 			}
 		}
@@ -173,7 +316,7 @@ func isPointerType(t reflect.Type) bool {
 }
 
 // resolvePointerField resolves a single Pointer[T] field.
-func resolvePointerField(pointerValue reflect.Value, pointerType reflect.Type, registry map[string]reflect.Value) error {
+func (l *Linker) resolvePointerField(pointerValue reflect.Value, pointerType reflect.Type, registry map[string]reflect.Value) error {
 	refField := pointerValue.FieldByName("Ref")
 	if !refField.IsValid() || refField.Kind() != reflect.String {
 		return fmt.Errorf("invalid Pointer type: missing Ref field")
@@ -201,6 +344,10 @@ func resolvePointerField(pointerValue reflect.Value, pointerType reflect.Type, r
 	// look up the target object in the registry
 	targetValue, exists := registry[key]
 	if !exists {
+		if l.options.AllowPartialResolution {
+			// skip this resolution but don't fail the entire process
+			return nil
+		}
 		return fmt.Errorf("unresolved reference: %s (looking for %s)", ref, key)
 	}
 

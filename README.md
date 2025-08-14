@@ -374,6 +374,25 @@ df.Link(&container)
 author := container.Documents[0].Author.Resolve()
 ```
 
+### Advanced Linking with `df.Linker`
+
+For more control over the linking process, use the `df.Linker` type. This is useful for scenarios like multi-stage linking or performance optimization with caching.
+
+```go
+// Create a linker with caching enabled
+linker := df.NewLinker(df.LinkerOptions{
+    EnableCaching: true,
+})
+
+// Use the linker to resolve references
+linker.Link(&container) 
+```
+
+The `Linker` provides options for:
+- **`EnableCaching`**: Caches object registries to speed up repeated linking operations on the same data. Disabled by default.
+- **`AllowPartialResolution`**: Allows linking to succeed even if some references cannot be found.
+- **Multi-stage linking**: Use `Register()` to collect objects from multiple sources before calling `ResolveReferences()`.
+
 ### JSON Structure
 
 ```json

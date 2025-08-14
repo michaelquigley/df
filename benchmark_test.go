@@ -4,8 +4,6 @@ import (
 	"testing"
 )
 
-// Benchmark tests for string operations to measure optimization impact
-
 func BenchmarkToSnakeCase(b *testing.B) {
 	testCases := []string{
 		"SimpleCase",
@@ -17,7 +15,7 @@ func BenchmarkToSnakeCase(b *testing.B) {
 		"ABC",
 		"getHTTPStatusCode",
 	}
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		for _, tc := range testCases {
@@ -34,7 +32,7 @@ func BenchmarkStripIndices(b *testing.B) {
 		"Deep[0].Nested[1].Array[2].Access[3].Pattern[4]",
 		"Mixed.Path[100].With.Some[999].Indices",
 	}
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		for _, tc := range testCases {
@@ -43,9 +41,9 @@ func BenchmarkStripIndices(b *testing.B) {
 	}
 }
 
-// Test to verify our string optimizations produce correct results
+// test to verify our string optimizations produce correct results
 func TestStringOptimizationsCorrectness(t *testing.T) {
-	// Test toSnakeCase correctness
+	// test toSnakeCase correctness
 	testCases := []struct {
 		input    string
 		expected string
@@ -58,15 +56,15 @@ func TestStringOptimizationsCorrectness(t *testing.T) {
 		{"getUserID", "get_user_i_d"},
 		{"XMLHttpRequest", "x_m_l_http_request"},
 	}
-	
+
 	for _, tc := range testCases {
 		result := toSnakeCase(tc.input)
 		if result != tc.expected {
 			t.Errorf("toSnakeCase(%q) = %q, expected %q", tc.input, result, tc.expected)
 		}
 	}
-	
-	// Test stripIndices correctness
+
+	// test stripIndices correctness
 	stripTestCases := []struct {
 		input    string
 		expected string
@@ -78,7 +76,7 @@ func TestStringOptimizationsCorrectness(t *testing.T) {
 		{"", ""},
 		{"NoIndices", "NoIndices"},
 	}
-	
+
 	for _, tc := range stripTestCases {
 		result := stripIndices(tc.input)
 		if result != tc.expected {
