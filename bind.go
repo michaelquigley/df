@@ -57,9 +57,17 @@ func Bind(target interface{}, data map[string]any, opts ...*Options) error {
 
 func bindStruct(structValue reflect.Value, data map[string]any, path string, opt *Options) error {
 	structType := structValue.Type()
+
+	type deferredUnmarshal struct {
+		fieldVal reflect.Value
+		rawData  interface{}
+		path     string
+		name     string
+	}
+	var deferred []deferredUnmarshal
+
 	for i := 0; i < structValue.NumField(); i++ {
 		field := structType.Field(i)
-		// skip unexported fields
 		if field.PkgPath != "" { // unexported
 			continue
 		}
@@ -81,11 +89,60 @@ func bindStruct(structValue reflect.Value, data map[string]any, path string, opt
 			continue
 		}
 
+		// defer custom unmarshalers to run after all other fields are bound.
+		if (fieldVal.CanAddr() && fieldVal.Addr().Type().Implements(unmarshalerInterfaceType)) || fieldVal.Type().Implements(unmarshalerInterfaceType) {
+			deferred = append(deferred, deferredUnmarshal{
+				fieldVal: fieldVal,
+				rawData:  raw,
+				path:     path + "." + field.Name,
+				name:     name,
+			})
+			continue
+		}
+
 		if err := setField(fieldVal, raw, path+"."+field.Name, opt); err != nil {
 			return fmt.Errorf("binding field %s.%s from key %q: %w", path, field.Name, name, err)
 		}
 	}
+
+	// run deferred unmarshalers now that all other fields are populated.
+	for _, d := range deferred {
+		if err := unmarshalFromMap(d.fieldVal, d.rawData, d.path); err != nil {
+			return fmt.Errorf("binding field %s from key %q: %w", d.path, d.name, err)
+		}
+	}
+
 	return nil
+}
+
+// unmarshalFromMap handles calling the UnmarshalDF method on a field.
+func unmarshalFromMap(fieldVal reflect.Value, raw interface{}, path string) error {
+	subMap, ok := raw.(map[string]any)
+	if !ok {
+		return fmt.Errorf("%s: expected object for unmarshaler, got %T", path, raw)
+	}
+
+	// handle pointer vs. value receiver for the unmarshaler
+	if fieldVal.CanAddr() {
+		ptr := fieldVal.Addr()
+		if ptr.Type().Implements(unmarshalerInterfaceType) {
+			// ensure pointer is allocated for pointer fields
+			if fieldVal.Kind() == reflect.Ptr && fieldVal.IsNil() {
+				fieldVal.Set(reflect.New(fieldVal.Type().Elem()))
+			}
+			return ptr.Interface().(Unmarshaler).UnmarshalDF(subMap)
+		}
+	}
+
+	// must be a pointer type that implements the interface directly
+	if fieldVal.Type().Implements(unmarshalerInterfaceType) {
+		if fieldVal.Kind() == reflect.Ptr && fieldVal.IsNil() {
+			fieldVal.Set(reflect.New(fieldVal.Type().Elem()))
+		}
+		return fieldVal.Interface().(Unmarshaler).UnmarshalDF(subMap)
+	}
+
+	return fmt.Errorf("%s: internal error: field does not implement unmarshaler", path) // should be unreachable
 }
 
 func setField(fieldVal reflect.Value, raw interface{}, path string, opt *Options) error {
@@ -302,10 +359,3 @@ func stripIndices(path string) string {
 	}
 	return b.String()
 }
-
-
-
-
-
-
-

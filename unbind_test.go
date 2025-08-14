@@ -163,3 +163,52 @@ func TestUnbindDynamicSlice(t *testing.T) {
         },
     }, m)
 }
+
+// customMarshalType is a custom type for testing Marshaler
+type customMarshalType struct {
+	Value string
+}
+
+// MarshalDF implements the Marshaler interface for *customMarshalType
+func (c *customMarshalType) MarshalDF() (map[string]any, error) {
+	return map[string]any{
+		"value": "custom-" + c.Value,
+	}, nil
+}
+
+func TestUnbindCustomMarshaler(t *testing.T) {
+	// test with a pointer field
+	t.Run("pointer field", func(t *testing.T) {
+		source := &struct {
+			Custom *customMarshalType
+		}{
+			Custom: &customMarshalType{Value: "hello"},
+		}
+		m, err := Unbind(source)
+		assert.NoError(t, err)
+		expected := map[string]any{
+			"custom": map[string]any{
+				"value": "custom-hello",
+			},
+		}
+		assert.Equal(t, expected, m)
+	})
+
+	// test with a value field
+	t.Run("value field", func(t *testing.T) {
+		source := &struct {
+			Custom customMarshalType
+		}{
+			Custom: customMarshalType{Value: "world"},
+		}
+		m, err := Unbind(source)
+		assert.NoError(t, err)
+		expected := map[string]any{
+			"custom": map[string]any{
+				"value": "custom-world",
+			},
+		}
+		assert.Equal(t, expected, m)
+	})
+}
+

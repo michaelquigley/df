@@ -18,6 +18,16 @@ type Identifiable interface {
 	GetId() string
 }
 
+// Marshaler allows a type to define its own marshalling logic to a map[string]any.
+type Marshaler interface {
+	MarshalDF() (map[string]any, error)
+}
+
+// Unmarshaler allows a type to define its own unmarshalling logic from a map[string]any.
+type Unmarshaler interface {
+	UnmarshalDF(data map[string]any) error
+}
+
 // parseDFTag parses the `df` struct tag on a field.
 //
 // tag format: df:"[name][,required]"
@@ -88,3 +98,5 @@ func toSnakeCase(in string) string {
 
 var dynamicInterfaceType = reflect.TypeOf((*Dynamic)(nil)).Elem()
 var identifiableInterfaceType = reflect.TypeOf((*Identifiable)(nil)).Elem()
+var marshalerInterfaceType = reflect.TypeOf((*Marshaler)(nil)).Elem()
+var unmarshalerInterfaceType = reflect.TypeOf((*Unmarshaler)(nil)).Elem()

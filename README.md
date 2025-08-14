@@ -10,6 +10,7 @@ A lightweight Go library for binding and unbinding structured data to/from Go st
 - **Type coercion** for primitives, pointers, slices, and nested structs
 - **Dynamic field resolution** for polymorphic data structures
 - **Pointer references** with cycle handling for complex object relationships
+- **Custom marshaling/unmarshaling** with `Marshaler` and `Unmarshaler` interfaces
 - **Round-trip compatibility** between bind and unbind operations
 
 ## Quick Start
@@ -69,7 +70,7 @@ df serves as the foundational layer for building dynamic, configuration-driven G
 ### From Static to Dynamic
 
 ```go
-// Traditional static approach
+// traditional static approach
 server := &http.Server{
     Handler: &MyHandler{},
     Addr:    ":8080",
@@ -86,7 +87,7 @@ config := map[string]any{
 }
 
 var server Component
-df.Bind(&server, config)  // Creates the right concrete types
+df.Bind(&server, config)  // creates the right concrete types
 ```
 
 This foundation enables applications that can be reconfigured without recompilation, supporting use cases like:
@@ -108,6 +109,72 @@ type Example struct {
     Default  string                             // Uses snake_case: "default"
 }
 ```
+
+## Custom Marshaling and Unmarshaling
+
+For types that require custom logic for binding and unbinding, `df` supports the `Unmarshaler` and `Marshaler` interfaces. This allows a type to take full control over how it is converted from or to structured data.
+
+### The Unmarshaler Interface
+
+A type implements the `Unmarshaler` interface by defining an `UnmarshalDF` method. When `df.Bind` encounters a type that satisfies this interface, it will call this method to populate the struct, bypassing the default reflection-based binding logic for that type.
+
+```go
+// Unmarshaler is the interface implemented by types that can unmarshal a
+// df description of themselves.
+type Unmarshaler interface {
+    UnmarshalDF(data any) error
+}
+```
+
+#### Example
+
+```go
+import (
+    "fmt"
+    "time"
+)
+
+// CustomTime wraps time.Time to support a custom date format.
+type CustomTime struct {
+    time.Time
+}
+
+// UnmarshalDF implements the df.Unmarshaler interface.
+func (c *CustomTime) UnmarshalDF(data any) error {
+    if dateStr, ok := data.(string); ok {
+        t, err := time.Parse("2006-01-02", dateStr)
+        if err != nil {
+            return err
+        }
+        c.Time = t
+        return nil
+    }
+    return fmt.Errorf("expected string for CustomTime, got %T", data)
+}
+```
+
+### The Marshaler Interface
+
+A type implements the `Marshaler` interface by defining a `MarshalDF` method. When `df.Unbind` encounters a type that satisfies this interface, it will call this method to convert the type into its data representation, bypassing the default reflection-based unbinding logic.
+
+```go
+// Marshaler is the interface implemented by types that can marshal themselves
+// into a df description.
+type Marshaler interface {
+    MarshalDF() (any, error)
+}
+```
+
+#### Example
+
+```go
+// MarshalDF implements the df.Marshaler interface.
+func (c CustomTime) MarshalDF() (any, error) {
+    return c.Time.Format("2006-01-02"), nil
+}
+```
+
+With these interfaces, you can integrate types that don't follow standard struct conventions seamlessly into the `df` binding and unbinding process.
 
 ## File Operations
 
@@ -213,7 +280,8 @@ func main() {
     
     // Access the concrete type
     if emailAction, ok := notification.Action.(EmailAction); ok {
-        fmt.Printf("Email to: %s\n", emailAction.Recipient)
+        fmt.Printf("Email to: %s
+", emailAction.Recipient)
     }
 }
 ```
@@ -344,6 +412,7 @@ The current df implementation provides the essential data binding layer with the
 ### Advanced Features  
 - **Polymorphic data structures** via the Dynamic interface for runtime type selection
 - **Object references** with cycle-safe pointer resolution using df.Pointer[T]
+- **Custom marshaling/unmarshaling** with `Marshaler` and `Unmarshaler` interfaces
 - **Round-trip compatibility** ensuring data integrity across bind/unbind operations
 
 ### Foundation for Dynamic Systems

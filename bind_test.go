@@ -1,6 +1,7 @@
 package df
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -156,10 +157,6 @@ func TestAnonymousStruct(t *testing.T) {
 	assert.Equal(t, "AnonymousStruct", root.Id)
 	assert.Equal(t, "oh, wow!", root.Nested.Name)
 }
-
-
-
-
 
 func TestSnakeCaseDefault(t *testing.T) {
 	// verify that untagged field names default to snake_case keys
@@ -445,4 +442,95 @@ func TestUnbindConcreteThenBindWithPerFieldBinders(t *testing.T) {
 		assert.Equal(t, 1, b1.Count)
 		assert.Equal(t, 2, b2.Count)
 	}
+}
+
+// customBindType is a custom type for testing Unmarshaler
+type customBindType struct {
+	Value string
+}
+
+// UnmarshalDF implements the Unmarshaler interface for *customBindType
+func (c *customBindType) UnmarshalDF(data map[string]any) error {
+	if val, ok := data["value"].(string); ok {
+		c.Value = "custom-" + val
+		return nil
+	}
+	return fmt.Errorf("missing 'value' in custom data")
+}
+
+func TestBindCustomUnmarshaler(t *testing.T) {
+	// test with a pointer field
+	t.Run("pointer field", func(t *testing.T) {
+		target := &struct {
+			Custom *customBindType
+		}{}
+		data := map[string]any{
+			"custom": map[string]any{
+				"value": "hello",
+			},
+		}
+		err := Bind(target, data)
+		assert.NoError(t, err)
+		if assert.NotNil(t, target.Custom) {
+			assert.Equal(t, "custom-hello", target.Custom.Value)
+		}
+	})
+
+	// test with a value field
+	t.Run("value field", func(t *testing.T) {
+		target := &struct {
+			Custom customBindType
+		}{}
+		data := map[string]any{
+			"custom": map[string]any{
+				"value": "world",
+			},
+		}
+		err := Bind(target, data)
+		assert.NoError(t, err)
+		assert.Equal(t, "custom-world", target.Custom.Value)
+	})
+}
+
+// dependentUnmarshaler is a test type that checks if another field in the parent struct has been bound before its
+// UnmarshalDF method is called.
+type dependentUnmarshaler struct {
+	Value          string
+	CheckOtherFunc func()
+}
+
+func (d *dependentUnmarshaler) UnmarshalDF(data map[string]any) error {
+	// when this is called, the check function should be able to verify that the other field is already bound.
+	if d.CheckOtherFunc != nil {
+		d.CheckOtherFunc()
+	}
+	if val, ok := data["value"].(string); ok {
+		d.Value = val
+	}
+	return nil
+}
+
+func TestBindDeferredUnmarshaler(t *testing.T) {
+	target := &struct {
+		OtherField string               `df:"other_field"`
+		Dep        dependentUnmarshaler `df:"dep"`
+	}{}
+
+	// check function that will be called from within UnmarshalDF
+	target.Dep.CheckOtherFunc = func() {
+		// this assertion runs during the Bind process. it verifies that the OtherField has already been populated.
+		assert.Equal(t, "was bound", target.OtherField)
+	}
+
+	data := map[string]any{
+		"other_field": "was bound",
+		"dep": map[string]any{
+			"value": "hello",
+		},
+	}
+
+	err := Bind(target, data)
+	assert.NoError(t, err)
+	assert.Equal(t, "was bound", target.OtherField)
+	assert.Equal(t, "hello", target.Dep.Value)
 }

@@ -75,6 +75,22 @@ func structToMap(structVal reflect.Value) (map[string]any, error) {
 // returns (value, present, error). present=false indicates the value should be omitted
 // (e.g., nil pointer). For time.Duration, emits its String() representation.
 func valueToInterface(v reflect.Value) (interface{}, bool, error) {
+	// check for custom marshaler implementation first
+	if v.Type().Implements(marshalerInterfaceType) {
+		if v.Kind() == reflect.Ptr && v.IsNil() {
+			return nil, false, nil
+		}
+		m, err := v.Interface().(Marshaler).MarshalDF()
+		return m, true, err
+	}
+	if v.CanAddr() {
+		ptr := v.Addr()
+		if ptr.Type().Implements(marshalerInterfaceType) {
+			m, err := ptr.Interface().(Marshaler).MarshalDF()
+			return m, true, err
+		}
+	}
+
 	// handle pointers
 	if v.Kind() == reflect.Ptr {
 		if v.IsNil() {
