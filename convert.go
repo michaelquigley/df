@@ -10,19 +10,11 @@ import (
 
 func convertAndSet(dst reflect.Value, raw interface{}, path string, opt *Options) error {
 	// check for custom converter first
-	if opt != nil && opt.Converters != nil {
-		if converter, ok := opt.Converters[dst.Type()]; ok {
-			converted, err := converter.FromRaw(raw)
-			if err != nil {
-				return fmt.Errorf("%s: custom converter failed: %w", path, err)
-			}
-			convertedValue := reflect.ValueOf(converted)
-			if !convertedValue.Type().AssignableTo(dst.Type()) {
-				return fmt.Errorf("%s: custom converter returned incompatible type %T, expected %s", path, converted, dst.Type())
-			}
-			dst.Set(convertedValue)
-			return nil
-		}
+	if converted, wasConverted, err := tryCustomConverter(dst.Type(), raw, opt, true); err != nil {
+		return fmt.Errorf("%s: %w", path, err)
+	} else if wasConverted {
+		dst.Set(reflect.ValueOf(converted))
+		return nil
 	}
 
 	dstKind := dst.Kind()

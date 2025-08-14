@@ -33,11 +33,9 @@ func Unbind(source interface{}, opts ...*Options) (map[string]any, error) {
 	if val.Kind() != reflect.Struct {
 		return nil, fmt.Errorf("source must be a struct or pointer to struct; got %T", source)
 	}
-	var opt *Options
-	if len(opts) == 1 {
-		opt = opts[0]
-	} else if len(opts) > 1 {
-		return nil, fmt.Errorf("only one option allowed, got %d", len(opts))
+	opt, err := getOptions(opts...)
+	if err != nil {
+		return nil, err
 	}
 	return structToMap(val, opt)
 }
@@ -84,17 +82,13 @@ func structToMap(structVal reflect.Value, opt *Options) (map[string]any, error) 
 // (e.g., nil pointer). For time.Duration, emits its String() representation.
 func valueToInterface(v reflect.Value, opt *Options) (interface{}, bool, error) {
 	// check for custom converter first
-	if opt != nil && opt.Converters != nil {
-		if converter, ok := opt.Converters[v.Type()]; ok {
-			if v.Kind() == reflect.Ptr && v.IsNil() {
-				return nil, false, nil
-			}
-			raw, err := converter.ToRaw(v.Interface())
-			if err != nil {
-				return nil, false, fmt.Errorf("custom converter failed: %w", err)
-			}
-			return raw, true, nil
-		}
+	if v.Kind() == reflect.Ptr && v.IsNil() {
+		return nil, false, nil
+	}
+	if converted, wasConverted, err := tryCustomConverter(v.Type(), v.Interface(), opt, false); err != nil {
+		return nil, false, err
+	} else if wasConverted {
+		return converted, true, nil
 	}
 
 	// check for custom marshaler implementation

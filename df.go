@@ -1,6 +1,7 @@
 package df
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
 	"unicode"
@@ -113,3 +114,67 @@ var identifiableInterfaceType = reflect.TypeOf((*Identifiable)(nil)).Elem()
 var marshalerInterfaceType = reflect.TypeOf((*Marshaler)(nil)).Elem()
 var unmarshalerInterfaceType = reflect.TypeOf((*Unmarshaler)(nil)).Elem()
 var converterInterfaceType = reflect.TypeOf((*Converter)(nil)).Elem()
+
+// validateTarget validates that the target is a non-nil pointer to a struct.
+// returns the struct element and any validation error.
+func validateTarget(target interface{}) (reflect.Value, error) {
+	if target == nil {
+		return reflect.Value{}, fmt.Errorf("nil target provided")
+	}
+	value := reflect.ValueOf(target)
+	if value.Kind() != reflect.Ptr || value.IsNil() {
+		return reflect.Value{}, fmt.Errorf("target must be a non-nil pointer to struct; got %T", target)
+	}
+	elem := value.Elem()
+	if elem.Kind() != reflect.Struct {
+		return reflect.Value{}, fmt.Errorf("target must be a pointer to struct; got %T", target)
+	}
+	return elem, nil
+}
+
+// getOptions extracts and validates options from variadic parameters.
+// returns the options and any validation error.
+func getOptions(opts ...*Options) (*Options, error) {
+	if len(opts) == 0 {
+		return nil, nil
+	}
+	if len(opts) == 1 {
+		return opts[0], nil
+	}
+	return nil, fmt.Errorf("only one option allowed, got %d", len(opts))
+}
+
+// tryCustomConverter attempts to use a custom converter for the given field and raw value.
+// returns (convertedValue, wasConverted, error).
+func tryCustomConverter(fieldType reflect.Type, raw interface{}, opt *Options, forBinding bool) (interface{}, bool, error) {
+	if opt == nil || opt.Converters == nil {
+		return nil, false, nil
+	}
+	
+	converter, ok := opt.Converters[fieldType]
+	if !ok {
+		return nil, false, nil
+	}
+	
+	var result interface{}
+	var err error
+	
+	if forBinding {
+		result, err = converter.FromRaw(raw)
+		if err != nil {
+			return nil, true, fmt.Errorf("custom converter failed: %w", err)
+		}
+		// validate the converted type is assignable
+		convertedValue := reflect.ValueOf(result)
+		if !convertedValue.Type().AssignableTo(fieldType) {
+			return nil, true, fmt.Errorf("custom converter returned incompatible type %T, expected %s", result, fieldType)
+		}
+	} else {
+		result, err = converter.ToRaw(raw)
+		if err != nil {
+			return nil, true, fmt.Errorf("custom converter failed: %w", err)
+		}
+	}
+	
+	return result, true, nil
+}

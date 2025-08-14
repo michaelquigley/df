@@ -40,22 +40,13 @@ type Options struct {
 //
 // opts are optional; pass nil or omit to use defaults.
 func Bind(target interface{}, data map[string]any, opts ...*Options) error {
-	if target == nil {
-		return fmt.Errorf("nil target provided")
+	elem, err := validateTarget(target)
+	if err != nil {
+		return err
 	}
-	value := reflect.ValueOf(target)
-	if value.Kind() != reflect.Ptr || value.IsNil() {
-		return fmt.Errorf("target must be a non-nil pointer to struct; got %T", target)
-	}
-	elem := value.Elem()
-	if elem.Kind() != reflect.Struct {
-		return fmt.Errorf("target must be a pointer to struct; got %T", target)
-	}
-	var opt *Options
-	if len(opts) == 1 {
-		opt = opts[0]
-	} else if len(opts) > 1 {
-		return fmt.Errorf("only one option allowed, got %d", len(opts))
+	opt, err := getOptions(opts...)
+	if err != nil {
+		return err
 	}
 	return bindStruct(elem, data, elem.Type().Name(), opt)
 }
@@ -182,19 +173,11 @@ func setField(fieldVal reflect.Value, raw interface{}, path string, opt *Options
 
 func setNonPtrValue(fieldVal reflect.Value, raw interface{}, path string, opt *Options) error {
 	// check for custom converter first
-	if opt != nil && opt.Converters != nil {
-		if converter, ok := opt.Converters[fieldVal.Type()]; ok {
-			converted, err := converter.FromRaw(raw)
-			if err != nil {
-				return fmt.Errorf("%s: custom converter failed: %w", path, err)
-			}
-			convertedValue := reflect.ValueOf(converted)
-			if !convertedValue.Type().AssignableTo(fieldVal.Type()) {
-				return fmt.Errorf("%s: custom converter returned incompatible type %T, expected %s", path, converted, fieldVal.Type())
-			}
-			fieldVal.Set(convertedValue)
-			return nil
-		}
+	if converted, wasConverted, err := tryCustomConverter(fieldVal.Type(), raw, opt, true); err != nil {
+		return fmt.Errorf("%s: %w", path, err)
+	} else if wasConverted {
+		fieldVal.Set(reflect.ValueOf(converted))
+		return nil
 	}
 
 	switch fieldVal.Kind() {

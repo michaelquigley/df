@@ -172,16 +172,9 @@ func (l *Linker) Link(targets ...interface{}) error {
 
 // validateAndCollect validates a target and collects its identifiable objects.
 func (l *Linker) validateAndCollect(target interface{}, index int, registry map[string]reflect.Value) error {
-	if target == nil {
-		return fmt.Errorf("nil target provided at index %d", index)
-	}
-	value := reflect.ValueOf(target)
-	if value.Kind() != reflect.Ptr || value.IsNil() {
-		return fmt.Errorf("target at index %d must be a non-nil pointer to struct; got %T", index, target)
-	}
-	elem := value.Elem()
-	if elem.Kind() != reflect.Struct {
-		return fmt.Errorf("target at index %d must be a pointer to struct; got %T", index, target)
+	elem, err := validateTarget(target)
+	if err != nil {
+		return fmt.Errorf("target at index %d: %w", index, err)
 	}
 
 	l.collectIdentifiableObjects(elem, registry)
