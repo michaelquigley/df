@@ -9,7 +9,7 @@ A lightweight Go library for binding and unbinding structured data to/from Go st
 - **Flexible field mapping** with `df` struct tags
 - **Type coercion** for primitives, pointers, slices, and nested structs
 - **Dynamic field resolution** for polymorphic data structures
-- **Pointer references** with cycle handling for complex object relationships
+- **Pointer references** with cycle handling for complex object relationships (see `Pointer`)
 - **Custom marshaling/unmarshaling** with `Marshaler` and `Unmarshaler` interfaces
 - **Round-trip compatibility** between bind and unbind operations
 
