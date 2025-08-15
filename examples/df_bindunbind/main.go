@@ -38,34 +38,34 @@ func main() {
 		},
 	}
 
-	fmt.Println("\n1. binding data to struct:")
+	fmt.Println("\n1. binding data to struct (using New[T]):")
 	fmt.Printf("input data: %+v\n", userData)
 
-	var user User
-	if err := df.Bind(&user, userData); err != nil {
+	user, err := df.New[User](userData)
+	if err != nil {
 		log.Fatalf("bind failed: %v", err)
 	}
 
-	fmt.Printf("bound struct: %+v\n", user)
+	fmt.Printf("bound struct: %+v\n", *user)
 	fmt.Printf("profile: %+v\n", *user.Profile)
 
 	fmt.Println("\n2. unbinding struct to data:")
 
-	unboundData, err := df.Unbind(&user)
+	unboundData, err := df.Unbind(user)
 	if err != nil {
 		log.Fatalf("unbind failed: %v", err)
 	}
 
 	fmt.Printf("unbound data: %+v\n", unboundData)
 
-	fmt.Println("\n3. round-trip verification:")
+	fmt.Println("\n3. round-trip verification (using New[T]):")
 
-	var user2 User
-	if err := df.Bind(&user2, unboundData); err != nil {
+	user2, err := df.New[User](unboundData)
+	if err != nil {
 		log.Fatalf("round-trip bind failed: %v", err)
 	}
 
-	fmt.Printf("round-trip struct: %+v\n", user2)
+	fmt.Printf("round-trip struct: %+v\n", *user2)
 	fmt.Printf("round-trip profile: %+v\n", *user2.Profile)
 
 	fmt.Println("\n4. error handling example:")
@@ -76,10 +76,18 @@ func main() {
 		// missing required "name" field
 	}
 
-	var user3 User
-	if err := df.Bind(&user3, invalidData); err != nil {
+	_, err = df.New[User](invalidData)
+	if err != nil {
 		fmt.Printf("expected error: %v\n", err)
 	}
+	
+	fmt.Println("\n5. traditional Bind approach (still available):")
+	
+	var user4 User
+	if err := df.Bind(&user4, userData); err != nil {
+		log.Fatalf("bind failed: %v", err)
+	}
+	fmt.Printf("traditional bind result: %+v\n", user4)
 
 	fmt.Println("\nexample completed successfully!")
 }

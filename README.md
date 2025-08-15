@@ -5,6 +5,7 @@ A lightweight Go library for binding and unbinding structured data to/from Go st
 ## Features
 
 - **Bind** data from maps, JSON, and YAML files to Go structs
+- **New[T]** generic function for automatic allocation and binding
 - **Unbind** Go structs back to maps, JSON, and YAML files
 - **Flexible field mapping** with `df` struct tags
 - **Type coercion** for primitives, pointers, slices, and nested structs
@@ -32,7 +33,7 @@ type User struct {
 }
 
 func main() {
-    // Bind from map
+    // Input data
     data := map[string]any{
         "name":   "John Doe",
         "email":  "john@example.com", 
@@ -40,16 +41,23 @@ func main() {
         "active": true,
     }
     
-    var user User
-    err := df.Bind(&user, data)
+    // Option 1: Use New[T] for automatic allocation
+    user, err := df.New[User](data)
     if err != nil {
         panic(err)
     }
     
-    fmt.Printf("%+v\n", user) // {Name:John Doe Email:john@example.com Age:30 Active:true}
+    fmt.Printf("%+v\n", *user) // {Name:John Doe Email:john@example.com Age:30 Active:true}
+    
+    // Option 2: Use Bind with pre-allocated struct  
+    var user2 User
+    err = df.Bind(&user2, data)
+    if err != nil {
+        panic(err)
+    }
     
     // Unbind back to map
-    result, err := df.Unbind(&user)
+    result, err := df.Unbind(user)
     if err != nil {
         panic(err)
     }
@@ -110,6 +118,64 @@ type Example struct {
     Default  string                             // Uses snake_case: "default"
 }
 ```
+
+## New[T] vs Bind
+
+df provides two ways to populate structs from data:
+
+### New[T] - Generic Type-Safe Allocation
+
+The `New[T]` function provides a modern, type-safe approach using Go generics. It automatically allocates a new instance of type `T` and returns a pointer to the populated struct:
+
+```go
+type Config struct {
+    Host string `df:"host"`
+    Port int    `df:"port"`
+}
+
+data := map[string]any{
+    "host": "localhost",
+    "port": 8080,
+}
+
+// Automatic allocation with compile-time type safety
+config, err := df.New[Config](data)
+if err != nil {
+    // handle error
+}
+// config is *Config, ready to use
+```
+
+### Bind - Manual Allocation Control
+
+The `Bind` function provides more control over object allocation, useful when you need to:
+- Bind to pre-initialized structs with default values
+- Control where and how objects are allocated
+- Work with interfaces or complex allocation patterns
+
+```go
+// Option 1: Zero-value allocation
+var config Config
+err := df.Bind(&config, data)
+
+// Option 2: Pre-initialized with defaults
+config := Config{
+    Host: "0.0.0.0",  // default value
+    Port: 3000,       // default value
+}
+err := df.Bind(&config, data) // only overrides provided fields
+
+// Option 3: Custom allocation
+config := &Config{}
+err := df.Bind(config, data)
+```
+
+### When to Use Each
+
+- **Use `New[T]`** when you want simple, type-safe allocation for most common use cases
+- **Use `Bind`** when you need control over allocation, pre-initialized defaults, or working with interfaces
+
+Both functions support the same features: struct tags, nested structures, custom converters, dynamic fields, etc.
 
 ## Custom Marshaling and Unmarshaling
 
@@ -335,28 +401,32 @@ func main() {
     opts := &df.Options{
         DynamicBinders: map[string]func(map[string]any) (df.Dynamic, error){
             "email": func(m map[string]any) (df.Dynamic, error) {
-                var action EmailAction
-                err := df.Bind(&action, m)
-                return action, err
+                // Use New[T] for cleaner allocation
+                action, err := df.New[EmailAction](m)
+                if err != nil {
+                    return nil, err
+                }
+                return *action, nil
             },
             "slack": func(m map[string]any) (df.Dynamic, error) {
-                var action SlackAction
-                err := df.Bind(&action, m)
-                return action, err
+                action, err := df.New[SlackAction](m)
+                if err != nil {
+                    return nil, err
+                }
+                return *action, nil
             },
         },
     }
     
-    var notification Notification
-    err := df.Bind(&notification, data, opts)
+    // Use New[T] for the main struct too
+    notification, err := df.New[Notification](data, opts)
     if err != nil {
         panic(err)
     }
     
     // Access the concrete type
     if emailAction, ok := notification.Action.(EmailAction); ok {
-        fmt.Printf("Email to: %s
-", emailAction.Recipient)
+        fmt.Printf("Email to: %s\n", emailAction.Recipient)
     }
 }
 ```

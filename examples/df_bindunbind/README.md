@@ -1,9 +1,11 @@
 # Basic Bind/Unbind Example
 
-This example demonstrates the core `df.Bind()` and `df.Unbind()` operations for converting between structured data and Go structs.
+This example demonstrates both the modern `df.New[T]()` and traditional `df.Bind()` functions along with `df.Unbind()` for converting between structured data and Go structs.
 
 ## Key Concepts
 
+- **Modern New[T] API**: Type-safe allocation using Go generics
+- **Traditional Bind API**: Manual allocation control for advanced use cases
 - **Bidirectional Data Mapping**: Convert from `map[string]any` to structs and back
 - **Struct Tags**: Use `df` tags for custom field mapping and validation
 - **Nested Structures**: Handle complex nested data with pointers to structs
@@ -52,9 +54,10 @@ type Profile struct {
 
 ## Workflow Demonstrated
 
-1. **Binding**: Convert `map[string]any` data to typed Go structs
-2. **Unbinding**: Convert Go structs back to `map[string]any` 
+1. **Modern Binding**: Use `df.New[T]()` for type-safe allocation and binding
+2. **Unbinding**: Convert Go structs back to `map[string]any`
 3. **Round-trip**: Verify data integrity through the complete cycle
 4. **Error Handling**: Show validation behavior for missing required fields
+5. **Traditional Binding**: Show `df.Bind()` for cases requiring manual allocation control
 
-This example showcases the foundation for data persistence, API marshaling, and configuration management patterns.
+This example showcases both modern and traditional APIs, providing the foundation for data persistence, API marshaling, and configuration management patterns.

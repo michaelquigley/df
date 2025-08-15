@@ -196,13 +196,13 @@ func main() {
 		"created_at":     "2023-12-01T10:30:00Z",
 	}
 	
-	var user User
-	if err := df.Bind(&user, data, opts); err != nil {
+	user, err := df.New[User](data, opts)
+	if err != nil {
 		fmt.Printf("bind failed: %v\n", err)
 		return
 	}
 	
-	fmt.Printf("bound user: %+v\n", user)
+	fmt.Printf("bound user: %+v\n", *user)
 	fmt.Printf("email type: %T\n", user.Email)
 	fmt.Printf("temperature: %.1f°%s\n", user.Temperature.Value, user.Temperature.Unit)
 	fmt.Printf("created at: %s\n", user.CreatedAt.Format("2006-01-02 15:04:05"))
@@ -223,13 +223,13 @@ func main() {
 		return
 	}
 	
-	var user2 User
-	if err := df.Bind(&user2, jsonMap, opts); err != nil {
+	user2, err := df.New[User](jsonMap, opts)
+	if err != nil {
 		fmt.Printf("bind failed: %v\n", err)
 		return
 	}
 	
-	fmt.Printf("bound user from json: %+v\n", user2)
+	fmt.Printf("bound user from json: %+v\n", *user2)
 	fmt.Printf("temperature: %.1f°%s\n", user2.Temperature.Value, user2.Temperature.Unit)
 	
 	// example 3: unbind back to map
@@ -250,15 +250,15 @@ func main() {
 		"name":  "test user",
 	}
 	
-	var user3 User
-	if err := df.Bind(&user3, invalidData, opts); err != nil {
+	_, err = df.New[User](invalidData, opts)
+	if err != nil {
 		fmt.Printf("expected validation error: %v\n", err)
 	}
 	
 	// example 5: without converters (should fail for custom types)
 	fmt.Println("\n5. binding without converters:")
-	var user4 User
-	if err := df.Bind(&user4, data); err != nil {
+	_, err = df.New[User](data)
+	if err != nil {
 		fmt.Printf("expected failure without converters: %v\n", err)
 	}
 	
