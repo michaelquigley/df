@@ -35,7 +35,7 @@ type Converter interface {
 	// FromRaw converts a raw value (from the data map) to the target type.
 	// the input can be any type that appears in the data map (string, int, bool, etc.).
 	FromRaw(raw interface{}) (interface{}, error)
-	
+
 	// ToRaw converts a typed value back to a raw value for serialization.
 	// the output should be a type that can be marshaled (string, int, bool, etc.).
 	ToRaw(value interface{}) (interface{}, error)
@@ -71,7 +71,7 @@ func parseDfTag(sf reflect.StructField) DfTag {
 	if tag == "" {
 		return DfTag{}
 	}
-	
+
 	var result DfTag
 	parts := strings.Split(tag, ",")
 	for i, p := range parts {
@@ -133,7 +133,6 @@ var dynamicInterfaceType = reflect.TypeOf((*Dynamic)(nil)).Elem()
 var identifiableInterfaceType = reflect.TypeOf((*Identifiable)(nil)).Elem()
 var marshalerInterfaceType = reflect.TypeOf((*Marshaler)(nil)).Elem()
 var unmarshalerInterfaceType = reflect.TypeOf((*Unmarshaler)(nil)).Elem()
-var converterInterfaceType = reflect.TypeOf((*Converter)(nil)).Elem()
 
 // validateTarget validates that the target is a non-nil pointer to a struct.
 // returns the struct element and any validation error.
@@ -170,15 +169,15 @@ func tryCustomConverter(fieldType reflect.Type, raw interface{}, opt *Options, f
 	if opt == nil || opt.Converters == nil {
 		return nil, false, nil
 	}
-	
+
 	converter, ok := opt.Converters[fieldType]
 	if !ok {
 		return nil, false, nil
 	}
-	
+
 	var result interface{}
 	var err error
-	
+
 	if forBinding {
 		result, err = converter.FromRaw(raw)
 		if err != nil {
@@ -195,6 +194,6 @@ func tryCustomConverter(fieldType reflect.Type, raw interface{}, opt *Options, f
 			return nil, true, &ConversionError{Message: "custom converter failed", Cause: err}
 		}
 	}
-	
+
 	return result, true, nil
 }

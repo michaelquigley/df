@@ -349,7 +349,7 @@ func inspectValueWithAlignment(val reflect.Value, builder *strings.Builder, dept
 			return nil
 		}
 		dynVal := val.Interface().(Dynamic)
-		builder.WriteString(fmt.Sprintf("%s", dynVal.Type()))
+		builder.WriteString(dynVal.Type())
 		return nil
 	}
 
