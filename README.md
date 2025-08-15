@@ -8,6 +8,7 @@ A lightweight Go library for binding and unbinding structured data to/from Go st
 - **New[T]** generic function for automatic allocation and binding
 - **Merge** data from maps, JSON, and YAML files into pre-built Go structs (default settings, etc.)
 - **Unbind** Go structs back to maps, JSON, and YAML files
+- **Inspect** human-readable configuration debugging with secret field filtering
 - **Flexible field mapping** with `df` struct tags
 - **Type coercion** for primitives, pointers, slices, and nested structs
 - **Custom field converters** for specialized type conversion and validation
@@ -27,19 +28,21 @@ import (
 )
 
 type User struct {
-    Name   string `df:"name,required"`
-    Email  string `df:"email"`
-    Age    int    `df:"age"`
-    Active bool   `df:"active"`
+    Name     string `df:"required"`
+    Email    string
+    Age      int    
+    Active   bool   `df:"is_active"`
+    Password string `df:"secret"`
 }
 
 func main() {
     // Input data
     data := map[string]any{
-        "name":   "John Doe",
-        "email":  "john@example.com", 
-        "age":    30,
-        "active": true,
+        "name":      "John Doe",
+        "email":     "john@example.com", 
+        "age":       30,
+        "is_active": true,
+        "password":  "secret123",
     }
     
     // Option 1: Use New[T] for automatic allocation
@@ -48,7 +51,18 @@ func main() {
         panic(err)
     }
     
-    fmt.Printf("%+v\n", *user) // {Name:John Doe Email:john@example.com Age:30 Active:true}
+    fmt.Printf("%+v\n", *user) // {Name:John Doe Email:john@example.com Age:30 Active:true Password:secret123}
+    
+    // Inspect configuration (secrets hidden by default)
+    output, _ := df.Inspect(user)
+    fmt.Println(output)
+    // User {
+    //   name             : "John Doe"
+    //   email            : "john@example.com"
+    //   age              : 30
+    //   is_active        : true
+    //   password (secret): <set>
+    // }
     
     // Option 2: Use Bind with pre-allocated struct  
     var user2 User
@@ -63,7 +77,7 @@ func main() {
         panic(err)
     }
     
-    fmt.Printf("%+v\n", result) // map[active:true age:30 email:john@example.com name:John Doe]
+    fmt.Printf("%+v\n", result) // map[active:true age:30 email:john@example.com name:John Doe password:secret123]
 }
 ```
 
@@ -115,6 +129,7 @@ type Example struct {
     Name     string `df:"custom_name,required"` // Custom field name, required
     Email    string `df:"email"`                // Custom field name
     Age      int    `df:",required"`            // Default name (snake_case), required  
+    Password string `df:",secret"`              // Secret field (hidden in Inspect)
     Internal string `df:"-"`                    // Skip this field
     Default  string                             // Uses snake_case: "default"
 }
@@ -501,6 +516,51 @@ err := df.Bind(&user, data, opts) // validates email during binding
 - **Bidirectional**: Works seamlessly with both bind and unbind operations
 
 See the `examples/df_converters` directory for a complete example with multiple converter types.
+
+## Configuration Inspection
+
+The `Inspect` function provides human-readable output for debugging bound configuration with global vertical alignment and secret field filtering:
+
+```go
+type Config struct {
+    Host     string `df:"host"`
+    Port     int    `df:"port"`
+    APIKey   string `df:"api_key,secret"`
+    Database *DBConfig `df:"database"`
+}
+
+type DBConfig struct {
+    Host     string `df:"host"`
+    Password string `df:"password,secret"`
+}
+
+// Inspect with secrets hidden (default)
+output, _ := df.Inspect(config)
+fmt.Println(output)
+// Config {
+//   host           : "localhost"
+//   port           : 8080
+//   api_key (secret): <set>
+//   database       : DBConfig {
+//     host           : "db.example.com"
+//     password (secret): <set>
+//   }
+// }
+
+// Inspect with secrets visible
+output, _ = df.Inspect(config, &df.InspectOptions{ShowSecrets: true})
+// Shows actual secret values instead of <set>/<unset>
+```
+
+### InspectOptions
+
+```go
+type InspectOptions struct {
+    MaxDepth    int    // Recursion depth limit (default: 10)
+    Indent      string // Indentation string (default: "  ")
+    ShowSecrets bool   // Show secret field values (default: false)
+}
+```
 
 ## File Operations
 
