@@ -139,15 +139,15 @@ var converterInterfaceType = reflect.TypeOf((*Converter)(nil)).Elem()
 // returns the struct element and any validation error.
 func validateTarget(target interface{}) (reflect.Value, error) {
 	if target == nil {
-		return reflect.Value{}, fmt.Errorf("nil target provided")
+		return reflect.Value{}, &ValidationError{Message: "nil target provided"}
 	}
 	value := reflect.ValueOf(target)
 	if value.Kind() != reflect.Ptr || value.IsNil() {
-		return reflect.Value{}, fmt.Errorf("target must be a non-nil pointer to struct; got %T", target)
+		return reflect.Value{}, &TypeMismatchError{Expected: "non-nil pointer to struct", Actual: fmt.Sprintf("%T", target)}
 	}
 	elem := value.Elem()
 	if elem.Kind() != reflect.Struct {
-		return reflect.Value{}, fmt.Errorf("target must be a pointer to struct; got %T", target)
+		return reflect.Value{}, &TypeMismatchError{Expected: "pointer to struct", Actual: fmt.Sprintf("%T", target)}
 	}
 	return elem, nil
 }
@@ -161,7 +161,7 @@ func getOptions(opts ...*Options) (*Options, error) {
 	if len(opts) == 1 {
 		return opts[0], nil
 	}
-	return nil, fmt.Errorf("only one option allowed, got %d", len(opts))
+	return nil, &ValidationError{Message: fmt.Sprintf("only one option allowed, got %d", len(opts))}
 }
 
 // tryCustomConverter attempts to use a custom converter for the given field and raw value.
@@ -182,17 +182,17 @@ func tryCustomConverter(fieldType reflect.Type, raw interface{}, opt *Options, f
 	if forBinding {
 		result, err = converter.FromRaw(raw)
 		if err != nil {
-			return nil, true, fmt.Errorf("custom converter failed: %w", err)
+			return nil, true, &ConversionError{Message: "custom converter failed", Cause: err}
 		}
 		// validate the converted type is assignable
 		convertedValue := reflect.ValueOf(result)
 		if !convertedValue.Type().AssignableTo(fieldType) {
-			return nil, true, fmt.Errorf("custom converter returned incompatible type %T, expected %s", result, fieldType)
+			return nil, true, &TypeMismatchError{Expected: fieldType.String(), Actual: fmt.Sprintf("%T", result)}
 		}
 	} else {
 		result, err = converter.ToRaw(raw)
 		if err != nil {
-			return nil, true, fmt.Errorf("custom converter failed: %w", err)
+			return nil, true, &ConversionError{Message: "custom converter failed", Cause: err}
 		}
 	}
 	

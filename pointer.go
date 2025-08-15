@@ -73,7 +73,7 @@ func (l *Linker) ClearCache() {
 // multiple sources before resolving references.
 func (l *Linker) Register(targets ...interface{}) error {
 	if len(targets) == 0 {
-		return fmt.Errorf("no targets provided")
+		return &ValidationError{Message: "no targets provided"}
 	}
 
 	// ensure cache is available for collection
@@ -366,7 +366,7 @@ func (l *Linker) resolvePointerField(pointerValue reflect.Value, pointerType ref
 			// skip this resolution but don't fail the entire process
 			return nil
 		}
-		return fmt.Errorf("unresolved reference: %s (looking for %s)", ref, key)
+		return &PointerError{Reference: ref, Message: fmt.Sprintf("unresolved reference: %s (looking for %s)", ref, key)}
 	}
 
 	// set the resolved field to the target object

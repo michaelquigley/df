@@ -1,6 +1,7 @@
 package df
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -83,7 +84,7 @@ func TestConverterBind(t *testing.T) {
 	// setup converters
 	opts := &Options{
 		Converters: map[reflect.Type]Converter{
-			reflect.TypeOf(Email("")):  &EmailConverter{},
+			reflect.TypeOf(Email("")): &EmailConverter{},
 			reflect.TypeOf(UserID(0)): &UserIDConverter{},
 		},
 	}
@@ -120,6 +121,8 @@ func TestConverterBindInvalidEmail(t *testing.T) {
 	var user TestUser
 	err := Bind(&user, data, opts)
 	assert.Error(t, err)
+	var bindingErr *BindingError
+	assert.True(t, errors.As(err, &bindingErr))
 	assert.Contains(t, err.Error(), "invalid email format")
 }
 
@@ -127,7 +130,7 @@ func TestConverterUnbind(t *testing.T) {
 	// setup converters
 	opts := &Options{
 		Converters: map[reflect.Type]Converter{
-			reflect.TypeOf(Email("")):  &EmailConverter{},
+			reflect.TypeOf(Email("")): &EmailConverter{},
 			reflect.TypeOf(UserID(0)): &UserIDConverter{},
 		},
 	}
@@ -156,7 +159,7 @@ func TestConverterRoundTrip(t *testing.T) {
 	// setup converters
 	opts := &Options{
 		Converters: map[reflect.Type]Converter{
-			reflect.TypeOf(Email("")):  &EmailConverter{},
+			reflect.TypeOf(Email("")): &EmailConverter{},
 			reflect.TypeOf(UserID(0)): &UserIDConverter{},
 		},
 	}
@@ -232,7 +235,9 @@ func TestConverterIncompatibleReturn(t *testing.T) {
 	var user TestUser
 	err := Bind(&user, data, opts)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "incompatible type")
+	var bindingErr *BindingError
+	assert.True(t, errors.As(err, &bindingErr))
+	assert.Contains(t, err.Error(), "expected df.Email, got string")
 }
 
 // Test with pointer fields

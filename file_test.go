@@ -1,6 +1,7 @@
 package df
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -139,6 +140,10 @@ func TestBindFromJSONFileNotFound(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for nonexistent file, got nil")
 	}
+	var fileErr *FileError
+	if !errors.As(err, &fileErr) {
+		t.Errorf("expected FileError, got %T", err)
+	}
 }
 
 func TestBindFromYAMLFileNotFound(t *testing.T) {
@@ -146,5 +151,9 @@ func TestBindFromYAMLFileNotFound(t *testing.T) {
 	err := BindFromYAML(&result, "/nonexistent/file.yaml")
 	if err == nil {
 		t.Fatal("expected error for nonexistent file, got nil")
+	}
+	var fileErr *FileError
+	if !errors.As(err, &fileErr) {
+		t.Errorf("expected FileError, got %T", err)
 	}
 }

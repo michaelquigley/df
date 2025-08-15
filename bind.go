@@ -142,7 +142,7 @@ func bindStruct(structValue reflect.Value, data map[string]any, path string, opt
 		raw, ok := data[name]
 		if !ok {
 			if tag.Required {
-				return fmt.Errorf("%s.%s: required field missing", path, field.Name)
+				return &RequiredFieldError{Path: path, Field: field.Name}
 			}
 			continue
 		}
@@ -159,14 +159,14 @@ func bindStruct(structValue reflect.Value, data map[string]any, path string, opt
 		}
 
 		if err := setField(fieldVal, raw, path+"."+field.Name, opt, preserveExisting); err != nil {
-			return fmt.Errorf("binding field %s.%s from key %q: %w", path, field.Name, name, err)
+			return &BindingError{Path: path, Field: field.Name, Key: name, Cause: err}
 		}
 	}
 
 	// run deferred unmarshalers now that all other fields are populated.
 	for _, d := range deferred {
 		if err := unmarshalFromMap(d.fieldVal, d.rawData, d.path); err != nil {
-			return fmt.Errorf("binding field %s from key %q: %w", d.path, d.name, err)
+			return &BindingError{Path: d.path, Key: d.name, Cause: err}
 		}
 	}
 
@@ -177,7 +177,7 @@ func bindStruct(structValue reflect.Value, data map[string]any, path string, opt
 func unmarshalFromMap(fieldVal reflect.Value, raw interface{}, path string) error {
 	subMap, ok := raw.(map[string]any)
 	if !ok {
-		return fmt.Errorf("%s: expected object for unmarshaler, got %T", path, raw)
+		return &TypeMismatchError{Path: path, Expected: "object for unmarshaler", Actual: fmt.Sprintf("%T", raw)}
 	}
 
 	// handle pointer vs. value receiver for the unmarshaler
@@ -200,7 +200,7 @@ func unmarshalFromMap(fieldVal reflect.Value, raw interface{}, path string) erro
 		return fieldVal.Interface().(Unmarshaler).UnmarshalDf(subMap)
 	}
 
-	return fmt.Errorf("%s: internal error: field does not implement unmarshaler", path) // should be unreachable
+	return &ValidationError{Field: path, Message: "internal error: field does not implement unmarshaler"} // should be unreachable
 }
 
 func setField(fieldVal reflect.Value, raw interface{}, path string, opt *Options, preserveExisting bool) error {
@@ -212,7 +212,7 @@ func setField(fieldVal reflect.Value, raw interface{}, path string, opt *Options
 		if elemType.Kind() == reflect.Struct {
 			subMap, ok := raw.(map[string]any)
 			if !ok {
-				return fmt.Errorf("%s: expected object for struct pointer, got %T", path, raw)
+				return &TypeMismatchError{Path: path, Expected: "object for struct pointer", Actual: fmt.Sprintf("%T", raw)}
 			}
 			// if preserveExisting and pointer is not nil, bind to existing struct
 			if preserveExisting && !fieldVal.IsNil() {

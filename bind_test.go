@@ -1,6 +1,7 @@
 package df
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 
@@ -117,6 +118,8 @@ func TestRequired(t *testing.T) {
 
 	err := Bind(required, data)
 	assert.Error(t, err)
+	var reqFieldErr *RequiredFieldError
+	assert.True(t, errors.As(err, &reqFieldErr))
 }
 
 func TestNestedPtr(t *testing.T) {

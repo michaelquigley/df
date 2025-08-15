@@ -21,17 +21,17 @@ import (
 // opts are optional; pass nil or omit to use defaults.
 func Unbind(source interface{}, opts ...*Options) (map[string]any, error) {
 	if source == nil {
-		return nil, fmt.Errorf("nil source provided")
+		return nil, &ValidationError{Message: "nil source provided"}
 	}
 	val := reflect.ValueOf(source)
 	if val.Kind() == reflect.Ptr {
 		if val.IsNil() {
-			return nil, fmt.Errorf("nil pointer provided")
+			return nil, &ValidationError{Message: "nil pointer provided"}
 		}
 		val = val.Elem()
 	}
 	if val.Kind() != reflect.Struct {
-		return nil, fmt.Errorf("source must be a struct or pointer to struct; got %T", source)
+		return nil, &TypeMismatchError{Expected: "struct or pointer to struct", Actual: fmt.Sprintf("%T", source)}
 	}
 	opt, err := getOptions(opts...)
 	if err != nil {
@@ -67,7 +67,7 @@ func structToMap(structVal reflect.Value, opt *Options) (map[string]any, error) 
 
 		v, ok, err := valueToInterface(fieldVal, opt)
 		if err != nil {
-			return nil, fmt.Errorf("unbinding field %s.%s to key %q: %w", structType.Name(), field.Name, name, err)
+			return nil, &UnbindingError{Path: structType.Name(), Field: field.Name, Key: name, Cause: err}
 		}
 		if !ok {
 			// nothing to emit (e.g., nil pointer)
@@ -173,7 +173,7 @@ func valueToInterface(v reflect.Value, opt *Options) (interface{}, bool, error) 
 				}
 				dyn, ok := dynIfaceVal.(Dynamic)
 				if !ok {
-					return nil, false, fmt.Errorf("index %d: element does not implement Dynamic", i)
+					return nil, false, &IndexError{Index: i, Cause: &TypeMismatchError{Expected: "Dynamic", Actual: "non-Dynamic element"}}
 				}
 				arr = append(arr, dynamicToMap(dyn))
 			}
@@ -183,7 +183,7 @@ func valueToInterface(v reflect.Value, opt *Options) (interface{}, bool, error) 
 			elem := v.Index(i)
 			converted, present, err := valueToInterface(elem, opt)
 			if err != nil {
-				return nil, false, fmt.Errorf("index %d: %w", i, err)
+				return nil, false, &IndexError{Index: i, Cause: err}
 			}
 			if !present {
 				// keep nils to preserve positional semantics
@@ -205,10 +205,10 @@ func valueToInterface(v reflect.Value, opt *Options) (interface{}, bool, error) 
 			dyn := v.Interface().(Dynamic)
 			return dynamicToMap(dyn), true, nil
 		}
-		return nil, false, fmt.Errorf("interface fields are not supported")
+		return nil, false, &UnsupportedError{Operation: "interface fields"}
 
 	case reflect.Map:
-		return nil, false, fmt.Errorf("map fields are not supported")
+		return nil, false, &UnsupportedError{Operation: "map fields"}
 
 	case reflect.String, reflect.Bool,
 		reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
@@ -217,7 +217,7 @@ func valueToInterface(v reflect.Value, opt *Options) (interface{}, bool, error) 
 		return v.Interface(), true, nil
 	}
 
-	return nil, false, fmt.Errorf("unsupported kind %s", v.Kind())
+	return nil, false, &UnsupportedError{Operation: fmt.Sprintf("kind %s", v.Kind())}
 }
 
 // dynamicToMap converts a Dynamic value to a map and enforces that the discriminator key "type" is present and

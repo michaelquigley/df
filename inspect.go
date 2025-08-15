@@ -50,7 +50,7 @@ func Inspect(source interface{}, opts ...*InspectOptions) (string, error) {
 	}
 
 	if val.Kind() != reflect.Struct {
-		return "", fmt.Errorf("source must be a struct or pointer to struct; got %T", source)
+		return "", &TypeMismatchError{Expected: "struct or pointer to struct", Actual: fmt.Sprintf("%T", source)}
 	}
 
 	// first pass: calculate the maximum field name length and depth across all structures

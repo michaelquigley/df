@@ -11,7 +11,7 @@ import (
 func convertAndSet(dst reflect.Value, raw interface{}, path string, opt *Options) error {
 	// check for custom converter first
 	if converted, wasConverted, err := tryCustomConverter(dst.Type(), raw, opt, true); err != nil {
-		return fmt.Errorf("%s: %w", path, err)
+		return &ConversionError{Path: path, Cause: err}
 	} else if wasConverted {
 		dst.Set(reflect.ValueOf(converted))
 		return nil
@@ -24,7 +24,7 @@ func convertAndSet(dst reflect.Value, raw interface{}, path string, opt *Options
 		case string:
 			d, err := time.ParseDuration(v)
 			if err != nil {
-				return fmt.Errorf("%s: invalid duration %q: %w", path, v, err)
+				return &ConversionError{Path: path, Value: v, Type: "duration", Cause: err}
 			}
 			dst.SetInt(int64(d))
 			return nil
@@ -35,7 +35,7 @@ func convertAndSet(dst reflect.Value, raw interface{}, path string, opt *Options
 			dst.SetInt(int64(reflect.ValueOf(v).Float()))
 			return nil
 		default:
-			return fmt.Errorf("%s: expected duration (string or number), got %T", path, raw)
+			return &TypeMismatchError{Path: path, Expected: "duration (string or number)", Actual: fmt.Sprintf("%T", raw)}
 		}
 	}
 
@@ -43,7 +43,7 @@ func convertAndSet(dst reflect.Value, raw interface{}, path string, opt *Options
 	case reflect.String:
 		s, ok := raw.(string)
 		if !ok {
-			return fmt.Errorf("%s: expected string, got %T", path, raw)
+			return &TypeMismatchError{Path: path, Expected: "string", Actual: fmt.Sprintf("%T", raw)}
 		}
 		dst.SetString(s)
 		return nil
@@ -56,18 +56,18 @@ func convertAndSet(dst reflect.Value, raw interface{}, path string, opt *Options
 		case string:
 			b, err := strconv.ParseBool(strings.TrimSpace(v))
 			if err != nil {
-				return fmt.Errorf("%s: cannot parse bool %q", path, v)
+				return &ConversionError{Path: path, Value: v, Type: "bool", Message: fmt.Sprintf("cannot parse bool %q", v)}
 			}
 			dst.SetBool(b)
 			return nil
 		default:
-			return fmt.Errorf("%s: expected bool, got %T", path, raw)
+			return &TypeMismatchError{Path: path, Expected: "bool", Actual: fmt.Sprintf("%T", raw)}
 		}
 
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		i64, ok := coerceToInt64(raw)
 		if !ok {
-			return fmt.Errorf("%s: expected integer, got %T", path, raw)
+			return &TypeMismatchError{Path: path, Expected: "integer", Actual: fmt.Sprintf("%T", raw)}
 		}
 		dst.SetInt(i64)
 		return nil
@@ -75,7 +75,7 @@ func convertAndSet(dst reflect.Value, raw interface{}, path string, opt *Options
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 		u64, ok := coerceToUint64(raw)
 		if !ok {
-			return fmt.Errorf("%s: expected unsigned integer, got %T", path, raw)
+			return &TypeMismatchError{Path: path, Expected: "unsigned integer", Actual: fmt.Sprintf("%T", raw)}
 		}
 		dst.SetUint(u64)
 		return nil
@@ -83,13 +83,13 @@ func convertAndSet(dst reflect.Value, raw interface{}, path string, opt *Options
 	case reflect.Float32, reflect.Float64:
 		f64, ok := coerceToFloat64(raw)
 		if !ok {
-			return fmt.Errorf("%s: expected float, got %T", path, raw)
+			return &TypeMismatchError{Path: path, Expected: "float", Actual: fmt.Sprintf("%T", raw)}
 		}
 		dst.SetFloat(f64)
 		return nil
 	}
 
-	return fmt.Errorf("%s: unsupported kind %s", path, dstKind)
+	return &UnsupportedError{Path: path, Type: fmt.Sprintf("kind %s", dstKind)}
 }
 
 func coerceToInt64(raw interface{}) (int64, bool) {

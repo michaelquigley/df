@@ -2,6 +2,7 @@ package df
 
 import (
 	"encoding/json"
+	"errors"
 	"testing"
 )
 
@@ -558,6 +559,10 @@ func TestUnresolvedReference(t *testing.T) {
 	if err == nil {
 		t.Errorf("Link should have failed due to unresolved reference")
 	}
+	var pointerErr *PointerError
+	if err != nil && !errors.As(err, &pointerErr) {
+		t.Errorf("expected PointerError, got %T", err)
+	}
 	if err != nil && !contains(err.Error(), "unresolved reference") {
 		t.Errorf("Error should mention unresolved reference: %v", err)
 	}
@@ -797,6 +802,10 @@ func TestLinkerPartialResolution(t *testing.T) {
 	err = linker1.Link(&node)
 	if err == nil {
 		t.Errorf("link should have failed with unresolved reference")
+	}
+	var pointerErr2 *PointerError
+	if err != nil && !errors.As(err, &pointerErr2) {
+		t.Errorf("expected PointerError, got %T", err)
 	}
 
 	// with partial resolution enabled, should succeed

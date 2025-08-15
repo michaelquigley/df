@@ -1,6 +1,7 @@
 package df
 
 import (
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -296,13 +297,17 @@ func TestInspect_InvalidInput(t *testing.T) {
 	// test with non-struct
 	_, err := Inspect("not a struct")
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "source must be a struct or pointer to struct")
+	var typeMismatchErr *TypeMismatchError
+	assert.True(t, errors.As(err, &typeMismatchErr))
+	assert.Contains(t, err.Error(), "expected struct or pointer to struct, got string")
 
 	// test with non-struct pointer
 	s := "string"
 	_, err = Inspect(&s)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "source must be a struct or pointer to struct")
+	var typeMismatchErr2 *TypeMismatchError
+	assert.True(t, errors.As(err, &typeMismatchErr2))
+	assert.Contains(t, err.Error(), "expected struct or pointer to struct, got *string")
 }
 
 type emptyStruct struct{}
