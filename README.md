@@ -178,6 +178,190 @@ err := df.Bind(config, data)
 
 Both functions support the same features: struct tags, nested structures, custom converters, dynamic fields, etc.
 
+## Merge - Building Defaults Systems
+
+The `Merge` function provides a powerful way to build configuration systems with sensible defaults. Unlike `Bind` and `New[T]` which populate empty structs, `Merge` overlays external data onto pre-initialized structs, preserving any existing values that aren't overridden.
+
+### Basic Merge Usage
+
+```go
+type ServerConfig struct {
+    Host    string `df:"host"`
+    Port    int    `df:"port"`
+    Timeout int    `df:"timeout"`
+    Debug   bool   `df:"debug"`
+}
+
+// Start with a struct containing sensible defaults
+config := &ServerConfig{
+    Host:    "localhost",
+    Port:    8080,
+    Timeout: 30,
+    Debug:   false,
+}
+
+// External configuration (from file, environment, CLI, etc.)
+userConfig := map[string]any{
+    "host": "api.example.com",
+    "debug": true,
+    // Note: port and timeout are not specified
+}
+
+// Merge preserves unspecified defaults
+err := df.Merge(config, userConfig)
+// Result: Host="api.example.com", Port=8080 (preserved), 
+//         Timeout=30 (preserved), Debug=true
+```
+
+### Layered Configuration Systems
+
+`Merge` enables sophisticated configuration hierarchies where defaults can be progressively overridden:
+
+```go
+type AppConfig struct {
+    Server   ServerConfig   `df:"server"`
+    Database DatabaseConfig `df:"database"`
+    Features []string       `df:"features"`
+}
+
+// Layer 1: Application defaults
+config := &AppConfig{
+    Server: ServerConfig{
+        Host:    "localhost",
+        Port:    8080,
+        Timeout: 30,
+        Debug:   false,
+    },
+    Database: DatabaseConfig{
+        Host:     "localhost",
+        Port:     5432,
+        Database: "myapp",
+        SSL:      true,
+    },
+    Features: []string{"basic", "auth"},
+}
+
+// Layer 2: Environment-specific overrides
+envConfig := map[string]any{
+    "server": map[string]any{
+        "host": "prod-server.example.com",
+        "timeout": 60,
+    },
+    "database": map[string]any{
+        "host": "prod-db.example.com",
+    },
+}
+
+err := df.Merge(config, envConfig)
+
+// Layer 3: User-specific overrides
+userConfig := map[string]any{
+    "server": map[string]any{
+        "debug": true,
+    },
+    "features": []string{"basic", "auth", "premium"},
+}
+
+err = df.Merge(config, userConfig)
+
+// Final result combines all layers:
+// - Server.Host: "prod-server.example.com" (from env)
+// - Server.Port: 8080 (preserved from defaults)
+// - Server.Timeout: 60 (from env)
+// - Server.Debug: true (from user)
+// - Database.Host: "prod-db.example.com" (from env)
+// - Database.Port: 5432 (preserved from defaults)
+// - Features: ["basic", "auth", "premium"] (from user, replaces entirely)
+```
+
+### Configuration Sources Integration
+
+`Merge` works seamlessly with multiple configuration sources:
+
+```go
+// Start with compiled-in defaults
+config := getDefaultConfig()
+
+// Layer 1: Configuration file
+if configExists("app.yaml") {
+    err := df.MergeFromYAML(config, "app.yaml")
+    if err != nil {
+        return err
+    }
+}
+
+// Layer 2: Environment variables (converted to map)
+envVars := getEnvironmentOverrides()
+err := df.Merge(config, envVars)
+
+// Layer 3: Command line flags (converted to map)
+cliFlags := getCLIOverrides()
+err = df.Merge(config, cliFlags)
+
+// Final config reflects the complete hierarchy
+```
+
+### Nested Struct Preservation
+
+`Merge` intelligently handles nested structures, preserving defaults at all levels:
+
+```go
+type DatabaseConfig struct {
+    Host     string        `df:"host"`
+    Port     int          `df:"port"`
+    Pool     PoolConfig   `df:"pool"`
+    Features []string     `df:"features"`
+}
+
+type PoolConfig struct {
+    MinSize int `df:"min_size"`
+    MaxSize int `df:"max_size"`
+    Timeout int `df:"timeout"`
+}
+
+// Defaults with nested configuration
+config := &DatabaseConfig{
+    Host: "localhost",
+    Port: 5432,
+    Pool: PoolConfig{
+        MinSize: 5,
+        MaxSize: 20,
+        Timeout: 30,
+    },
+    Features: []string{"ssl", "pooling"},
+}
+
+// Partial override - only changes MaxSize
+override := map[string]any{
+    "pool": map[string]any{
+        "max_size": 50,
+    },
+}
+
+err := df.Merge(config, override)
+// Result preserves Host, Port, Pool.MinSize, Pool.Timeout, Features
+// Only Pool.MaxSize changes to 50
+```
+
+### Key Benefits
+
+- **Intuitive Defaults**: Define sensible defaults directly in Go structs
+- **Selective Overrides**: Users only specify what they want to change
+- **Deep Merging**: Nested structures are merged intelligently
+- **Configuration Hierarchies**: Layer multiple configuration sources
+- **Type Safety**: Leverage Go's type system for configuration validation
+- **Backward Compatibility**: Adding new fields with defaults doesn't break existing configs
+
+### Merge vs Bind vs New[T]
+
+| Function | Use Case | Object State | Best For |
+|----------|----------|--------------|----------|
+| `New[T]` | Create from scratch | Empty → Populated | Simple binding, new objects |
+| `Bind` | Populate existing | Any → Populated | Manual allocation control |
+| `Merge` | Overlay onto defaults | Defaults → Enhanced | Configuration systems, defaults |
+
+See [examples/df_defaults](examples/df_defaults) for a complete working example of building configuration systems with `Merge`.
+
 ## Custom Marshaling and Unmarshaling
 
 For types that require custom logic for binding and unbinding, `df` supports the `Unmarshaler` and `Marshaler` interfaces. This allows a type to take full control over how it is converted from or to structured data.

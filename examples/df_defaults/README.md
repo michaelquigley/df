@@ -1,20 +1,65 @@
-# df_defaults Example
+# Configuration Defaults with Merge
 
-This example demonstrates the `df.Merge()` function, which allows binding partial data to existing structs while preserving default values.
+This example demonstrates how to build robust configuration systems using `df.Merge()`. Unlike `df.Bind()` which overwrites the entire struct, `Merge()` intelligently overlays external data onto pre-initialized structs with sensible defaults.
 
-## Key Features
+## Key Concepts Demonstrated
 
-- **Preserves existing values**: Fields not present in the source data retain their original values
-- **Partial updates**: Only provided fields are updated
-- **Nested struct support**: Works with nested structures
-- **Same field mapping**: Uses identical struct tag and naming conventions as `df.Bind()`
+### **Defaults Systems**
+- **Pre-initialized structs**: Start with sensible default values  
+- **Selective overrides**: External config only specifies what should change
+- **Preserved defaults**: Unspecified fields keep their original values
+- **Layered configuration**: Multiple sources can be merged progressively
 
-## Use Case
+### **Configuration Hierarchies**
+- **Layer 1**: Application defaults (compiled into code)
+- **Layer 2**: Environment-specific config (dev/staging/prod)
+- **Layer 3**: User overrides (CLI flags, user preferences)
+- **Final result**: Intelligent merge of all layers
 
-Perfect for configuration scenarios where you have:
-- Default configuration values
-- Partial overrides from files, environment variables, or user input
-- Need to merge multiple configuration sources
+### **Real-World Patterns**
+- **12-Factor App compliance**: Environment-based configuration
+- **Backward compatibility**: New fields with defaults don't break existing configs
+- **Progressive enhancement**: Users can adopt new features gradually
+- **Ops-friendly**: Minimal config files, maximum flexibility
+
+## Workflow Demonstrated
+
+1. **Initialize with defaults**: Create structs with sensible default values
+2. **Apply partial config**: Use `df.Merge()` to overlay external configuration  
+3. **Verify preservation**: Show which values were overridden vs preserved
+4. **Configuration layering**: Demonstrate multiple merge operations
+
+## Example Structure
+
+```go
+// Application defaults (compiled-in)
+config := &AppConfig{
+    Server: ServerConfig{
+        Host:    "localhost",
+        Port:    8080,
+        Timeout: 30,
+        Debug:   false,
+    },
+    Database: DatabaseConfig{
+        Host:     "localhost", 
+        Port:     5432,
+        Database: "myapp",
+        SSL:      true,
+    },
+}
+
+// Partial override (from config file/env/CLI)
+partialData := map[string]any{
+    "server": map[string]any{
+        "host":  "api.example.com",
+        "debug": true,
+        // port and timeout not specified - will be preserved
+    },
+}
+
+// Intelligent merge
+df.Merge(config, partialData)
+```
 
 ## Running
 
@@ -22,4 +67,4 @@ Perfect for configuration scenarios where you have:
 go run main.go
 ```
 
-The example shows how `Merge` preserves default values while updating only the fields present in the input data.
+The output clearly shows which values were updated from external config and which defaults were preserved, demonstrating the power of selective configuration merging.
