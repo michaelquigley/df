@@ -1,6 +1,6 @@
 # df_defaults Example
 
-This example demonstrates the `df.BindTo()` function, which allows binding partial data to existing structs while preserving default values.
+This example demonstrates the `df.Merge()` function, which allows binding partial data to existing structs while preserving default values.
 
 ## Key Features
 
@@ -22,4 +22,4 @@ Perfect for configuration scenarios where you have:
 go run main.go
 ```
 
-The example shows how `BindTo` preserves default values while updating only the fields present in the input data.
+The example shows how `Merge` preserves default values while updating only the fields present in the input data.

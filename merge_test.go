@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestBasicBindTo(t *testing.T) {
+func TestBasicMerge(t *testing.T) {
 	config := &struct {
 		Host string
 		Port int
@@ -19,13 +19,13 @@ func TestBasicBindTo(t *testing.T) {
 		"host": "example.com",
 	}
 
-	err := BindTo(config, data)
+	err := Merge(config, data)
 	assert.Nil(t, err)
 	assert.Equal(t, "example.com", config.Host)
 	assert.Equal(t, 8080, config.Port) // preserved default
 }
 
-func TestBindToPreservesDefaults(t *testing.T) {
+func TestMergePreservesDefaults(t *testing.T) {
 	config := &struct {
 		Host    string
 		Port    int
@@ -43,15 +43,15 @@ func TestBindToPreservesDefaults(t *testing.T) {
 		"debug": true,
 	}
 
-	err := BindTo(config, data)
+	err := Merge(config, data)
 	assert.Nil(t, err)
 	assert.Equal(t, "localhost", config.Host) // preserved
-	assert.Equal(t, 9090, config.Port)       // overridden
-	assert.Equal(t, 30, config.Timeout)      // preserved
-	assert.Equal(t, true, config.Debug)      // overridden
+	assert.Equal(t, 9090, config.Port)        // overridden
+	assert.Equal(t, 30, config.Timeout)       // preserved
+	assert.Equal(t, true, config.Debug)       // overridden
 }
 
-func TestBindToNestedStruct(t *testing.T) {
+func TestMergeNestedStruct(t *testing.T) {
 	type Database struct {
 		Host string
 		Port int
@@ -72,13 +72,13 @@ func TestBindToNestedStruct(t *testing.T) {
 		},
 	}
 
-	err := BindTo(config, data)
+	err := Merge(config, data)
 	assert.Nil(t, err)
 	assert.Equal(t, "db.example.com", config.App.Host)
 	assert.Equal(t, 5432, config.App.Port) // preserved
 }
 
-func TestBindToPointerField(t *testing.T) {
+func TestMergePointerField(t *testing.T) {
 	config := &struct {
 		Host *string
 		Port *int
@@ -91,13 +91,13 @@ func TestBindToPointerField(t *testing.T) {
 		"host": "example.com",
 	}
 
-	err := BindTo(config, data)
+	err := Merge(config, data)
 	assert.Nil(t, err)
 	assert.Equal(t, "example.com", *config.Host)
 	assert.Equal(t, 8080, *config.Port) // preserved
 }
 
-func TestBindToNilPointerField(t *testing.T) {
+func TestMergeNilPointerField(t *testing.T) {
 	config := &struct {
 		Host *string
 		Port *int
@@ -107,13 +107,13 @@ func TestBindToNilPointerField(t *testing.T) {
 		"host": "example.com",
 	}
 
-	err := BindTo(config, data)
+	err := Merge(config, data)
 	assert.Nil(t, err)
 	assert.Equal(t, "example.com", *config.Host)
 	assert.Nil(t, config.Port) // remains nil
 }
 
-func TestBindToStructPointer(t *testing.T) {
+func TestMergeStructPointer(t *testing.T) {
 	type Database struct {
 		Host string
 		Port int
@@ -134,13 +134,13 @@ func TestBindToStructPointer(t *testing.T) {
 		},
 	}
 
-	err := BindTo(config, data)
+	err := Merge(config, data)
 	assert.Nil(t, err)
 	assert.Equal(t, "db.example.com", config.DB.Host)
 	assert.Equal(t, 5432, config.DB.Port) // preserved
 }
 
-func TestBindToNilStructPointer(t *testing.T) {
+func TestMergeNilStructPointer(t *testing.T) {
 	type Database struct {
 		Host string
 		Port int
@@ -157,13 +157,13 @@ func TestBindToNilStructPointer(t *testing.T) {
 		},
 	}
 
-	err := BindTo(config, data)
+	err := Merge(config, data)
 	assert.Nil(t, err)
 	assert.Equal(t, "db.example.com", config.DB.Host)
 	assert.Equal(t, 3306, config.DB.Port)
 }
 
-func TestBindToSlice(t *testing.T) {
+func TestMergeSlice(t *testing.T) {
 	config := &struct {
 		Tags []string
 	}{
@@ -174,12 +174,12 @@ func TestBindToSlice(t *testing.T) {
 		"tags": []string{"new", "tags"},
 	}
 
-	err := BindTo(config, data)
+	err := Merge(config, data)
 	assert.Nil(t, err)
 	assert.Equal(t, []string{"new", "tags"}, config.Tags) // replaced entirely
 }
 
-func TestBindToEmptySlice(t *testing.T) {
+func TestMergeEmptySlice(t *testing.T) {
 	config := &struct {
 		Tags []string
 	}{
@@ -188,12 +188,12 @@ func TestBindToEmptySlice(t *testing.T) {
 
 	data := map[string]any{}
 
-	err := BindTo(config, data)
+	err := Merge(config, data)
 	assert.Nil(t, err)
 	assert.Equal(t, []string{"default", "tag"}, config.Tags) // preserved
 }
 
-func TestBindToRequiredField(t *testing.T) {
+func TestMergeRequiredField(t *testing.T) {
 	config := &struct {
 		Host string `df:",required"`
 		Port int
@@ -206,12 +206,12 @@ func TestBindToRequiredField(t *testing.T) {
 		"port": 9090,
 	}
 
-	err := BindTo(config, data)
+	err := Merge(config, data)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "required field missing")
 }
 
-func TestBindToWithStructTags(t *testing.T) {
+func TestMergeWithStructTags(t *testing.T) {
 	config := &struct {
 		Host string `df:"server_host"`
 		Port int    `df:"server_port"`
@@ -224,13 +224,13 @@ func TestBindToWithStructTags(t *testing.T) {
 		"server_host": "example.com",
 	}
 
-	err := BindTo(config, data)
+	err := Merge(config, data)
 	assert.Nil(t, err)
 	assert.Equal(t, "example.com", config.Host)
 	assert.Equal(t, 8080, config.Port) // preserved
 }
 
-func TestBindToSkippedField(t *testing.T) {
+func TestMergeSkippedField(t *testing.T) {
 	config := &struct {
 		Host   string
 		Secret string `df:"-"`
@@ -244,7 +244,7 @@ func TestBindToSkippedField(t *testing.T) {
 		"secret": "new-secret",
 	}
 
-	err := BindTo(config, data)
+	err := Merge(config, data)
 	assert.Nil(t, err)
 	assert.Equal(t, "example.com", config.Host)
 	assert.Equal(t, "default-secret", config.Secret) // preserved (skipped)

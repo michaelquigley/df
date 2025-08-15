@@ -63,12 +63,12 @@ func main() {
 		"features": []string{"basic", "auth", "premium"},
 	}
 
-	// bind partial data to existing config, preserving defaults
-	if err := df.BindTo(config, partialData); err != nil {
+	// merge partial data to existing config, preserving defaults
+	if err := df.Merge(config, partialData); err != nil {
 		log.Fatalf("failed to bind partial config: %v", err)
 	}
 
-	fmt.Println("\n=== config after BindTo with partial data ===")
+	fmt.Println("\n=== config after Merge with partial data ===")
 	fmt.Printf("server: %+v\n", config.Server)
 	fmt.Printf("database: %+v\n", config.Database)
 	fmt.Printf("features: %v\n", config.Features)

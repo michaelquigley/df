@@ -51,7 +51,7 @@ func Bind(target interface{}, data map[string]any, opts ...*Options) error {
 	return bindStruct(elem, data, elem.Type().Name(), opt, false)
 }
 
-// BindTo populates the exported fields of an existing target struct from the given data map, preserving
+// Merge populates the exported fields of an existing target struct from the given data map, preserving
 // any existing field values that are not present in the data. This allows binding partial data to
 // pre-initialized structs with default values.
 //
@@ -60,7 +60,7 @@ func Bind(target interface{}, data map[string]any, opts ...*Options) error {
 // supported kinds are the same as Bind.
 //
 // opts are optional; pass nil or omit to use defaults.
-func BindTo(target interface{}, data map[string]any, opts ...*Options) error {
+func Merge(target interface{}, data map[string]any, opts ...*Options) error {
 	elem, err := validateTarget(target)
 	if err != nil {
 		return err
