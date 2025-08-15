@@ -7,6 +7,51 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestBasicNew(t *testing.T) {
+	type BasicStruct struct {
+		StringValue string
+	}
+
+	data := map[string]any{
+		"string_value": "oh, wow!",
+	}
+
+	result, err := New[BasicStruct](data)
+	assert.Nil(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, "oh, wow!", result.StringValue)
+}
+
+func TestNewWithOptions(t *testing.T) {
+	type StructWithTag struct {
+		SomeInt int `df:"some_int_,required"`
+	}
+
+	data := map[string]any{
+		"some_int_": 46,
+	}
+
+	result, err := New[StructWithTag](data)
+	assert.Nil(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, 46, result.SomeInt)
+}
+
+func TestNewWithSlice(t *testing.T) {
+	type StructWithArray struct {
+		StringArray []string
+	}
+
+	data := map[string]any{
+		"string_array": []string{"one", "two", "three"},
+	}
+
+	result, err := New[StructWithArray](data)
+	assert.Nil(t, err)
+	assert.NotNil(t, result)
+	assert.EqualValues(t, []string{"one", "two", "three"}, result.StringArray)
+}
+
 func TestBasicBind(t *testing.T) {
 	basic := &struct {
 		StringValue string

@@ -29,6 +29,9 @@ type Options struct {
 // presence), `df:"-"` to skip a field, or, when no tag is provided, a best-effort snake_case conversion of the
 // field name.
 //
+// Use Bind when you need to control how the prototype object is allocated. Use New when you just want to allocate a new
+// object to bind off the heap.
+//
 // supported kinds:
 // - primitives: string, bool, all int/uint sizes, float32/64, time.Duration
 // - pointers to the above
@@ -49,6 +52,43 @@ func Bind(target interface{}, data map[string]any, opts ...*Options) error {
 		return err
 	}
 	return bindStruct(elem, data, elem.Type().Name(), opt, false)
+}
+
+// New creates and populates a new instance of type T from the given data map.
+// Unlike Bind, which requires a pre-allocated target pointer, New automatically
+// allocates the object and returns a pointer to the populated struct.
+//
+// Use Bind instead of New when you need to control where and how the target object is instantiated. New just allocates
+// a fresh target off the heap.
+//
+// Example usage:
+//
+//	type Person struct {
+//	    Name string
+//	    Age  int
+//	}
+//
+//	data := map[string]any{"name": "John", "age": 30}
+//	person, err := New[Person](data)
+//	if err != nil {
+//	    // handle error
+//	}
+//	// person is now *Person with Name="John" and Age=30
+//
+// supported kinds and field mapping rules are the same as Bind.
+//
+// opts are optional; pass nil or omit to use defaults.
+func New[T any](data map[string]any, opts ...*Options) (*T, error) {
+	// Create new instance of T
+	target := new(T)
+
+	// Use existing Bind function to populate it
+	err := Bind(target, data, opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	return target, nil
 }
 
 // Merge populates the exported fields of an existing target struct from the given data map, preserving
