@@ -1,0 +1,21 @@
+project_name: df
+
+builds:
+  - skip: true
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^ci:'
+      - Merge pull request
+      - Merge branch
+
+release:
+  github:
+    owner: michaelquigley
+    name: df
+  draft: false
+  prerelease: auto
