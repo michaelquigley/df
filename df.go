@@ -41,42 +41,56 @@ type Converter interface {
 	ToRaw(value interface{}) (interface{}, error)
 }
 
+// DfTag holds the parsed values from a `df` struct tag.
+type DfTag struct {
+	Name     string // external field name override, empty means use default
+	Required bool   // true if field is required during binding
+	Secret   bool   // true if field contains sensitive data
+	Skip     bool   // true if field should be skipped entirely
+}
+
 // parseDfTag parses the `df` struct tag on a field.
 //
-// tag format: df:"[name][,required]"
+// tag format: df:"[name][,required][,secret]"
 //
 // special cases:
 // - "-"          → skip the field entirely (skip=true)
-// - missing/empty → no override (default name, required=false)
+// - missing/empty → no override (default name, required=false, secret=false)
 //
 // rules:
 // - tokens are comma-separated; surrounding whitespace is ignored.
-// - if the first token is not "required", it is taken as the external field name.
+// - if the first token is not "required" or "secret", it is taken as the external field name.
 // - the presence of a "required" token (any position) sets required=true.
+// - the presence of a "secret" token (any position) sets secret=true.
 // - unrecognized tokens are ignored.
-func parseDfTag(sf reflect.StructField) (name string, required bool, skip bool) {
+func parseDfTag(sf reflect.StructField) DfTag {
 	tag := sf.Tag.Get("df")
 	if tag == "-" {
-		return "", false, true
+		return DfTag{Skip: true}
 	}
 	if tag == "" {
-		return "", false, false
+		return DfTag{}
 	}
+	
+	var result DfTag
 	parts := strings.Split(tag, ",")
 	for i, p := range parts {
 		p = strings.TrimSpace(p)
 		if p == "" {
 			continue
 		}
-		if i == 0 && p != "required" { // first token as name unless it's literally "required"
-			name = p
+		if i == 0 && p != "required" && p != "secret" { // first token as name unless it's literally "required" or "secret"
+			result.Name = p
 			continue
 		}
 		if p == "required" {
-			required = true
+			result.Required = true
+		}
+		if p == "secret" {
+			result.Secret = true
 		}
 	}
-	return name, required, false
+	return result
 }
 
 func toSnakeCase(in string) string {

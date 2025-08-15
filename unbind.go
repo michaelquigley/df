@@ -50,10 +50,11 @@ func structToMap(structVal reflect.Value, opt *Options) (map[string]any, error) 
 			continue
 		}
 
-		name, _, skip := parseDfTag(field)
-		if skip {
+		tag := parseDfTag(field)
+		if tag.Skip {
 			continue
 		}
+		name := tag.Name
 		if name == "" {
 			name = toSnakeCase(field.Name)
 		}

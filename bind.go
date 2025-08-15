@@ -130,17 +130,18 @@ func bindStruct(structValue reflect.Value, data map[string]any, path string, opt
 		}
 
 		fieldVal := structValue.Field(i)
-		name, required, skip := parseDfTag(field)
-		if skip {
+		tag := parseDfTag(field)
+		if tag.Skip {
 			continue
 		}
+		name := tag.Name
 		if name == "" {
 			name = toSnakeCase(field.Name)
 		}
 
 		raw, ok := data[name]
 		if !ok {
-			if required {
+			if tag.Required {
 				return fmt.Errorf("%s.%s: required field missing", path, field.Name)
 			}
 			continue
