@@ -6,7 +6,7 @@ A lightweight Go library for binding and unbinding structured data to/from Go st
 
 - **Bind** data from maps, JSON, and YAML files to Go structs
 - **New[T]** generic function for automatic allocation and binding
-- **Merge** data from maps, JSON, and YAML files into pre-built Go structs
+- **Merge** data from maps, JSON, and YAML files into pre-built Go structs (default settings, etc.)
 - **Unbind** Go structs back to maps, JSON, and YAML files
 - **Flexible field mapping** with `df` struct tags
 - **Type coercion** for primitives, pointers, slices, and nested structs
