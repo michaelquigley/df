@@ -50,11 +50,11 @@ func TestStringOptimizationsCorrectness(t *testing.T) {
 	}{
 		{"", ""},
 		{"A", "a"},
-		{"ABC", "a_b_c"},
+		{"ABC", "abc"},
 		{"SimpleCase", "simple_case"},
-		{"HTMLParser", "h_t_m_l_parser"},
-		{"getUserID", "get_user_i_d"},
-		{"XMLHttpRequest", "x_m_l_http_request"},
+		{"HTMLParser", "html_parser"},
+		{"getUserID", "get_user_id"},
+		{"XMLHttpRequest", "xml_http_request"},
 	}
 
 	for _, tc := range testCases {

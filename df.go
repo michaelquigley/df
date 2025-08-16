@@ -98,22 +98,28 @@ func toSnakeCase(in string) string {
 		return ""
 	}
 
-	// Count uppercase letters to estimate capacity more accurately
-	upperCount := 0
-	for _, r := range in {
-		if unicode.IsUpper(r) {
-			upperCount++
-		}
+	runes := []rune(in)
+	if len(runes) == 0 {
+		return ""
 	}
 
-	// Allocate precise capacity: original length + underscores needed
 	var b strings.Builder
-	b.Grow(len(in) + upperCount - 1) // -1 because first upper doesn't get underscore
+	b.Grow(len(in) + len(in)/3) // estimate for underscores
 
-	for i, r := range in {
+	for i, r := range runes {
 		if unicode.IsUpper(r) {
+			// Add underscore if:
+			// 1. Not at start AND
+			// 2. (Previous char is lowercase) OR 
+			//    (Next char is lowercase AND previous char is uppercase - end of acronym)
 			if i > 0 {
-				b.WriteByte('_')
+				prevLower := unicode.IsLower(runes[i-1])
+				prevUpper := unicode.IsUpper(runes[i-1])
+				nextLower := i+1 < len(runes) && unicode.IsLower(runes[i+1])
+				
+				if prevLower || (prevUpper && nextLower) {
+					b.WriteByte('_')
+				}
 			}
 			b.WriteRune(unicode.ToLower(r))
 		} else {

@@ -129,7 +129,7 @@ func TestMergeStructPointer(t *testing.T) {
 	}
 
 	data := map[string]any{
-		"d_b": map[string]any{
+		"db": map[string]any{
 			"host": "db.example.com",
 		},
 	}
@@ -151,7 +151,7 @@ func TestMergeNilStructPointer(t *testing.T) {
 	}{}
 
 	data := map[string]any{
-		"d_b": map[string]any{
+		"db": map[string]any{
 			"host": "db.example.com",
 			"port": 3306,
 		},
@@ -159,6 +159,7 @@ func TestMergeNilStructPointer(t *testing.T) {
 
 	err := Merge(config, data)
 	assert.Nil(t, err)
+	assert.NotNil(t, config.DB)
 	assert.Equal(t, "db.example.com", config.DB.Host)
 	assert.Equal(t, 3306, config.DB.Port)
 }
