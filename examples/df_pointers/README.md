@@ -1,25 +1,25 @@
-# Pointer References Example
+# pointer references example
 
-This example demonstrates how to use `df.Pointer[T]` for object references that support cycles and type safety.
+this example demonstrates how to use `df.Pointer[T]` for object references that support cycles and type safety.
 
-## Key Concepts
+## key concepts
 
-- **Identifiable Interface**: Objects implement `GetId() string` to participate in pointer references
-- **Pointer[T] Type**: Generic type that holds references like `*df.Pointer[*User]`  
-- **Two-Phase Process**: 
+- **Identifiable interface**: objects implement `GetId() string` to participate in pointer references
+- **Pointer[T] type**: generic type that holds references like `*df.Pointer[*User]`  
+- **two-phase process**: 
   1. `df.Bind()` - loads data and stores `$ref` strings
   2. `df.Link()` - resolves all references to actual objects
-- **Type Namespacing**: Objects with same ID but different types don't clash (e.g., `User:1` vs `Document:1`)
+- **type namespacing**: objects with same ID but different types don't clash (e.g., `User:1` vs `Document:1`)
 
-## Usage
+## usage
 
 ```bash
 go run main.go
 ```
 
-## JSON Structure
+## JSON structure
 
-The example uses this data structure with `$ref` fields:
+the example uses this data structure with `$ref` fields:
 
 ```json
 {
@@ -38,4 +38,4 @@ The example uses this data structure with `$ref` fields:
 }
 ```
 
-The `$ref` values are resolved to actual object pointers during the Link phase.
+the `$ref` values are resolved to actual object pointers during the Link phase.

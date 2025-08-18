@@ -4,9 +4,9 @@ this example demonstrates how to use custom field converters in the `df` library
 
 ## overview
 
-the `df` library now supports custom converters through the `Converter` interface, allowing you to define bidirectional type conversion for your custom types. this is particularly useful when:
+the `df` library supports custom converters through the `Converter` interface, allowing you to define bidirectional type conversion for your custom types. this is particularly useful when:
 
-- you have domain-specific types (like `Email`, `PhoneNumber`, etc.)
+- you have domain-specific types (like `email`, `phone_number`, etc.)
 - you need to parse complex data formats (like timestamps, temperatures with units)
 - you want to add validation during the binding process
 - you need to handle multiple input formats for the same logical type
@@ -37,10 +37,10 @@ this example implements converters for three custom types:
 - handles celsius and fahrenheit units
 - validates unit values
 
-### 3. timestamp conversion for time.time
-- parses various string timestamp formats (RFC3339, custom formats)
+### 3. timestamp conversion for time.Time
+- parses various string timestamp formats (rfc3339, custom formats)
 - handles unix timestamps (int64, float64)
-- converts back to RFC3339 string format
+- converts back to rfc3339 string format
 
 ## usage
 

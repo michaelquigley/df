@@ -8,27 +8,33 @@ import (
 )
 
 type ServerConfig struct {
-	Host    string `df:"host"`
-	Port    int    `df:"port"`
-	Timeout int    `df:"timeout"`
-	Debug   bool   `df:"debug"`
+	Host    string
+	Port    int
+	Timeout int
+	Debug   bool
 }
 
 type DatabaseConfig struct {
-	Host     string `df:"host"`
-	Port     int    `df:"port"`
-	Database string `df:"database"`
-	SSL      bool   `df:"ssl"`
+	Host     string
+	Port     int
+	Database string
+	SSL      bool
 }
 
 type AppConfig struct {
-	Server   ServerConfig   `df:"server"`
-	Database DatabaseConfig `df:"database"`
-	Features []string       `df:"features"`
+	Server   ServerConfig
+	Database DatabaseConfig
+	Features []string
 }
 
 func main() {
-	// pre-initialized config with default values
+	fmt.Println("=== df.Merge() configuration defaults example ===")
+	fmt.Println("demonstrates how df.Merge() enables layered configuration:")
+	fmt.Println("• application defaults (compiled-in)")
+	fmt.Println("• environment overrides (dev/staging/prod)")
+	fmt.Println("• user preferences (runtime customization)")
+	
+	// step 1: pre-initialized config with sensible defaults
 	config := &AppConfig{
 		Server: ServerConfig{
 			Host:    "localhost",
@@ -37,7 +43,7 @@ func main() {
 			Debug:   false,
 		},
 		Database: DatabaseConfig{
-			Host:     "localhost",
+			Host:     "localhost", 
 			Port:     5432,
 			Database: "myapp",
 			SSL:      true,
@@ -45,37 +51,45 @@ func main() {
 		Features: []string{"basic", "auth"},
 	}
 
-	fmt.Println("=== original config with defaults ===")
+	fmt.Println("\n=== step 1: application defaults (compiled-in) ===")
 	fmt.Printf("server: %+v\n", config.Server)
 	fmt.Printf("database: %+v\n", config.Database)
 	fmt.Printf("features: %v\n", config.Features)
 
-	// partial configuration data (only overrides specific values)
+	// step 2: partial configuration from environment/config file (only specifies overrides)
 	partialData := map[string]any{
 		"server": map[string]any{
-			"host":  "api.example.com",
-			"debug": true,
+			"host":  "api.example.com", // override for production 
+			"debug": true,              // enable for debugging
+			// note: port and timeout not specified - will preserve defaults
 		},
 		"database": map[string]any{
-			"host": "db.example.com",
-			"port": 3306,
+			"host": "db.example.com", // production database server
+			"port": 3306,             // mysql instead of postgresql
+			// note: database, ssl not specified - will preserve defaults
 		},
-		"features": []string{"basic", "auth", "premium"},
+		"features": []string{"basic", "auth", "premium"}, // add premium features
 	}
+	
+	fmt.Println("\n=== step 2: partial configuration (environment overrides) ===")
+	fmt.Printf("partial data: %+v\n", partialData)
+	fmt.Println("note: only specifies values that should change from defaults")
 
-	// merge partial data to existing config, preserving defaults
+	// merge partial data onto existing config, intelligently preserving defaults
 	if err := df.Merge(config, partialData); err != nil {
-		log.Fatalf("failed to bind partial config: %v", err)
+		log.Fatalf("failed to merge partial config: %v", err)
 	}
 
-	fmt.Println("\n=== config after Merge with partial data ===")
+	fmt.Println("\n=== step 3: final merged configuration ===")
 	fmt.Printf("server: %+v\n", config.Server)
-	fmt.Printf("database: %+v\n", config.Database)
+	fmt.Printf("database: %+v\n", config.Database)  
 	fmt.Printf("features: %v\n", config.Features)
 
-	fmt.Println("\n=== preserved defaults ===")
-	fmt.Printf("server.port: %d (preserved)\n", config.Server.Port)
-	fmt.Printf("server.timeout: %d (preserved)\n", config.Server.Timeout)
-	fmt.Printf("database.database: %s (preserved)\n", config.Database.Database)
-	fmt.Printf("database.ssl: %t (preserved)\n", config.Database.SSL)
+	fmt.Println("\n=== key differences vs df.Bind() ===")
+	fmt.Printf("✓ server.port: %d (preserved - not in partial data)\n", config.Server.Port)
+	fmt.Printf("✓ server.timeout: %d (preserved - not in partial data)\n", config.Server.Timeout)
+	fmt.Printf("✓ database.database: %s (preserved - not in partial data)\n", config.Database.Database)
+	fmt.Printf("✓ database.ssl: %t (preserved - not in partial data)\n", config.Database.SSL)
+	fmt.Printf("• df.Bind() would have zeroed these fields, df.Merge() preserves them\n")
+	fmt.Printf("• this enables minimal config files with maximum flexibility\n")
 }

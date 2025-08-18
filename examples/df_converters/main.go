@@ -167,17 +167,19 @@ func (c *TimestampConverter) ToRaw(value interface{}) (interface{}, error) {
 
 // User represents a user with custom field types
 type User struct {
-	ID          int         `df:"id"`
-	Email       Email       `df:"email"`
-	Name        string      `df:"name"`
+	ID          int
+	Email       Email
+	Name        string
 	Temperature Temperature `df:"preferred_temp"`
 	CreatedAt   time.Time   `df:"created_at"`
 }
 
 func main() {
 	fmt.Println("=== df custom converters example ===")
+	fmt.Println("demonstrates how custom converters enable type-safe data binding")
+	fmt.Println("with validation and support for multiple input formats")
 	
-	// setup converters
+	// setup converters for our custom types
 	opts := &df.Options{
 		Converters: map[reflect.Type]df.Converter{
 			reflect.TypeOf(Email("")):       &EmailConverter{},
@@ -186,15 +188,17 @@ func main() {
 		},
 	}
 	
-	// example 1: bind from map with various formats
+	// example 1: bind from map with various input formats
 	fmt.Println("\n1. binding from map with converters:")
 	data := map[string]any{
 		"id":             123,
 		"email":          "john.doe@example.com",
 		"name":           "john doe",
-		"preferred_temp": "23.5C", // string format
-		"created_at":     "2023-12-01T10:30:00Z",
+		"preferred_temp": "23.5C", // string format temperature
+		"created_at":     "2023-12-01T10:30:00Z", // rfc3339 timestamp
 	}
+	
+	fmt.Printf("input data: %+v\n", data)
 	
 	user, err := df.New[User](data, opts)
 	if err != nil {
@@ -203,11 +207,11 @@ func main() {
 	}
 	
 	fmt.Printf("bound user: %+v\n", *user)
-	fmt.Printf("email type: %T\n", user.Email)
-	fmt.Printf("temperature: %.1f°%s\n", user.Temperature.Value, user.Temperature.Unit)
-	fmt.Printf("created at: %s\n", user.CreatedAt.Format("2006-01-02 15:04:05"))
+	fmt.Printf("  email type: %T (custom type with validation)\n", user.Email)
+	fmt.Printf("  temperature: %.1f°%s (parsed from string)\n", user.Temperature.Value, user.Temperature.Unit)
+	fmt.Printf("  created at: %s (parsed from rfc3339)\n", user.CreatedAt.Format("2006-01-02 15:04:05"))
 	
-	// example 2: bind from json with object temperature format
+	// example 2: bind from json with different temperature format
 	fmt.Println("\n2. binding from json with object temperature:")
 	jsonData := `{
 		"id": 456,
@@ -216,6 +220,8 @@ func main() {
 		"preferred_temp": {"value": 75, "unit": "F"},
 		"created_at": 1701420600
 	}`
+	
+	fmt.Printf("json input: %s\n", jsonData)
 	
 	var jsonMap map[string]any
 	if err := json.Unmarshal([]byte(jsonData), &jsonMap); err != nil {
@@ -230,7 +236,8 @@ func main() {
 	}
 	
 	fmt.Printf("bound user from json: %+v\n", *user2)
-	fmt.Printf("temperature: %.1f°%s\n", user2.Temperature.Value, user2.Temperature.Unit)
+	fmt.Printf("  temperature: %.1f°%s (parsed from object format)\n", user2.Temperature.Value, user2.Temperature.Unit)
+	fmt.Printf("  created at: %s (parsed from unix timestamp)\n", user2.CreatedAt.Format("2006-01-02 15:04:05"))
 	
 	// example 3: unbind back to map
 	fmt.Println("\n3. unbinding back to map:")

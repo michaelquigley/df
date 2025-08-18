@@ -1,26 +1,26 @@
-# Basic Bind/Unbind Example
+# basic bind/unbind example
 
-This example demonstrates both the modern `df.New[T]()` and traditional `df.Bind()` functions along with `df.Unbind()` for converting between structured data and Go structs.
+this example demonstrates both the modern `df.New[T]()` and traditional `df.Bind()` functions along with `df.Unbind()` for converting between structured data and go structs.
 
-## Key Concepts
+## key concepts
 
-- **Modern New[T] API**: Type-safe allocation using Go generics
-- **Traditional Bind API**: Manual allocation control for advanced use cases
-- **Bidirectional Data Mapping**: Convert from `map[string]any` to structs and back
-- **Struct Tags**: Use `df` tags for custom field mapping and validation
-- **Nested Structures**: Handle complex nested data with pointers to structs
-- **Round-trip Compatibility**: Data maintains integrity through bind/unbind cycles
-- **Error Handling**: Validate required fields and handle binding errors gracefully
+- **New[T] API**: type-safe allocation using go generics
+- **Bind API**: manual allocation control for advanced use cases
+- **bidirectional data mapping**: convert from `map[string]any` to structs and back
+- **struct tags**: use `df` tags for custom field mapping and validation
+- **nested structures**: handle complex nested data with pointers to structs
+- **round-trip compatibility**: data maintains integrity through bind/unbind cycles
+- **error handling**: validate required fields and handle binding errors gracefully
 
-## Usage
+## usage
 
 ```bash
 go run main.go
 ```
 
-## Data Structure
+## data structure
 
-The example works with this user profile data:
+the example works with this user profile data:
 
 ```go
 userData := map[string]any{
@@ -35,29 +35,29 @@ userData := map[string]any{
 }
 ```
 
-## Struct Definitions
+## struct definitions
 
 ```go
 type User struct {
-    Name    string `df:"name,required"`  // Required field
-    Email   string `df:"email"`          // Custom field mapping
-    Age     int    `df:"age"`            // Type conversion
-    Active  bool   `df:"active"`         // Boolean handling
-    Profile *Profile                     // Nested struct (snake_case: "profile")
+    Name    string `df:"required"`       // required field
+    Email   string                       // default field mapping
+    Age     int                          // type conversion
+    Active  bool                         // boolean handling
+    Profile *Profile                     // nested struct (snake_case: "profile")
 }
 
 type Profile struct {
-    Bio     string `df:"bio"`
-    Website string `df:"website"`
+    Bio     string
+    Website string
 }
 ```
 
-## Workflow Demonstrated
+## workflow demonstrated
 
-1. **Modern Binding**: Use `df.New[T]()` for type-safe allocation and binding
-2. **Unbinding**: Convert Go structs back to `map[string]any`
-3. **Round-trip**: Verify data integrity through the complete cycle
-4. **Error Handling**: Show validation behavior for missing required fields
-5. **Traditional Binding**: Show `df.Bind()` for cases requiring manual allocation control
+1. **allocate and bind**: use `df.New[T]()` for type-safe allocation and binding
+2. **unbinding**: convert go structs back to `map[string]any`
+3. **round-trip**: verify data integrity through the complete cycle
+4. **error handling**: show validation behavior for missing required fields
+5. **manual binding**: show `df.Bind()` for cases requiring manual allocation control
 
-This example showcases both modern and traditional APIs, providing the foundation for data persistence, API marshaling, and configuration management patterns.
+this example showcases both struct binding patterns, providing the foundation for data persistence, API marshaling, and configuration management patterns.

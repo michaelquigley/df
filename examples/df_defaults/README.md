@@ -1,35 +1,35 @@
-# Configuration Defaults with Merge
+# configuration defaults with merge
 
-This example demonstrates how to build robust configuration systems using `df.Merge()`. Unlike `df.Bind()` which overwrites the entire struct, `Merge()` intelligently overlays external data onto pre-initialized structs with sensible defaults.
+this example demonstrates how to build robust configuration systems using `df.Merge()`. unlike `df.Bind()` which overwrites the entire struct, `Merge()` intelligently overlays external data onto pre-initialized structs with sensible defaults.
 
-## Key Concepts Demonstrated
+## key concepts demonstrated
 
-### **Defaults Systems**
-- **Pre-initialized structs**: Start with sensible default values  
-- **Selective overrides**: External config only specifies what should change
-- **Preserved defaults**: Unspecified fields keep their original values
-- **Layered configuration**: Multiple sources can be merged progressively
+### **defaults systems**
+- **pre-initialized structs**: start with sensible default values  
+- **selective overrides**: external config only specifies what should change
+- **preserved defaults**: unspecified fields keep their original values
+- **layered configuration**: multiple sources can be merged progressively
 
-### **Configuration Hierarchies**
-- **Layer 1**: Application defaults (compiled into code)
-- **Layer 2**: Environment-specific config (dev/staging/prod)
-- **Layer 3**: User overrides (CLI flags, user preferences)
-- **Final result**: Intelligent merge of all layers
+### **configuration hierarchies**
+- **layer 1**: application defaults (compiled into code)
+- **layer 2**: environment-specific config (dev/staging/prod)
+- **layer 3**: user overrides (CLI flags, user preferences)
+- **final result**: intelligent merge of all layers
 
-### **Real-World Patterns**
-- **12-Factor App compliance**: Environment-based configuration
-- **Backward compatibility**: New fields with defaults don't break existing configs
-- **Progressive enhancement**: Users can adopt new features gradually
-- **Ops-friendly**: Minimal config files, maximum flexibility
+### **real-world patterns**
+- **12-factor app compliance**: environment-based configuration
+- **backward compatibility**: new fields with defaults don't break existing configs
+- **progressive enhancement**: users can adopt new features gradually
+- **ops-friendly**: minimal config files, maximum flexibility
 
-## Workflow Demonstrated
+## workflow demonstrated
 
-1. **Initialize with defaults**: Create structs with sensible default values
-2. **Apply partial config**: Use `df.Merge()` to overlay external configuration  
-3. **Verify preservation**: Show which values were overridden vs preserved
-4. **Configuration layering**: Demonstrate multiple merge operations
+1. **initialize with defaults**: create structs with sensible default values
+2. **apply partial config**: use `df.Merge()` to overlay external configuration  
+3. **verify preservation**: show which values were overridden vs preserved
+4. **configuration layering**: demonstrate multiple merge operations
 
-## Example Structure
+## example structure
 
 ```go
 // Application defaults (compiled-in)
@@ -57,14 +57,14 @@ partialData := map[string]any{
     },
 }
 
-// Intelligent merge
+// intelligent merge
 df.Merge(config, partialData)
 ```
 
-## Running
+## running
 
 ```bash
 go run main.go
 ```
 
-The output clearly shows which values were updated from external config and which defaults were preserved, demonstrating the power of selective configuration merging.
+the output clearly shows which values were updated from external config and which defaults were preserved, demonstrating the power of selective configuration merging.

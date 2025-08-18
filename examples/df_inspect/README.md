@@ -1,43 +1,43 @@
-# Inspect Example
+# inspect example
 
-This example demonstrates the `df.Inspect()` function, which provides human-readable output of bound configuration structures. The `Inspect` function is designed for debugging and validating configuration state.
+this example demonstrates the `df.Inspect()` function, which provides human-readable output of bound configuration structures. the `Inspect` function is designed for debugging and validating configuration state.
 
-## Key Features
+## key features
 
-- **Secret Filtering**: Fields marked with `df:",secret"` are hidden by default
-- **Human-Readable Output**: Clean, indented pseudo-data structure format  
-- **Configurable Options**: Custom indentation, depth limits, and secret visibility
-- **Type-Aware Display**: Special handling for durations, pointers, slices, and nested structs
+- **secret filtering**: fields marked with `df:",secret"` are hidden by default
+- **human-readable output**: clean, indented pseudo-data structure format  
+- **configurable options**: custom indentation, depth limits, and secret visibility
+- **type-aware display**: special handling for durations, pointers, slices, and nested structs
 
-## Usage
+## usage
 
 ```bash
 go run main.go
 ```
 
-This will show three different inspection outputs:
+this will show three different inspection outputs:
 
-1. **Default**: Secrets hidden, standard formatting
-2. **With Secrets**: All fields visible including sensitive data
-3. **Custom Format**: Custom indentation and options
+1. **default**: secrets hidden, standard formatting
+2. **with secrets**: all fields visible including sensitive data
+3. **custom format**: custom indentation and options
 
-## Secret Fields
+## secret fields
 
-Fields can be marked as secret using the `secret` flag in the `df` struct tag:
+fields can be marked as secret using the `secret` flag in the `df` struct tag:
 
 ```go
 type Config struct {
-    PublicField string `df:"public_field"`
+    PublicField string
     SecretField string `df:"secret_field,secret"`
 }
 ```
 
-Secret fields are automatically hidden in the default `Inspect` output unless explicitly enabled with `ShowSecrets: true`.
+secret fields are automatically hidden in the default `Inspect` output unless explicitly enabled with `ShowSecrets: true`.
 
-## Options
+## options
 
-The `InspectOptions` struct provides configuration for output formatting:
+the `InspectOptions` struct provides configuration for output formatting:
 
-- `MaxDepth`: Limits recursion depth (default: 10)
-- `Indent`: Sets indentation string (default: "  ")  
-- `ShowSecrets`: Includes secret fields when true (default: false)
+- `MaxDepth`: limits recursion depth (default: 10)
+- `Indent`: sets indentation string (default: "  ")  
+- `ShowSecrets`: includes secret fields when true (default: false)
