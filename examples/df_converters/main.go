@@ -171,7 +171,7 @@ type User struct {
 	Email       Email
 	Name        string
 	Temperature Temperature `df:"preferred_temp"`
-	CreatedAt   time.Time   `df:"created_at"`
+	CreatedAt   time.Time
 }
 
 func main() {

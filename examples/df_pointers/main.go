@@ -21,7 +21,7 @@ type Document struct {
 	ID     string
 	Title  string
 	Author *df.Pointer[*User]
-	Editor *df.Pointer[*User] `df:",omitempty"`
+	Editor *df.Pointer[*User]
 }
 
 func (d *Document) GetId() string { return d.ID }

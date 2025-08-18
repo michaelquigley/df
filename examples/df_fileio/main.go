@@ -19,16 +19,16 @@ type DatabaseConfig struct {
 	Driver   string
 	Host     string
 	Port     int
-	Database string `df:"database"`
-	Username string `df:"username"`
+	Database string
+	Username string
 	Password string `df:"password,secret"`
 }
 
 type AppConfig struct {
 	Name     string         `df:"app_name"`
-	Version  string         `df:"version"`
-	Server   ServerConfig   `df:"server"`
-	Database DatabaseConfig `df:"database"`
+	Version  string
+	Server   ServerConfig
+	Database DatabaseConfig
 	Features []string       `df:"enabled_features"`
 }
 
