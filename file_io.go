@@ -37,6 +37,66 @@ func BindFromYAML(target interface{}, path string, opts ...*Options) error {
 	return Bind(target, yamlData, opts...)
 }
 
+// NewFromJSON reads JSON from the specified file path and returns a new instance of type T.
+func NewFromJSON[T any](path string, opts ...*Options) (*T, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, &FileError{Path: path, Operation: "read JSON", Cause: err}
+	}
+
+	var jsonData map[string]any
+	if err := json.Unmarshal(data, &jsonData); err != nil {
+		return nil, &FileError{Path: path, Operation: "parse JSON from", Cause: err}
+	}
+
+	return New[T](jsonData, opts...)
+}
+
+// NewFromYAML reads YAML from the specified file path and returns a new instance of type T.
+func NewFromYAML[T any](path string, opts ...*Options) (*T, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, &FileError{Path: path, Operation: "read YAML", Cause: err}
+	}
+
+	var yamlData map[string]any
+	if err := yaml.Unmarshal(data, &yamlData); err != nil {
+		return nil, &FileError{Path: path, Operation: "parse YAML from", Cause: err}
+	}
+
+	return New[T](yamlData, opts...)
+}
+
+// MergeFromJSON reads JSON from the specified file path and merges it with the target struct.
+func MergeFromJSON(target interface{}, path string, opts ...*Options) error {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return &FileError{Path: path, Operation: "read JSON", Cause: err}
+	}
+
+	var jsonData map[string]any
+	if err := json.Unmarshal(data, &jsonData); err != nil {
+		return &FileError{Path: path, Operation: "parse JSON from", Cause: err}
+	}
+
+	return Merge(target, jsonData, opts...)
+}
+
+// MergeFromYAML reads YAML from the specified file path and merges it with the target struct.
+func MergeFromYAML(target interface{}, path string, opts ...*Options) error {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return &FileError{Path: path, Operation: "read YAML", Cause: err}
+	}
+
+	var yamlData map[string]any
+	if err := yaml.Unmarshal(data, &yamlData); err != nil {
+		return &FileError{Path: path, Operation: "parse YAML from", Cause: err}
+	}
+
+	return Merge(target, yamlData, opts...)
+}
+
 // UnbindToJSON converts a struct to map using Unbind, then writes it as JSON to the specified file path.
 func UnbindToJSON(source interface{}, path string) error {
 	data, err := Unbind(source)
