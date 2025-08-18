@@ -68,6 +68,16 @@ func Inspect(source interface{}, opts ...*InspectOptions) (string, error) {
 	return builder.String(), nil
 }
 
+// MustInspect returns a human-readable representation of a struct's resolved state,
+// panicking if an error occurs. see Inspect for full documentation.
+func MustInspect(source interface{}, opts ...*InspectOptions) string {
+	out, err := Inspect(source, opts...)
+	if err != nil {
+		panic(err)
+	}
+	return out
+}
+
 func getInspectOptions(opts ...*InspectOptions) *InspectOptions {
 	if len(opts) == 0 || opts[0] == nil {
 		return &InspectOptions{
