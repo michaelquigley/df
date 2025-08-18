@@ -1,6 +1,7 @@
 package df
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -120,4 +121,223 @@ func TestContainer_Interface_Types(t *testing.T) {
 	}](container)
 	assert.False(t, foundWriter) // this will also be false because writer is nil
 	assert.Nil(t, retrievedWriter)
+}
+
+// test types for builder pattern
+type appConfig struct {
+	DatabaseURL string `df:"database_url"`
+	Port        int    `df:"port"`
+}
+
+type databaseService struct {
+	url string
+}
+
+type webServer struct {
+	port int
+	db   *databaseService
+}
+
+func TestContainerBuilder_BasicUsage(t *testing.T) {
+	// configuration data that would come from JSON/YAML
+	configData := map[string]any{
+		"database_url": "postgres://localhost/myapp",
+		"port":         8080,
+	}
+	
+	// build container using fluent API
+	builder, err := NewBuilder().BindFrom(configData, &appConfig{})
+	assert.NoError(t, err)
+	container := builder.Build()
+	
+	// verify configuration was bound
+	config, found := Get[*appConfig](container)
+	assert.True(t, found)
+	assert.Equal(t, "postgres://localhost/myapp", config.DatabaseURL)
+	assert.Equal(t, 8080, config.Port)
+}
+
+func TestContainerBuilder_WithFactories(t *testing.T) {
+	configData := map[string]any{
+		"database_url": "postgres://localhost/myapp",
+		"port":         8080,
+	}
+	
+	builder := NewBuilder()
+	
+	// bind configuration
+	builder, err := builder.BindFrom(configData, &appConfig{})
+	assert.NoError(t, err)
+	
+	// register factories
+	Factory(builder, func(c *Container) (*databaseService, error) {
+		config, found := Get[*appConfig](c)
+		if !found {
+			return nil, fmt.Errorf("app config not found")
+		}
+		return &databaseService{url: config.DatabaseURL}, nil
+	})
+	
+	Factory(builder, func(c *Container) (*webServer, error) {
+		config, found := Get[*appConfig](c)
+		if !found {
+			return nil, fmt.Errorf("app config not found")
+		}
+		
+		db, found := Get[*databaseService](c)
+		if !found {
+			return nil, fmt.Errorf("database service not found")
+		}
+		
+		return &webServer{port: config.Port, db: db}, nil
+	})
+	
+	// create all objects
+	builder, err = builder.Create()
+	assert.NoError(t, err)
+	
+	container := builder.Build()
+	
+	// verify objects were created
+	db, found := Get[*databaseService](container)
+	assert.True(t, found)
+	assert.Equal(t, "postgres://localhost/myapp", db.url)
+	
+	server, found := Get[*webServer](container)
+	assert.True(t, found)
+	assert.Equal(t, 8080, server.port)
+	assert.Equal(t, db, server.db)
+}
+
+func TestContainerBuilder_WithLinking(t *testing.T) {
+	configData := map[string]any{
+		"database_url": "postgres://localhost/myapp",
+		"port":         8080,
+	}
+	
+	// create objects without dependencies first
+	dbService := &databaseService{}
+	webSrv := &webServer{}
+	
+	builder := NewBuilder()
+	builder, err := builder.BindFrom(configData, &appConfig{})
+	assert.NoError(t, err)
+	
+	container, err := builder.
+		Bind(dbService).
+		Bind(webSrv).
+		Link(func(c *Container) error {
+			// wire database service
+			config, found := Get[*appConfig](c)
+			if !found {
+				return fmt.Errorf("config not found")
+			}
+			
+			db, found := Get[*databaseService](c)
+			if !found {
+				return fmt.Errorf("database service not found")
+			}
+			
+			db.url = config.DatabaseURL
+			return nil
+		}).
+		Link(func(c *Container) error {
+			// wire web server
+			config, found := Get[*appConfig](c)
+			if !found {
+				return fmt.Errorf("config not found")
+			}
+			
+			server, found := Get[*webServer](c)
+			if !found {
+				return fmt.Errorf("web server not found")
+			}
+			
+			db, found := Get[*databaseService](c)
+			if !found {
+				return fmt.Errorf("database service not found")
+			}
+			
+			server.port = config.Port
+			server.db = db
+			return nil
+		}).
+		Wire()
+	
+	assert.NoError(t, err)
+	
+	finalContainer := container.Build()
+	
+	// verify linking worked
+	db, found := Get[*databaseService](finalContainer)
+	assert.True(t, found)
+	assert.Equal(t, "postgres://localhost/myapp", db.url)
+	
+	server, found := Get[*webServer](finalContainer)
+	assert.True(t, found)
+	assert.Equal(t, 8080, server.port)
+	assert.Equal(t, db, server.db)
+}
+
+func TestContainerBuilder_FullWorkflow(t *testing.T) {
+	configData := map[string]any{
+		"database_url": "postgres://localhost/myapp",
+		"port":         8080,
+	}
+	
+	builder := NewBuilder()
+	
+	// phase 1: bind configuration
+	builder, err := builder.BindFrom(configData, &appConfig{})
+	assert.NoError(t, err)
+	
+	// phase 2: register factories
+	Factory(builder, func(c *Container) (*databaseService, error) {
+		return &databaseService{}, nil // created empty, will be wired later
+	})
+	
+	Factory(builder, func(c *Container) (*webServer, error) {
+		return &webServer{}, nil // created empty, will be wired later
+	})
+	
+	// phase 3: create objects
+	builder, err = builder.Create()
+	assert.NoError(t, err)
+	
+	// phase 4: register linkers
+	builder.Link(func(c *Container) error {
+		config, _ := Get[*appConfig](c)
+		db, _ := Get[*databaseService](c)
+		db.url = config.DatabaseURL
+		return nil
+	}).Link(func(c *Container) error {
+		config, _ := Get[*appConfig](c)
+		server, _ := Get[*webServer](c)
+		db, _ := Get[*databaseService](c)
+		
+		server.port = config.Port
+		server.db = db
+		return nil
+	})
+	
+	// phase 5: wire dependencies
+	builder, err = builder.Wire()
+	assert.NoError(t, err)
+	
+	// final container
+	container := builder.Build()
+	
+	// verify everything is wired correctly
+	config, found := Get[*appConfig](container)
+	assert.True(t, found)
+	assert.Equal(t, "postgres://localhost/myapp", config.DatabaseURL)
+	
+	db, found := Get[*databaseService](container)
+	assert.True(t, found)
+	assert.Equal(t, "postgres://localhost/myapp", db.url)
+	
+	server, found := Get[*webServer](container)
+	assert.True(t, found)
+	assert.Equal(t, 8080, server.port)
+	assert.Equal(t, db, server.db)
 }
