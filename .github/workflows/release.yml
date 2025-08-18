@@ -19,6 +19,6 @@ jobs:
       - run: go test ./...
       - uses: goreleaser/goreleaser-action@v5
         with:
-          args: release --clean
+          args: release --clean --draft
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
