@@ -1,6 +1,10 @@
 package df
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+	"os"
+)
 
 // ValidationError represents errors in input validation
 type ValidationError struct {
@@ -109,6 +113,11 @@ func (e *FileError) Error() string {
 
 func (e *FileError) Unwrap() error {
 	return e.Cause
+}
+
+// IsNotFound checks if the FileError represents a file not found error.
+func (e *FileError) IsNotFound() bool {
+	return errors.Is(e.Cause, os.ErrNotExist)
 }
 
 // PointerError represents pointer resolution errors
