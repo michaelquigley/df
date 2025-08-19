@@ -30,7 +30,7 @@ func TestContainer_Set_And_Get(t *testing.T) {
 
 	// test setting and getting a service
 	service := &containerTestService{name: "test service"}
-	container.Set(service)
+	Set(container, service)
 
 	retrieved, found := Get[*containerTestService](container)
 	assert.True(t, found)
@@ -52,11 +52,11 @@ func TestContainer_Set_Replace(t *testing.T) {
 
 	// set initial service
 	service1 := &containerTestService{name: "first service"}
-	container.Set(service1)
+	Set(container, service1)
 
 	// replace with new service of same type
 	service2 := &containerTestService{name: "second service"}
-	container.Set(service2)
+	Set(container, service2)
 
 	// should get the second service
 	retrieved, found := Get[*containerTestService](container)
@@ -72,8 +72,8 @@ func TestContainer_Multiple_Types(t *testing.T) {
 	service := &containerTestService{name: "my service"}
 	repo := &containerTestRepository{database: "my database"}
 
-	container.Set(service)
-	container.Set(repo)
+	Set(container, service)
+	Set(container, repo)
 
 	// retrieve both objects
 	retrievedService, foundService := Get[*containerTestService](container)
@@ -89,8 +89,8 @@ func TestContainer_Value_Types(t *testing.T) {
 	container := NewContainer()
 
 	// test with value types
-	container.Set(42)
-	container.Set("hello world")
+	Set(container, 42)
+	Set(container, "hello world")
 
 	retrievedInt, foundInt := Get[int](container)
 	assert.True(t, foundInt)
@@ -112,14 +112,14 @@ func TestContainer_Interface_Types(t *testing.T) {
 	// this won't work as expected because we're storing the concrete type
 	// but trying to retrieve by interface type
 	service := &containerTestService{name: "service"}
-	container.Set(service)
+	Set(container, service)
 
 	retrieved, found := Get[interface{}](container)
 	assert.False(t, found)
 	assert.Nil(t, retrieved)
 
 	// but this will work - storing and retrieving by the same interface type
-	container.Set(writer)
+	Set(container, writer)
 	retrievedWriter, foundWriter := Get[interface {
 		Write([]byte) (int, error)
 	}](container)
@@ -136,15 +136,15 @@ func TestContainer_Has(t *testing.T) {
 
 	// set a service and test has
 	service := &containerTestService{name: "test service"}
-	container.Set(service)
+	Set(container, service)
 
 	assert.True(t, Has[*containerTestService](container))
 	assert.False(t, Has[*containerTestRepository](container))
 	assert.False(t, Has[int](container))
 
 	// set different types
-	container.Set(42)
-	container.Set("hello")
+	Set(container, 42)
+	Set(container, "hello")
 
 	assert.True(t, Has[*containerTestService](container))
 	assert.True(t, Has[int](container))
@@ -161,7 +161,7 @@ func TestContainer_Remove(t *testing.T) {
 
 	// set a service and remove it
 	service := &containerTestService{name: "test service"}
-	container.Set(service)
+	Set(container, service)
 
 	assert.True(t, Has[*containerTestService](container))
 
@@ -176,9 +176,9 @@ func TestContainer_Remove(t *testing.T) {
 	// test remove with multiple types
 	service2 := &containerTestService{name: "service2"}
 	repo := &containerTestRepository{database: "db"}
-	container.Set(service2)
-	container.Set(repo)
-	container.Set(42)
+	Set(container, service2)
+	Set(container, repo)
+	Set(container, 42)
 
 	assert.True(t, Has[*containerTestService](container))
 	assert.True(t, Has[*containerTestRepository](container))
@@ -202,10 +202,10 @@ func TestContainer_Clear(t *testing.T) {
 	// add multiple objects
 	service := &containerTestService{name: "service"}
 	repo := &containerTestRepository{database: "db"}
-	container.Set(service)
-	container.Set(repo)
-	container.Set(42)
-	container.Set("hello")
+	Set(container, service)
+	Set(container, repo)
+	Set(container, 42)
+	Set(container, "hello")
 
 	// verify objects exist
 	assert.True(t, Has[*containerTestService](container))
@@ -223,7 +223,7 @@ func TestContainer_Clear(t *testing.T) {
 	assert.False(t, Has[string](container))
 
 	// verify we can add objects after clear
-	container.Set(&containerTestService{name: "new service"})
+	Set(container, &containerTestService{name: "new service"})
 	assert.True(t, Has[*containerTestService](container))
 }
 
@@ -236,7 +236,7 @@ func TestContainer_Types(t *testing.T) {
 
 	// add single object
 	service := &containerTestService{name: "service"}
-	container.Set(service)
+	Set(container, service)
 
 	types = container.Types()
 	assert.Len(t, types, 1)
@@ -244,9 +244,9 @@ func TestContainer_Types(t *testing.T) {
 
 	// add multiple objects
 	repo := &containerTestRepository{database: "db"}
-	container.Set(repo)
-	container.Set(42)
-	container.Set("hello")
+	Set(container, repo)
+	Set(container, 42)
+	Set(container, "hello")
 
 	types = container.Types()
 	assert.Len(t, types, 4)
@@ -324,7 +324,7 @@ func TestContainer_Named_And_Singleton_Coexistence(t *testing.T) {
 	named1 := &containerTestService{name: "named1"}
 	named2 := &containerTestService{name: "named2"}
 
-	container.Set(singleton)
+	Set(container, singleton)
 	container.SetNamed("first", named1)
 	container.SetNamed("second", named2)
 
@@ -351,7 +351,7 @@ func TestContainer_OfType(t *testing.T) {
 
 	// add singleton only
 	singleton := &containerTestService{name: "singleton"}
-	container.Set(singleton)
+	Set(container, singleton)
 
 	results = OfType[*containerTestService](container)
 	assert.Len(t, results, 1)
@@ -375,7 +375,7 @@ func TestContainer_OfType(t *testing.T) {
 
 	// add different type
 	repo := &containerTestRepository{database: "test db"}
-	container.Set(repo)
+	Set(container, repo)
 
 	repoResults = OfType[*containerTestRepository](container)
 	assert.Len(t, repoResults, 1)
@@ -418,9 +418,9 @@ func TestContainer_AsType(t *testing.T) {
 	impl2 := &testImplementer2{number: 42}
 	nonImpl := &containerTestService{name: "not an implementer"}
 
-	container.Set(impl1)
+	Set(container, impl1)
 	container.SetNamed("impl2", impl2)
-	container.Set(nonImpl)
+	Set(container, nonImpl)
 
 	// AsType should return only the implementers
 	results = AsType[testInterface](container)
@@ -453,7 +453,7 @@ func TestContainer_Visit_WithNamedObjects(t *testing.T) {
 	named1 := &containerTestService{name: "named1"}
 	named2 := &containerTestRepository{database: "named db"}
 
-	container.Set(singleton)
+	Set(container, singleton)
 	container.SetNamed("service1", named1)
 	container.SetNamed("repo1", named2)
 
@@ -475,7 +475,7 @@ func TestContainer_Clear_WithNamedObjects(t *testing.T) {
 	container := NewContainer()
 
 	// add singleton and named objects
-	container.Set(&containerTestService{name: "singleton"})
+	Set(container, &containerTestService{name: "singleton"})
 	container.SetNamed("named", &containerTestService{name: "named"})
 
 	// verify objects exist
@@ -496,7 +496,7 @@ func TestContainer_Types_WithNamedObjects(t *testing.T) {
 	container := NewContainer()
 
 	// add singleton and named objects of same and different types
-	container.Set(&containerTestService{name: "singleton"})
+	Set(container, &containerTestService{name: "singleton"})
 	container.SetNamed("named1", &containerTestService{name: "named1"})
 	container.SetNamed("named2", &containerTestRepository{database: "named"})
 
@@ -515,9 +515,9 @@ func TestContainer_Inspect_Human(t *testing.T) {
 	service := &containerTestService{name: "test service"}
 	repo := &containerTestRepository{database: "test db"}
 
-	container.Set(service)
+	Set(container, service)
 	container.SetNamed("primary", repo)
-	container.Set(42)
+	Set(container, 42)
 
 	output, err := container.Inspect(InspectHuman)
 	assert.NoError(t, err)
@@ -549,7 +549,7 @@ func TestContainer_Inspect_JSON(t *testing.T) {
 
 	// add test objects
 	service := &containerTestService{name: "test service"}
-	container.Set(service)
+	Set(container, service)
 	container.SetNamed("primary", &containerTestRepository{database: "test db"})
 
 	output, err := container.Inspect(InspectJSON)
@@ -579,7 +579,7 @@ func TestContainer_Inspect_YAML(t *testing.T) {
 	container := NewContainer()
 
 	// add test objects
-	container.Set(&containerTestService{name: "test service"})
+	Set(container, &containerTestService{name: "test service"})
 	container.SetNamed("cache", &containerTestRepository{database: "cache db"})
 
 	output, err := container.Inspect(InspectYAML)

@@ -39,7 +39,7 @@ func (c *Container) Visit(f func(object any) error) error {
 
 // Set registers a singleton object in the container by its type.
 // If an object of the same type already exists, it will be replaced.
-func (c *Container) Set(object any) {
+func Set(c *Container, object any) {
 	c.singletons[reflect.TypeOf(object)] = object
 }
 

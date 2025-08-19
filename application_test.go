@@ -308,7 +308,7 @@ func TestApplication_LinkError(t *testing.T) {
 
 	// add an object that fails to link
 	errorLinkable := &errorLinkable{}
-	app.C.Set(errorLinkable)
+	Set(app.C, errorLinkable)
 
 	err := app.Link()
 	assert.Error(t, err)
@@ -321,7 +321,7 @@ func TestApplication_StartError(t *testing.T) {
 
 	// add an object that fails to start
 	errorStartable := &errorStartable{}
-	app.C.Set(errorStartable)
+	Set(app.C, errorStartable)
 
 	err := app.Start()
 	assert.Error(t, err)
@@ -335,7 +335,7 @@ func TestApplication_StopError(t *testing.T) {
 	// add objects - one that fails to stop, one that succeeds
 	errorStoppable := &errorStoppable{}
 	db := &testApplicationDatabase{}
-	app.C.Set(errorStoppable)
+	Set(app.C, errorStoppable)
 	SetAs[*testApplicationDatabase](app.C, db)
 
 	err := app.Stop()
