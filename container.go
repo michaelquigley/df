@@ -8,28 +8,28 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// Registry is an application container that manages singleton objects by type.
-type Registry struct {
+// Container is an application container that manages singletons and objects by type and (optionally) by name.
+type Container struct {
 	singletons   map[reflect.Type]any
 	namedObjects map[namedKey]any
 }
 
-// NewRegistry creates and returns a new empty registry.
-func NewRegistry() *Registry {
-	return &Registry{
+// NewContainer creates and returns a new empty container.
+func NewContainer() *Container {
+	return &Container{
 		singletons:   make(map[reflect.Type]any),
 		namedObjects: make(map[namedKey]any),
 	}
 }
 
-// Visit calls the provided function for each object in the registry.
-func (r *Registry) Visit(f func(object any) error) error {
-	for _, object := range r.singletons {
+// Visit calls the provided function for each object in the container.
+func (c *Container) Visit(f func(object any) error) error {
+	for _, object := range c.singletons {
 		if err := f(object); err != nil {
 			return err
 		}
 	}
-	for _, object := range r.namedObjects {
+	for _, object := range c.namedObjects {
 		if err := f(object); err != nil {
 			return err
 		}
@@ -37,23 +37,23 @@ func (r *Registry) Visit(f func(object any) error) error {
 	return nil
 }
 
-// Set registers a singleton object in the registry by its type.
+// Set registers a singleton object in the container by its type.
 // If an object of the same type already exists, it will be replaced.
-func (r *Registry) Set(object any) {
-	r.singletons[reflect.TypeOf(object)] = object
+func (c *Container) Set(object any) {
+	c.singletons[reflect.TypeOf(object)] = object
 }
 
-// SetAs registers a singleton object in the registry by the specified type.
+// SetAs registers a singleton object in the container by the specified type.
 // If an object of the same type already exists, it will be replaced.
-func SetAs[T any](c *Registry, object T) {
+func SetAs[T any](c *Container, object T) {
 	var zero T
 	targetType := reflect.TypeOf(zero)
 	c.singletons[targetType] = object
 }
 
-// Get retrieves an object of type T from the registry.
+// Get retrieves an object of type T from the container.
 // Returns the object and true if found, or zero value and false if not found.
-func Get[T any](c *Registry) (T, bool) {
+func Get[T any](c *Container) (T, bool) {
 	var zero T
 	targetType := reflect.TypeOf(zero)
 
@@ -70,17 +70,17 @@ func Get[T any](c *Registry) (T, bool) {
 	return typed, true
 }
 
-// Has checks if an object of type T exists in the registry.
-func Has[T any](c *Registry) bool {
+// Has checks if an object of type T exists in the container.
+func Has[T any](c *Container) bool {
 	var zero T
 	targetType := reflect.TypeOf(zero)
 	_, exists := c.singletons[targetType]
 	return exists
 }
 
-// Remove removes an object of type T from the registry.
+// Remove removes an object of type T from the container.
 // Returns true if the object was found and removed, false if it didn't exist.
-func Remove[T any](c *Registry) bool {
+func Remove[T any](c *Container) bool {
 	var zero T
 	targetType := reflect.TypeOf(zero)
 	_, exists := c.singletons[targetType]
@@ -91,20 +91,20 @@ func Remove[T any](c *Registry) bool {
 	return false
 }
 
-// Clear removes all objects from the registry.
-func (r *Registry) Clear() {
-	r.singletons = make(map[reflect.Type]any)
-	r.namedObjects = make(map[namedKey]any)
+// Clear removes all objects from the container.
+func (c *Container) Clear() {
+	c.singletons = make(map[reflect.Type]any)
+	c.namedObjects = make(map[namedKey]any)
 }
 
-// Types returns a slice of all registered types in the registry.
+// Types returns a slice of all registered types in the container.
 // Useful for debugging and introspection.
-func (r *Registry) Types() []reflect.Type {
-	types := make([]reflect.Type, 0, len(r.singletons))
-	for t := range r.singletons {
+func (c *Container) Types() []reflect.Type {
+	types := make([]reflect.Type, 0, len(c.singletons))
+	for t := range c.singletons {
 		types = append(types, t)
 	}
-	for key := range r.namedObjects {
+	for key := range c.namedObjects {
 		found := false
 		for _, existing := range types {
 			if existing == key.typ {
@@ -119,26 +119,26 @@ func (r *Registry) Types() []reflect.Type {
 	return types
 }
 
-// SetNamed registers a named object in the registry by its type and name.
+// SetNamed registers a named object in the container by its type and name.
 // If an object with the same type and name already exists, it will be replaced.
-func (r *Registry) SetNamed(name string, object any) {
+func (c *Container) SetNamed(name string, object any) {
 	key := namedKey{
 		typ:  reflect.TypeOf(object),
 		name: name,
 	}
-	r.namedObjects[key] = object
+	c.namedObjects[key] = object
 }
 
-// GetNamed retrieves a named object of type T from the registry.
+// GetNamed retrieves a named object of type T from the container.
 // Returns the object and true if found, or zero value and false if not found.
-func GetNamed[T any](r *Registry, name string) (T, bool) {
+func GetNamed[T any](c *Container, name string) (T, bool) {
 	var zero T
 	key := namedKey{
 		typ:  reflect.TypeOf(zero),
 		name: name,
 	}
 
-	obj, exists := r.namedObjects[key]
+	obj, exists := c.namedObjects[key]
 	if !exists {
 		return zero, false
 	}
@@ -151,22 +151,22 @@ func GetNamed[T any](r *Registry, name string) (T, bool) {
 	return typed, true
 }
 
-// OfType retrieves all objects of type T from the registry (both singleton and named).
+// OfType retrieves all objects of type T from the container (both singleton and named).
 // Returns a slice containing the singleton (if exists) followed by all named instances.
-func OfType[T any](r *Registry) []T {
+func OfType[T any](c *Container) []T {
 	var zero T
 	targetType := reflect.TypeOf(zero)
 	var results []T
 
 	// Add singleton if it exists
-	if obj, exists := r.singletons[targetType]; exists {
+	if obj, exists := c.singletons[targetType]; exists {
 		if typed, ok := obj.(T); ok {
 			results = append(results, typed)
 		}
 	}
 
 	// Add all named instances
-	for key, obj := range r.namedObjects {
+	for key, obj := range c.namedObjects {
 		if key.typ == targetType {
 			if typed, ok := obj.(T); ok {
 				results = append(results, typed)
@@ -177,12 +177,12 @@ func OfType[T any](r *Registry) []T {
 	return results
 }
 
-// AsType visits all objects in the registry and returns any that can be cast to type T.
+// AsType visits all objects in the container and returns any that can be cast to type T.
 // This enables finding objects by interface or supertype regardless of their registration type.
-func AsType[T any](r *Registry) []T {
+func AsType[T any](c *Container) []T {
 	var results []T
 
-	err := r.Visit(func(object any) error {
+	err := c.Visit(func(object any) error {
 		if typed, ok := object.(T); ok {
 			results = append(results, typed)
 		}
@@ -201,7 +201,7 @@ type namedKey struct {
 	name string
 }
 
-// InspectFormat defines the output format for registry inspection.
+// InspectFormat defines the output format for container inspection.
 type InspectFormat string
 
 const (
@@ -210,20 +210,20 @@ const (
 	InspectYAML  InspectFormat = "yaml"
 )
 
-// InspectData represents the structured data for registry inspection.
+// InspectData represents the structured data for container inspection.
 type InspectData struct {
 	Summary InspectSummary  `json:"summary" yaml:"summary"`
 	Objects []InspectObject `json:"objects" yaml:"objects"`
 }
 
-// InspectSummary provides aggregate statistics about the registry.
+// InspectSummary provides aggregate statistics about the container.
 type InspectSummary struct {
 	Total      int `json:"total" yaml:"total"`
 	Singletons int `json:"singletons" yaml:"singletons"`
 	Named      int `json:"named" yaml:"named"`
 }
 
-// InspectObject represents a single object in the registry for inspection.
+// InspectObject represents a single object in the container for inspection.
 type InspectObject struct {
 	Type    string  `json:"type" yaml:"type"`
 	Storage string  `json:"storage" yaml:"storage"`
@@ -231,29 +231,29 @@ type InspectObject struct {
 	Value   string  `json:"value" yaml:"value"`
 }
 
-// Inspect returns a formatted representation of the registry contents.
+// Inspect returns a formatted representation of the container contents.
 // Supports table, JSON, and YAML formats for human and machine consumption.
-func (r *Registry) Inspect(format InspectFormat) (string, error) {
-	data := r.gatherInspectData()
+func (c *Container) Inspect(format InspectFormat) (string, error) {
+	data := c.gatherInspectData()
 
 	switch format {
 	case InspectHuman:
-		return r.formatHuman(data)
+		return c.formatHuman(data)
 	case InspectJSON:
-		return r.formatJSON(data)
+		return c.formatJSON(data)
 	case InspectYAML:
-		return r.formatYAML(data)
+		return c.formatYAML(data)
 	default:
 		return "", fmt.Errorf("unsupported inspect format: %s", format)
 	}
 }
 
-// gatherInspectData collects all registry objects into structured data.
-func (r *Registry) gatherInspectData() InspectData {
+// gatherInspectData collects all container objects into structured data.
+func (c *Container) gatherInspectData() InspectData {
 	var objects []InspectObject
 
 	// collect singletons
-	for typ, obj := range r.singletons {
+	for typ, obj := range c.singletons {
 		objects = append(objects, InspectObject{
 			Type:    typ.String(),
 			Storage: "singleton",
@@ -263,7 +263,7 @@ func (r *Registry) gatherInspectData() InspectData {
 	}
 
 	// collect named objects
-	for key, obj := range r.namedObjects {
+	for key, obj := range c.namedObjects {
 		objects = append(objects, InspectObject{
 			Type:    key.typ.String(),
 			Storage: "named",
@@ -273,9 +273,9 @@ func (r *Registry) gatherInspectData() InspectData {
 	}
 
 	summary := InspectSummary{
-		Total:      len(r.singletons) + len(r.namedObjects),
-		Singletons: len(r.singletons),
-		Named:      len(r.namedObjects),
+		Total:      len(c.singletons) + len(c.namedObjects),
+		Singletons: len(c.singletons),
+		Named:      len(c.namedObjects),
 	}
 
 	return InspectData{
@@ -284,12 +284,12 @@ func (r *Registry) gatherInspectData() InspectData {
 	}
 }
 
-func (r *Registry) formatHuman(data InspectData) (string, error) {
+func (c *Container) formatHuman(data InspectData) (string, error) {
 	return Inspect(data)
 }
 
 // formatJSON creates JSON output.
-func (r *Registry) formatJSON(data InspectData) (string, error) {
+func (c *Container) formatJSON(data InspectData) (string, error) {
 	bytes, err := json.MarshalIndent(data, "", "  ")
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal JSON: %w", err)
@@ -298,18 +298,10 @@ func (r *Registry) formatJSON(data InspectData) (string, error) {
 }
 
 // formatYAML creates YAML output.
-func (r *Registry) formatYAML(data InspectData) (string, error) {
+func (c *Container) formatYAML(data InspectData) (string, error) {
 	bytes, err := yaml.Marshal(data)
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal YAML: %w", err)
 	}
 	return string(bytes), nil
-}
-
-// truncate truncates a string to the specified length.
-func truncate(s string, length int) string {
-	if len(s) <= length {
-		return s
-	}
-	return s[:length-3] + "..."
 }

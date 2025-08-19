@@ -1,50 +1,50 @@
-# df_13_container - dependency injection and service management
+# df_13_container - dependency injection and application management
 
-this example demonstrates the `Registry` and `Service` types for building scalable application containers with dependency injection, lifecycle management, and service discovery.
+this example demonstrates the `Container` and `Application` types for building scalable application containers with dependency injection, lifecycle management, and application discovery.
 
 ## what you'll learn
 
 - **dependency injection**: automatic object creation and registration through factories
-- **service lifecycle**: initialize → start → use → stop pattern
+- **application lifecycle**: initialize → start → use → stop pattern
 - **object registration**: singleton and named object storage
 - **type queries**: find objects by exact type or interface compatibility
 - **container introspection**: inspect container contents for debugging
 
 ## key concepts
 
-### registry
-the `Registry` is an application container that manages objects:
+### container
+the `Container` is an application container that manages objects:
 
 ```go
 // singleton objects (one per type)
-registry.Set(database)
-logger, found := df.Get[*Logger](registry)
+container.Set(database)
+logger, found := df.Get[*Logger](container)
 
 // named objects (multiple per type)
-registry.SetNamed("primary", primaryDB)
-registry.SetNamed("cache", cacheDB)
+container.SetNamed("primary", primaryDB)
+container.SetNamed("cache", cacheDB)
 
 // type queries
-allDatabases := df.OfType[*Database](registry)     // exact type matches
-allStartables := df.AsType[df.Startable](registry) // interface matches
+allDatabases := df.OfType[*Database](container)     // exact type matches
+allStartables := df.AsType[df.Startable](container) // interface matches
 ```
 
-### service
-the `Service` orchestrates object creation and lifecycle:
+### application
+the `Application` orchestrates object creation and lifecycle:
 
 ```go
-// create service with configuration
-service := df.NewService(config)
-df.WithFactory(service, &DatabaseFactory{})
+// create application with configuration
+app := df.NewApplication(config)
+df.WithFactory(app, &DatabaseFactory{})
 
 // initialize: build + link dependencies
-service.Initialize()
+app.Initialize()
 
 // start all startable objects
-service.Start()
+app.Start()
 
 // clean shutdown
-service.Stop()
+app.Stop()
 ```
 
 ### factories
@@ -53,7 +53,7 @@ factories create and register objects in the container:
 ```go
 type DatabaseFactory struct{}
 
-func (f *DatabaseFactory) Build(s *df.Service[Config]) error {
+func (f *DatabaseFactory) Build(s *df.Application[Config]) error {
     cfg, _ := df.Get[Config](s.R)
     
     db := &Database{URL: cfg.DatabaseURL}
@@ -71,12 +71,12 @@ type Database struct {
     Connected bool
 }
 
-// df.Startable - called during service.Start()
+// df.Startable - called during application.Start()
 func (d *Database) Start() error {
     return d.Connect()
 }
 
-// df.Stoppable - called during service.Stop()
+// df.Stoppable - called during application.Stop()
 func (d *Database) Stop() error {
     d.Connected = false
     return nil
@@ -131,14 +131,14 @@ found 2 loggers:
   [0] level: info
   [1] level: debug
 
-found 4 startable services
+found 4 startable applications
 ```
 
 ## real-world applications
 
 this pattern is essential for:
 
-- **microservices**: manage databases, message queues, http servers
+- **microapplications**: manage databases, message queues, http servers
 - **plugin architectures**: dynamically load and manage plugin instances
 - **testing**: easily mock dependencies by registering test doubles
 - **configuration**: different environments can register different implementations
@@ -148,9 +148,9 @@ this pattern is essential for:
 
 1. **use factories**: keep object creation logic separate and testable
 2. **implement lifecycle interfaces**: enable clean startup and shutdown
-3. **leverage type queries**: find related services (all caches, all loggers)
+3. **leverage type queries**: find related applications (all caches, all loggers)
 4. **use named objects**: multiple instances of the same type
-5. **inspect for debugging**: use `registry.Inspect()` to understand container state
+5. **inspect for debugging**: use `container.Inspect()` to understand container state
 
 ## next steps
 

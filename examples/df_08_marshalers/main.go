@@ -258,7 +258,6 @@ func (lu LegacyUser) MarshalDf() (map[string]any, error) {
 	return result, nil
 }
 
-// Registry for demonstration
 type UserProfile struct {
 	CreatedAt    CustomTime
 	User         LegacyUser
