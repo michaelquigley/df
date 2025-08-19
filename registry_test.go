@@ -1,11 +1,13 @@
 package df
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"gopkg.in/yaml.v3"
 )
 
 type registryTestService struct {
@@ -162,7 +164,7 @@ func TestRegistry_Remove(t *testing.T) {
 	registry.Set(service)
 
 	assert.True(t, Has[*registryTestService](registry))
-	
+
 	removed = Remove[*registryTestService](registry)
 	assert.True(t, removed)
 	assert.False(t, Has[*registryTestService](registry))
@@ -271,7 +273,7 @@ func TestRegistry_SetNamed_And_GetNamed(t *testing.T) {
 	// test setting and getting named objects
 	service1 := &registryTestService{name: "primary service"}
 	service2 := &registryTestService{name: "secondary service"}
-	
+
 	registry.SetNamed("primary", service1)
 	registry.SetNamed("secondary", service2)
 
@@ -445,23 +447,23 @@ func TestRegistry_AsType(t *testing.T) {
 
 func TestRegistry_Visit_WithNamedObjects(t *testing.T) {
 	registry := NewRegistry()
-	
+
 	// add singleton and named objects
 	singleton := &registryTestService{name: "singleton"}
 	named1 := &registryTestService{name: "named1"}
 	named2 := &registryTestRepository{database: "named db"}
-	
+
 	registry.Set(singleton)
 	registry.SetNamed("service1", named1)
 	registry.SetNamed("repo1", named2)
-	
+
 	// collect all visited objects
 	var visited []any
 	err := registry.Visit(func(object any) error {
 		visited = append(visited, object)
 		return nil
 	})
-	
+
 	assert.NoError(t, err)
 	assert.Len(t, visited, 3)
 	assert.Contains(t, visited, singleton)
@@ -471,19 +473,19 @@ func TestRegistry_Visit_WithNamedObjects(t *testing.T) {
 
 func TestRegistry_Clear_WithNamedObjects(t *testing.T) {
 	registry := NewRegistry()
-	
+
 	// add singleton and named objects
 	registry.Set(&registryTestService{name: "singleton"})
 	registry.SetNamed("named", &registryTestService{name: "named"})
-	
+
 	// verify objects exist
 	assert.True(t, Has[*registryTestService](registry))
 	_, found := GetNamed[*registryTestService](registry, "named")
 	assert.True(t, found)
-	
+
 	// clear registry
 	registry.Clear()
-	
+
 	// verify all objects are gone
 	assert.False(t, Has[*registryTestService](registry))
 	_, found = GetNamed[*registryTestService](registry, "named")
@@ -492,16 +494,137 @@ func TestRegistry_Clear_WithNamedObjects(t *testing.T) {
 
 func TestRegistry_Types_WithNamedObjects(t *testing.T) {
 	registry := NewRegistry()
-	
+
 	// add singleton and named objects of same and different types
 	registry.Set(&registryTestService{name: "singleton"})
 	registry.SetNamed("named1", &registryTestService{name: "named1"})
 	registry.SetNamed("named2", &registryTestRepository{database: "named"})
-	
+
 	types := registry.Types()
-	
+
 	// should have both types represented, but no duplicates
 	assert.Len(t, types, 2)
 	assert.Contains(t, types, reflect.TypeOf(&registryTestService{}))
 	assert.Contains(t, types, reflect.TypeOf(&registryTestRepository{}))
+}
+
+func TestRegistry_Inspect_Human(t *testing.T) {
+	registry := NewRegistry()
+
+	// add test objects
+	service := &registryTestService{name: "test service"}
+	repo := &registryTestRepository{database: "test db"}
+
+	registry.Set(service)
+	registry.SetNamed("primary", repo)
+	registry.Set(42)
+
+	output, err := registry.Inspect(InspectHuman)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, output)
+
+	fmt.Println(output)
+
+	// verify human format uses the df.Inspect function
+	// which should produce structured output similar to what we'd expect
+	// from the InspectData structure
+	assert.Contains(t, output, "registryTestService")
+	assert.Contains(t, output, "registryTestRepository")
+	assert.Contains(t, output, "test service")
+	assert.Contains(t, output, "test db")
+	assert.Contains(t, output, "42")
+
+	// verify it contains summary information (lowercase field names from df.Inspect)
+	assert.Contains(t, output, "summary")
+	assert.Contains(t, output, "total")
+	assert.Contains(t, output, "3")
+	assert.Contains(t, output, "singletons")
+	assert.Contains(t, output, "2")
+	assert.Contains(t, output, "named")
+	assert.Contains(t, output, "1")
+}
+
+func TestRegistry_Inspect_JSON(t *testing.T) {
+	registry := NewRegistry()
+
+	// add test objects
+	service := &registryTestService{name: "test service"}
+	registry.Set(service)
+	registry.SetNamed("primary", &registryTestRepository{database: "test db"})
+
+	output, err := registry.Inspect(InspectJSON)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, output)
+
+	// verify JSON structure
+	assert.Contains(t, output, "\"summary\"")
+	assert.Contains(t, output, "\"objects\"")
+	assert.Contains(t, output, "\"total\": 2")
+	assert.Contains(t, output, "\"singletons\": 1")
+	assert.Contains(t, output, "\"named\": 1")
+	assert.Contains(t, output, "\"storage\": \"singleton\"")
+	assert.Contains(t, output, "\"storage\": \"named\"")
+	assert.Contains(t, output, "\"name\": \"primary\"")
+
+	// verify it's valid JSON
+	var data InspectData
+	err = json.Unmarshal([]byte(output), &data)
+	assert.NoError(t, err)
+	assert.Equal(t, 2, data.Summary.Total)
+	assert.Equal(t, 1, data.Summary.Singletons)
+	assert.Equal(t, 1, data.Summary.Named)
+}
+
+func TestRegistry_Inspect_YAML(t *testing.T) {
+	registry := NewRegistry()
+
+	// add test objects
+	registry.Set(&registryTestService{name: "test service"})
+	registry.SetNamed("cache", &registryTestRepository{database: "cache db"})
+
+	output, err := registry.Inspect(InspectYAML)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, output)
+
+	// verify YAML structure
+	assert.Contains(t, output, "summary:")
+	assert.Contains(t, output, "objects:")
+	assert.Contains(t, output, "total: 2")
+	assert.Contains(t, output, "singletons: 1")
+	assert.Contains(t, output, "named: 1")
+	assert.Contains(t, output, "storage: singleton")
+	assert.Contains(t, output, "storage: named")
+	assert.Contains(t, output, "name: cache")
+
+	// verify it's valid YAML
+	var data InspectData
+	err = yaml.Unmarshal([]byte(output), &data)
+	assert.NoError(t, err)
+	assert.Equal(t, 2, data.Summary.Total)
+}
+
+func TestRegistry_Inspect_Empty(t *testing.T) {
+	registry := NewRegistry()
+
+	// test all formats with empty registry
+	humanOutput, err := registry.Inspect(InspectHuman)
+	assert.NoError(t, err)
+	assert.Contains(t, humanOutput, "0")
+
+	jsonOutput, err := registry.Inspect(InspectJSON)
+	assert.NoError(t, err)
+	assert.Contains(t, jsonOutput, "\"total\": 0")
+
+	yamlOutput, err := registry.Inspect(InspectYAML)
+	assert.NoError(t, err)
+	assert.Contains(t, yamlOutput, "total: 0")
+}
+
+func TestRegistry_Inspect_InvalidFormat(t *testing.T) {
+	registry := NewRegistry()
+
+	output, err := registry.Inspect("invalid")
+	assert.Error(t, err)
+	assert.Empty(t, output)
+	assert.Contains(t, err.Error(), "unsupported inspect format")
 }

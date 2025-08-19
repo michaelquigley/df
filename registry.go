@@ -1,7 +1,11 @@
 package df
 
 import (
+	"encoding/json"
+	"fmt"
 	"reflect"
+
+	"gopkg.in/yaml.v3"
 )
 
 // Registry is an application container that manages singleton objects by type.
@@ -195,4 +199,117 @@ func AsType[T any](r *Registry) []T {
 type namedKey struct {
 	typ  reflect.Type
 	name string
+}
+
+// InspectFormat defines the output format for registry inspection.
+type InspectFormat string
+
+const (
+	InspectHuman InspectFormat = "human"
+	InspectJSON  InspectFormat = "json"
+	InspectYAML  InspectFormat = "yaml"
+)
+
+// InspectData represents the structured data for registry inspection.
+type InspectData struct {
+	Summary InspectSummary  `json:"summary" yaml:"summary"`
+	Objects []InspectObject `json:"objects" yaml:"objects"`
+}
+
+// InspectSummary provides aggregate statistics about the registry.
+type InspectSummary struct {
+	Total      int `json:"total" yaml:"total"`
+	Singletons int `json:"singletons" yaml:"singletons"`
+	Named      int `json:"named" yaml:"named"`
+}
+
+// InspectObject represents a single object in the registry for inspection.
+type InspectObject struct {
+	Type    string  `json:"type" yaml:"type"`
+	Storage string  `json:"storage" yaml:"storage"`
+	Name    *string `json:"name" yaml:"name"`
+	Value   string  `json:"value" yaml:"value"`
+}
+
+// Inspect returns a formatted representation of the registry contents.
+// Supports table, JSON, and YAML formats for human and machine consumption.
+func (r *Registry) Inspect(format InspectFormat) (string, error) {
+	data := r.gatherInspectData()
+
+	switch format {
+	case InspectHuman:
+		return r.formatHuman(data)
+	case InspectJSON:
+		return r.formatJSON(data)
+	case InspectYAML:
+		return r.formatYAML(data)
+	default:
+		return "", fmt.Errorf("unsupported inspect format: %s", format)
+	}
+}
+
+// gatherInspectData collects all registry objects into structured data.
+func (r *Registry) gatherInspectData() InspectData {
+	var objects []InspectObject
+
+	// collect singletons
+	for typ, obj := range r.singletons {
+		objects = append(objects, InspectObject{
+			Type:    typ.String(),
+			Storage: "singleton",
+			Name:    nil,
+			Value:   fmt.Sprintf("%+v", obj),
+		})
+	}
+
+	// collect named objects
+	for key, obj := range r.namedObjects {
+		objects = append(objects, InspectObject{
+			Type:    key.typ.String(),
+			Storage: "named",
+			Name:    &key.name,
+			Value:   fmt.Sprintf("%+v", obj),
+		})
+	}
+
+	summary := InspectSummary{
+		Total:      len(r.singletons) + len(r.namedObjects),
+		Singletons: len(r.singletons),
+		Named:      len(r.namedObjects),
+	}
+
+	return InspectData{
+		Summary: summary,
+		Objects: objects,
+	}
+}
+
+func (r *Registry) formatHuman(data InspectData) (string, error) {
+	return Inspect(data)
+}
+
+// formatJSON creates JSON output.
+func (r *Registry) formatJSON(data InspectData) (string, error) {
+	bytes, err := json.MarshalIndent(data, "", "  ")
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal JSON: %w", err)
+	}
+	return string(bytes), nil
+}
+
+// formatYAML creates YAML output.
+func (r *Registry) formatYAML(data InspectData) (string, error) {
+	bytes, err := yaml.Marshal(data)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal YAML: %w", err)
+	}
+	return string(bytes), nil
+}
+
+// truncate truncates a string to the specified length.
+func truncate(s string, length int) string {
+	if len(s) <= length {
+		return s
+	}
+	return s[:length-3] + "..."
 }
