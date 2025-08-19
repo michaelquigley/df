@@ -147,9 +147,9 @@ func GetNamed[T any](r *Registry, name string) (T, bool) {
 	return typed, true
 }
 
-// Query retrieves all objects of type T from the registry (both singleton and named).
+// OfType retrieves all objects of type T from the registry (both singleton and named).
 // Returns a slice containing the singleton (if exists) followed by all named instances.
-func Query[T any](r *Registry) []T {
+func OfType[T any](r *Registry) []T {
 	var zero T
 	targetType := reflect.TypeOf(zero)
 	var results []T
@@ -169,6 +169,24 @@ func Query[T any](r *Registry) []T {
 			}
 		}
 	}
+
+	return results
+}
+
+// AsType visits all objects in the registry and returns any that can be cast to type T.
+// This enables finding objects by interface or supertype regardless of their registration type.
+func AsType[T any](r *Registry) []T {
+	var results []T
+
+	err := r.Visit(func(object any) error {
+		if typed, ok := object.(T); ok {
+			results = append(results, typed)
+		}
+		return nil
+	})
+
+	// Visit should never return an error in this context
+	_ = err
 
 	return results
 }
