@@ -1,6 +1,7 @@
 package df
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -120,4 +121,144 @@ func TestRegistry_Interface_Types(t *testing.T) {
 	}](registry)
 	assert.False(t, foundWriter) // this will also be false because writer is nil
 	assert.Nil(t, retrievedWriter)
+}
+
+func TestRegistry_Has(t *testing.T) {
+	registry := NewRegistry()
+
+	// test has with empty registry
+	assert.False(t, Has[*registryTestService](registry))
+	assert.False(t, Has[int](registry))
+
+	// set a service and test has
+	service := &registryTestService{name: "test service"}
+	registry.Set(service)
+
+	assert.True(t, Has[*registryTestService](registry))
+	assert.False(t, Has[*registryTestRepository](registry))
+	assert.False(t, Has[int](registry))
+
+	// set different types
+	registry.Set(42)
+	registry.Set("hello")
+
+	assert.True(t, Has[*registryTestService](registry))
+	assert.True(t, Has[int](registry))
+	assert.True(t, Has[string](registry))
+	assert.False(t, Has[*registryTestRepository](registry))
+}
+
+func TestRegistry_Remove(t *testing.T) {
+	registry := NewRegistry()
+
+	// test remove from empty registry
+	removed := Remove[*registryTestService](registry)
+	assert.False(t, removed)
+
+	// set a service and remove it
+	service := &registryTestService{name: "test service"}
+	registry.Set(service)
+
+	assert.True(t, Has[*registryTestService](registry))
+	
+	removed = Remove[*registryTestService](registry)
+	assert.True(t, removed)
+	assert.False(t, Has[*registryTestService](registry))
+
+	// try to remove again
+	removed = Remove[*registryTestService](registry)
+	assert.False(t, removed)
+
+	// test remove with multiple types
+	service2 := &registryTestService{name: "service2"}
+	repo := &registryTestRepository{database: "db"}
+	registry.Set(service2)
+	registry.Set(repo)
+	registry.Set(42)
+
+	assert.True(t, Has[*registryTestService](registry))
+	assert.True(t, Has[*registryTestRepository](registry))
+	assert.True(t, Has[int](registry))
+
+	// remove service, others should remain
+	removed = Remove[*registryTestService](registry)
+	assert.True(t, removed)
+	assert.False(t, Has[*registryTestService](registry))
+	assert.True(t, Has[*registryTestRepository](registry))
+	assert.True(t, Has[int](registry))
+}
+
+func TestRegistry_Clear(t *testing.T) {
+	registry := NewRegistry()
+
+	// test clear on empty registry
+	registry.Clear()
+	assert.False(t, Has[*registryTestService](registry))
+
+	// add multiple objects
+	service := &registryTestService{name: "service"}
+	repo := &registryTestRepository{database: "db"}
+	registry.Set(service)
+	registry.Set(repo)
+	registry.Set(42)
+	registry.Set("hello")
+
+	// verify objects exist
+	assert.True(t, Has[*registryTestService](registry))
+	assert.True(t, Has[*registryTestRepository](registry))
+	assert.True(t, Has[int](registry))
+	assert.True(t, Has[string](registry))
+
+	// clear registry
+	registry.Clear()
+
+	// verify all objects are gone
+	assert.False(t, Has[*registryTestService](registry))
+	assert.False(t, Has[*registryTestRepository](registry))
+	assert.False(t, Has[int](registry))
+	assert.False(t, Has[string](registry))
+
+	// verify we can add objects after clear
+	registry.Set(&registryTestService{name: "new service"})
+	assert.True(t, Has[*registryTestService](registry))
+}
+
+func TestRegistry_Types(t *testing.T) {
+	registry := NewRegistry()
+
+	// test types on empty registry
+	types := registry.Types()
+	assert.Empty(t, types)
+
+	// add single object
+	service := &registryTestService{name: "service"}
+	registry.Set(service)
+
+	types = registry.Types()
+	assert.Len(t, types, 1)
+	assert.Contains(t, types, reflect.TypeOf(service))
+
+	// add multiple objects
+	repo := &registryTestRepository{database: "db"}
+	registry.Set(repo)
+	registry.Set(42)
+	registry.Set("hello")
+
+	types = registry.Types()
+	assert.Len(t, types, 4)
+	assert.Contains(t, types, reflect.TypeOf(service))
+	assert.Contains(t, types, reflect.TypeOf(repo))
+	assert.Contains(t, types, reflect.TypeOf(42))
+	assert.Contains(t, types, reflect.TypeOf("hello"))
+
+	// remove an object
+	Remove[*registryTestService](registry)
+	types = registry.Types()
+	assert.Len(t, types, 3)
+	assert.NotContains(t, types, reflect.TypeOf(service))
+
+	// clear and verify empty
+	registry.Clear()
+	types = registry.Types()
+	assert.Empty(t, types)
 }
