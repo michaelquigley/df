@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## v0.1.5
+
+CHANGE: Update `gopkg.in/yaml.v3` to `v3.0.1`.
+
 ## v0.1.4
 
 FEATURE: `MustInspect`, which panics if an error occurs; but also does not log a trailing `<nil>`.
