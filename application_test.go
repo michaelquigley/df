@@ -7,11 +7,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type testApplicationConfig struct {
-	Name string `json:"name"`
-	Port int    `json:"port"`
-}
-
 type testApplicationDatabase struct {
 	connected bool
 	linked    bool
