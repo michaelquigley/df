@@ -50,6 +50,11 @@ understand `df.Pointer[T]` for type-safe object references with cycle support. c
 **[df_12_advanced_linker](./df_12_advanced_linker/)** - complex object graph management  
 master advanced reference resolution with `NewLinker()`, caching, and performance optimization. necessary for large-scale applications with complex object relationships and performance requirements.
 
+### application architecture examples (13+)
+
+**[df_13_container](./df_13_container/)** - dependency injection and service management  
+learn the `Registry` and `Service` types for building scalable application containers. covers object registration, lifecycle management (startable/stoppable), dependency injection through factories, and container introspection. essential for building modular, testable applications.
+
 ## usage patterns
 
 ### for application developers
@@ -60,6 +65,9 @@ review examples 07-08 to understand how to integrate custom types with the df ec
 
 ### for framework builders
 study examples 09-12 to learn advanced patterns for building extensible, plugin-based systems with complex data relationships.
+
+### for application architects
+review example 13+ to understand how to structure scalable applications with dependency injection, service lifecycle management, and modular architectures.
 
 ## running examples
 
