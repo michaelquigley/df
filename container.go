@@ -51,6 +51,16 @@ func SetAs[T any](c *Container, object T) {
 	c.singletons[targetType] = object
 }
 
+// SetNamed registers a named object in the container by its type and name.
+// If an object with the same type and name already exists, it will be replaced.
+func SetNamed(c *Container, name string, object any) {
+	key := namedKey{
+		typ:  reflect.TypeOf(object),
+		name: name,
+	}
+	c.namedObjects[key] = object
+}
+
 // Get retrieves an object of type T from the container.
 // Returns the object and true if found, or zero value and false if not found.
 func Get[T any](c *Container) (T, bool) {
@@ -58,6 +68,28 @@ func Get[T any](c *Container) (T, bool) {
 	targetType := reflect.TypeOf(zero)
 
 	obj, exists := c.singletons[targetType]
+	if !exists {
+		return zero, false
+	}
+
+	typed, ok := obj.(T)
+	if !ok {
+		return zero, false
+	}
+
+	return typed, true
+}
+
+// GetNamed retrieves a named object of type T from the container.
+// Returns the object and true if found, or zero value and false if not found.
+func GetNamed[T any](c *Container, name string) (T, bool) {
+	var zero T
+	key := namedKey{
+		typ:  reflect.TypeOf(zero),
+		name: name,
+	}
+
+	obj, exists := c.namedObjects[key]
 	if !exists {
 		return zero, false
 	}
@@ -78,6 +110,17 @@ func Has[T any](c *Container) bool {
 	return exists
 }
 
+// HasNamed checks if a named object of type T with the given name exists in the container.
+func HasNamed[T any](c *Container, name string) bool {
+	var zero T
+	key := namedKey{
+		typ:  reflect.TypeOf(zero),
+		name: name,
+	}
+	_, exists := c.namedObjects[key]
+	return exists
+}
+
 // Remove removes an object of type T from the container.
 // Returns true if the object was found and removed, false if it didn't exist.
 func Remove[T any](c *Container) bool {
@@ -86,6 +129,22 @@ func Remove[T any](c *Container) bool {
 	_, exists := c.singletons[targetType]
 	if exists {
 		delete(c.singletons, targetType)
+		return true
+	}
+	return false
+}
+
+// RemoveNamed removes a named object of type T with the given name from the container.
+// Returns true if the object was found and removed, false if it didn't exist.
+func RemoveNamed[T any](c *Container, name string) bool {
+	var zero T
+	key := namedKey{
+		typ:  reflect.TypeOf(zero),
+		name: name,
+	}
+	_, exists := c.namedObjects[key]
+	if exists {
+		delete(c.namedObjects, key)
 		return true
 	}
 	return false
@@ -117,38 +176,6 @@ func (c *Container) Types() []reflect.Type {
 		}
 	}
 	return types
-}
-
-// SetNamed registers a named object in the container by its type and name.
-// If an object with the same type and name already exists, it will be replaced.
-func (c *Container) SetNamed(name string, object any) {
-	key := namedKey{
-		typ:  reflect.TypeOf(object),
-		name: name,
-	}
-	c.namedObjects[key] = object
-}
-
-// GetNamed retrieves a named object of type T from the container.
-// Returns the object and true if found, or zero value and false if not found.
-func GetNamed[T any](c *Container, name string) (T, bool) {
-	var zero T
-	key := namedKey{
-		typ:  reflect.TypeOf(zero),
-		name: name,
-	}
-
-	obj, exists := c.namedObjects[key]
-	if !exists {
-		return zero, false
-	}
-
-	typed, ok := obj.(T)
-	if !ok {
-		return zero, false
-	}
-
-	return typed, true
 }
 
 // OfType retrieves all objects of type T from the container (both singleton and named).

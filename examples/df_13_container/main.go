@@ -62,11 +62,11 @@ type DatabaseFactory struct{}
 
 func (f *DatabaseFactory) Build(a *df.Application[Config]) error {
 	cfg, _ := df.Get[Config](a.C)
-	
+
 	db := &Database{
 		URL: cfg.DatabaseURL,
 	}
-	
+
 	df.SetAs[*Database](a.C, db)
 	return nil
 }
@@ -76,11 +76,11 @@ type LoggerFactory struct{}
 
 func (f *LoggerFactory) Build(a *df.Application[Config]) error {
 	cfg, _ := df.Get[Config](a.C)
-	
+
 	logger := &Logger{
 		Level: cfg.LogLevel,
 	}
-	
+
 	df.SetAs[*Logger](a.C, logger)
 	return nil
 }
@@ -121,8 +121,8 @@ func main() {
 	fmt.Printf("database connected: %v\n", db.Connected)
 
 	// demonstrate named objects
-	app.C.SetNamed("audit", &Logger{Level: "debug"})
-	app.C.SetNamed("cache", &Database{URL: "redis://localhost:6379"})
+	df.SetNamed(app.C, "audit", &Logger{Level: "debug"})
+	df.SetNamed(app.C, "cache", &Database{URL: "redis://localhost:6379"})
 
 	// show all loggers
 	loggers := df.OfType[*Logger](app.C)

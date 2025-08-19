@@ -274,8 +274,8 @@ func TestContainer_SetNamed_And_GetNamed(t *testing.T) {
 	service1 := &containerTestService{name: "primary service"}
 	service2 := &containerTestService{name: "secondary service"}
 
-	container.SetNamed("primary", service1)
-	container.SetNamed("secondary", service2)
+	SetNamed(container, "primary", service1)
+	SetNamed(container, "secondary", service2)
 
 	// retrieve named objects
 	retrieved1, found1 := GetNamed[*containerTestService](container, "primary")
@@ -303,17 +303,182 @@ func TestContainer_SetNamed_Replace(t *testing.T) {
 
 	// set initial named service
 	service1 := &containerTestService{name: "first service"}
-	container.SetNamed("test", service1)
+	SetNamed(container, "test", service1)
 
 	// replace with new service of same type and name
 	service2 := &containerTestService{name: "second service"}
-	container.SetNamed("test", service2)
+	SetNamed(container, "test", service2)
 
 	// should get the second service
 	retrieved, found := GetNamed[*containerTestService](container, "test")
 	assert.True(t, found)
 	assert.Equal(t, service2, retrieved)
 	assert.Equal(t, "second service", retrieved.name)
+}
+
+func TestContainer_HasNamed(t *testing.T) {
+	container := NewContainer()
+
+	// test HasNamed with empty container
+	assert.False(t, HasNamed[*containerTestService](container, "nonexistent"))
+
+	// set named objects
+	service := &containerTestService{name: "test service"}
+	repo := &containerTestRepository{database: "test db"}
+	SetNamed(container, "service", service)
+	SetNamed(container, "repo", repo)
+
+	// test HasNamed for existing objects
+	assert.True(t, HasNamed[*containerTestService](container, "service"))
+	assert.True(t, HasNamed[*containerTestRepository](container, "repo"))
+
+	// test HasNamed for non-existing objects
+	assert.False(t, HasNamed[*containerTestService](container, "repo"))        // wrong type
+	assert.False(t, HasNamed[*containerTestRepository](container, "service"))  // wrong type
+	assert.False(t, HasNamed[*containerTestService](container, "nonexistent")) // wrong name
+	assert.False(t, HasNamed[int](container, "service"))                       // completely different type
+}
+
+func TestContainer_RemoveNamed(t *testing.T) {
+	container := NewContainer()
+
+	// test RemoveNamed from empty container
+	removed := RemoveNamed[*containerTestService](container, "nonexistent")
+	assert.False(t, removed)
+
+	// set named objects
+	service := &containerTestService{name: "test service"}
+	repo := &containerTestRepository{database: "test db"}
+	SetNamed(container, "service", service)
+	SetNamed(container, "repo", repo)
+
+	// verify objects exist
+	assert.True(t, HasNamed[*containerTestService](container, "service"))
+	assert.True(t, HasNamed[*containerTestRepository](container, "repo"))
+
+	// remove service
+	removed = RemoveNamed[*containerTestService](container, "service")
+	assert.True(t, removed)
+	assert.False(t, HasNamed[*containerTestService](container, "service"))
+
+	// repo should still exist
+	assert.True(t, HasNamed[*containerTestRepository](container, "repo"))
+
+	// try to remove service again
+	removed = RemoveNamed[*containerTestService](container, "service")
+	assert.False(t, removed)
+
+	// try to remove with wrong type
+	removed = RemoveNamed[*containerTestService](container, "repo")
+	assert.False(t, removed)
+	assert.True(t, HasNamed[*containerTestRepository](container, "repo")) // should still exist
+
+	// remove repo with correct type
+	removed = RemoveNamed[*containerTestRepository](container, "repo")
+	assert.True(t, removed)
+	assert.False(t, HasNamed[*containerTestRepository](container, "repo"))
+}
+
+func TestContainer_SemanticCompatibility_Has_vs_HasNamed(t *testing.T) {
+	container := NewContainer()
+
+	// test 1: both should return false for non-existent objects
+	assert.False(t, Has[string](container))
+	assert.False(t, HasNamed[string](container, "test"))
+
+	// test 2: set singleton, verify Has returns true but HasNamed remains false
+	Set(container, "singleton value")
+	assert.True(t, Has[string](container))
+	assert.False(t, HasNamed[string](container, "test"))
+
+	// test 3: set named object, verify HasNamed returns true but Has still works for singleton
+	SetNamed(container, "test", "named value")
+	assert.True(t, Has[string](container))
+	assert.True(t, HasNamed[string](container, "test"))
+
+	// test 4: different names should not interfere
+	assert.True(t, HasNamed[string](container, "test"))
+	assert.False(t, HasNamed[string](container, "different"))
+
+	// test 5: type safety should work consistently
+	assert.False(t, Has[int](container))
+	assert.False(t, HasNamed[int](container, "test"))
+}
+
+func TestContainer_SemanticCompatibility_Remove_vs_RemoveNamed(t *testing.T) {
+	container := NewContainer()
+
+	// test 1: both should return false for non-existent objects
+	assert.False(t, Remove[string](container))
+	assert.False(t, RemoveNamed[string](container, "test"))
+
+	// test 2: set objects and verify removal behavior
+	Set(container, "singleton")
+	SetNamed(container, "test", "named")
+
+	// verify objects exist
+	assert.True(t, Has[string](container))
+	assert.True(t, HasNamed[string](container, "test"))
+
+	// test 3: remove singleton, named should remain
+	removed := Remove[string](container)
+	assert.True(t, removed)
+	assert.False(t, Has[string](container))
+	assert.True(t, HasNamed[string](container, "test"))
+
+	// test 4: attempt to remove singleton again should return false
+	removed = Remove[string](container)
+	assert.False(t, removed)
+
+	// test 5: remove named object
+	removed = RemoveNamed[string](container, "test")
+	assert.True(t, removed)
+	assert.False(t, HasNamed[string](container, "test"))
+
+	// test 6: attempt to remove named again should return false
+	removed = RemoveNamed[string](container, "test")
+	assert.False(t, removed)
+
+	// test 7: removing with wrong name should return false
+	SetNamed(container, "correct", "value")
+	assert.False(t, RemoveNamed[string](container, "wrong"))
+	assert.True(t, HasNamed[string](container, "correct")) // should still exist
+}
+
+func TestContainer_SemanticCompatibility_CrossOperations(t *testing.T) {
+	container := NewContainer()
+
+	// set both singleton and named objects of same type
+	Set(container, "singleton")
+	SetNamed(container, "named", "named value")
+
+	// test 1: Has/Remove work only on singletons, not named objects
+	assert.True(t, Has[string](container))
+	assert.True(t, Remove[string](container))
+	assert.False(t, Has[string](container))
+	assert.True(t, HasNamed[string](container, "named")) // named should remain
+
+	// test 2: HasNamed/RemoveNamed work only on named objects, not singletons
+	Set(container, "singleton again")
+	assert.True(t, Has[string](container))
+	assert.True(t, HasNamed[string](container, "named"))
+
+	assert.True(t, RemoveNamed[string](container, "named"))
+	assert.False(t, HasNamed[string](container, "named"))
+	assert.True(t, Has[string](container)) // singleton should remain
+
+	// test 3: type safety works consistently across operations
+	Remove[string](container) // remove the string singleton from test 2
+	Set(container, 42)
+	SetNamed(container, "int", 100)
+
+	assert.True(t, Has[int](container))
+	assert.True(t, HasNamed[int](container, "int"))
+	assert.False(t, Has[string](container))             // removed earlier
+	assert.False(t, HasNamed[string](container, "int")) // wrong type
+
+	assert.True(t, Remove[int](container))
+	assert.True(t, RemoveNamed[int](container, "int"))
 }
 
 func TestContainer_Named_And_Singleton_Coexistence(t *testing.T) {
@@ -325,8 +490,8 @@ func TestContainer_Named_And_Singleton_Coexistence(t *testing.T) {
 	named2 := &containerTestService{name: "named2"}
 
 	Set(container, singleton)
-	container.SetNamed("first", named1)
-	container.SetNamed("second", named2)
+	SetNamed(container, "first", named1)
+	SetNamed(container, "second", named2)
 
 	// verify all can be retrieved independently
 	retrievedSingleton, foundSingleton := Get[*containerTestService](container)
@@ -360,8 +525,8 @@ func TestContainer_OfType(t *testing.T) {
 	// add named objects
 	named1 := &containerTestService{name: "named1"}
 	named2 := &containerTestService{name: "named2"}
-	container.SetNamed("first", named1)
-	container.SetNamed("second", named2)
+	SetNamed(container, "first", named1)
+	SetNamed(container, "second", named2)
 
 	results = OfType[*containerTestService](container)
 	assert.Len(t, results, 3)
@@ -419,7 +584,7 @@ func TestContainer_AsType(t *testing.T) {
 	nonImpl := &containerTestService{name: "not an implementer"}
 
 	Set(container, impl1)
-	container.SetNamed("impl2", impl2)
+	SetNamed(container, "impl2", impl2)
 	Set(container, nonImpl)
 
 	// AsType should return only the implementers
@@ -454,8 +619,8 @@ func TestContainer_Visit_WithNamedObjects(t *testing.T) {
 	named2 := &containerTestRepository{database: "named db"}
 
 	Set(container, singleton)
-	container.SetNamed("service1", named1)
-	container.SetNamed("repo1", named2)
+	SetNamed(container, "service1", named1)
+	SetNamed(container, "repo1", named2)
 
 	// collect all visited objects
 	var visited []any
@@ -476,7 +641,7 @@ func TestContainer_Clear_WithNamedObjects(t *testing.T) {
 
 	// add singleton and named objects
 	Set(container, &containerTestService{name: "singleton"})
-	container.SetNamed("named", &containerTestService{name: "named"})
+	SetNamed(container, "named", &containerTestService{name: "named"})
 
 	// verify objects exist
 	assert.True(t, Has[*containerTestService](container))
@@ -497,8 +662,8 @@ func TestContainer_Types_WithNamedObjects(t *testing.T) {
 
 	// add singleton and named objects of same and different types
 	Set(container, &containerTestService{name: "singleton"})
-	container.SetNamed("named1", &containerTestService{name: "named1"})
-	container.SetNamed("named2", &containerTestRepository{database: "named"})
+	SetNamed(container, "named1", &containerTestService{name: "named1"})
+	SetNamed(container, "named2", &containerTestRepository{database: "named"})
 
 	types := container.Types()
 
@@ -516,7 +681,7 @@ func TestContainer_Inspect_Human(t *testing.T) {
 	repo := &containerTestRepository{database: "test db"}
 
 	Set(container, service)
-	container.SetNamed("primary", repo)
+	SetNamed(container, "primary", repo)
 	Set(container, 42)
 
 	output, err := container.Inspect(InspectHuman)
@@ -550,7 +715,7 @@ func TestContainer_Inspect_JSON(t *testing.T) {
 	// add test objects
 	service := &containerTestService{name: "test service"}
 	Set(container, service)
-	container.SetNamed("primary", &containerTestRepository{database: "test db"})
+	SetNamed(container, "primary", &containerTestRepository{database: "test db"})
 
 	output, err := container.Inspect(InspectJSON)
 	assert.NoError(t, err)
@@ -580,7 +745,7 @@ func TestContainer_Inspect_YAML(t *testing.T) {
 
 	// add test objects
 	Set(container, &containerTestService{name: "test service"})
-	container.SetNamed("cache", &containerTestRepository{database: "cache db"})
+	SetNamed(container, "cache", &containerTestRepository{database: "cache db"})
 
 	output, err := container.Inspect(InspectYAML)
 	assert.NoError(t, err)
