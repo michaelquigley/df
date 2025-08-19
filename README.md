@@ -1,32 +1,167 @@
 # df
 
-A lightweight Go library for binding and unbinding structured data to/from Go structs using reflection. df serves as the foundational layer for building dynamic, configuration-driven Go applications that can reconfigure their internal architecture based on runtime configuration.
+A comprehensive Go framework for building dynamic, configuration-driven applications. df provides a complete stack from low-level data binding to high-level application orchestration, enabling systems that can reconfigure their internal architecture based on runtime configuration.
 
-## Features
+## Overview
 
-- **Bind** data from maps, JSON, and YAML files to Go structs
-- **New[T]** generic function for automatic allocation and binding
-- **Merge** data from maps, JSON, and YAML files into pre-built Go structs (default settings, etc.)
-- **Unbind** Go structs back to maps, JSON, and YAML files
-- **Inspect** human-readable configuration debugging with secret field filtering
-- **Flexible field mapping** with `df` struct tags
-- **Type coercion** for primitives, pointers, slices, and nested structs
-- **Custom field converters** for specialized type conversion and validation
-- **Dynamic field resolution** for polymorphic data structures
-- **Pointer references** with cycle handling for complex object relationships (see `Pointer`)
-- **Custom marshaling/unmarshaling** with `Marshaler` and `Unmarshaler` interfaces
-- **Round-trip compatibility** between bind and unbind operations
+df consists of three integrated layers:
+
+### 1. Data Binding Foundation
+- **Bidirectional binding** between Go structs and structured data (JSON, YAML, maps)
+- **Type-safe conversion** with support for primitives, pointers, slices, and nested structures  
+- **Polymorphic data** via Dynamic interface for runtime type discrimination
+- **Object references** with cycle-safe pointer resolution
+
+### 2. Dependency Injection Container
+- **Object management** with singleton and named registration patterns
+- **Type queries** for exact type matching and interface compatibility
+- **Container introspection** with multiple output formats (human, JSON, YAML)
+
+### 3. Application Orchestration
+- **Lifecycle management** with configurable phases (build → link → start → stop)
+- **Factory pattern** for configuration-driven object creation
+- **Dependency injection** through automatic linking of compatible objects
+- **Service discovery** via container-based object lookup
+
+## Key Features
+
+### Data Binding Layer
+- **Bind/Unbind** data between Go structs and structured formats
+- **New[T]** generic function for type-safe allocation and binding
+- **Merge** data into pre-initialized structs for configuration layering
+- **Flexible field mapping** with `df` struct tags and validation
+- **Custom converters** for specialized type handling
+- **Round-trip compatibility** ensuring data integrity
+
+### Container Layer  
+- **Singleton objects** registered and retrieved by type
+- **Named objects** supporting multiple instances of the same type
+- **Type queries** with `OfType[T]()` and `AsType[T]()` functions
+- **Container inspection** for debugging and monitoring
+
+### Application Layer
+- **Configuration-driven** object creation through factory registration
+- **Lifecycle interfaces** (`Startable`, `Stoppable`, `Linkable`) for managed services
+- **Dependency injection** with automatic resolution during linking phase
+- **Graceful startup/shutdown** with proper dependency ordering
 
 ## Quick Start
+
+### Complete Application Example
 
 ```go
 package main
 
 import (
     "fmt"
+    "log"
     "github.com/michaelquigley/df"
 )
 
+// Configuration struct
+type Config struct {
+    AppName     string `df:"app_name"`
+    DatabaseURL string `df:"database_url"`
+    LogLevel    string `df:"log_level"`
+}
+
+// Service implementations
+type Database struct {
+    URL string
+    Connected bool
+}
+
+func (d *Database) Start() error {
+    fmt.Printf("connecting to database: %s\n", d.URL)
+    d.Connected = true
+    return nil
+}
+
+func (d *Database) Stop() error {
+    fmt.Printf("disconnecting from database\n")
+    d.Connected = false
+    return nil
+}
+
+type Logger struct {
+    Level string
+}
+
+func (l *Logger) Start() error {
+    fmt.Printf("starting logger with level: %s\n", l.Level)
+    return nil
+}
+
+func (l *Logger) Info(msg string) {
+    fmt.Printf("[INFO] %s\n", msg)
+}
+
+// Factories for dependency injection
+type DatabaseFactory struct{}
+
+func (f *DatabaseFactory) Build(a *df.Application[Config]) error {
+    cfg, _ := df.Get[Config](a.C)
+    db := &Database{URL: cfg.DatabaseURL}
+    df.SetAs[*Database](a.C, db)
+    return nil
+}
+
+type LoggerFactory struct{}
+
+func (f *LoggerFactory) Build(a *df.Application[Config]) error {
+    cfg, _ := df.Get[Config](a.C)
+    logger := &Logger{Level: cfg.LogLevel}
+    df.SetAs[*Logger](a.C, logger)
+    return nil
+}
+
+func main() {
+    // 1. Create configuration
+    cfg := Config{
+        AppName:     "MyApp",
+        DatabaseURL: "postgres://localhost:5432/mydb",
+        LogLevel:    "info",
+    }
+
+    // 2. Build application with factories
+    app := df.NewApplication(cfg)
+    df.WithFactory(app, &DatabaseFactory{})
+    df.WithFactory(app, &LoggerFactory{})
+
+    // 3. Initialize: build + link dependencies
+    if err := app.Initialize(); err != nil {
+        log.Fatal(err)
+    }
+
+    // 4. Start all services
+    if err := app.Start(); err != nil {
+        log.Fatal(err)
+    }
+
+    // 5. Use services
+    logger, _ := df.Get[*Logger](app.C)
+    logger.Info("application started successfully")
+
+    db, _ := df.Get[*Database](app.C)
+    fmt.Printf("database connected: %v\n", db.Connected)
+
+    // 6. Inspect container contents
+    fmt.Println("\n=== container contents ===")
+    output, _ := app.C.Inspect(df.InspectHuman)
+    fmt.Println(output)
+
+    // 7. Graceful shutdown
+    if err := app.Stop(); err != nil {
+        log.Printf("Shutdown error: %v", err)
+    }
+}
+```
+
+### Data Binding Only
+
+For simple data binding without the application framework:
+
+```go
 type User struct {
     Name     string `df:"required"`
     Email    string
@@ -35,90 +170,137 @@ type User struct {
     Password string `df:"secret"`
 }
 
-func main() {
-    // Input data
-    data := map[string]any{
-        "name":      "John Doe",
-        "email":     "john@example.com", 
-        "age":       30,
-        "is_active": true,
-        "password":  "secret123",
-    }
-    
-    // Option 1: Use New[T] for automatic allocation
-    user, err := df.New[User](data)
-    if err != nil {
-        panic(err)
-    }
-    
-    fmt.Printf("%+v\n", *user) // {Name:John Doe Email:john@example.com Age:30 Active:true Password:secret123}
-    
-    // Inspect configuration (secrets hidden by default)
-    output, _ := df.Inspect(user)
-    fmt.Println(output)
-    // User {
-    //   name             : "John Doe"
-    //   email            : "john@example.com"
-    //   age              : 30
-    //   is_active        : true
-    //   password (secret): <set>
-    // }
-    
-    // Option 2: Use Bind with pre-allocated struct  
-    var user2 User
-    err = df.Bind(&user2, data)
-    if err != nil {
-        panic(err)
-    }
-    
-    // Unbind back to map
-    result, err := df.Unbind(user)
-    if err != nil {
-        panic(err)
-    }
-    
-    fmt.Printf("%+v\n", result) // map[active:true age:30 email:john@example.com name:John Doe password:secret123]
+// Input data
+data := map[string]any{
+    "name":      "John Doe",
+    "email":     "john@example.com", 
+    "age":       30,
+    "is_active": true,
+    "password":  "secret123",
 }
+
+// Bind to struct
+user, err := df.New[User](data)
+if err != nil {
+    panic(err)
+}
+
+// Inspect with secrets hidden
+output, _ := df.Inspect(user)
+fmt.Println(output)
 ```
 
-## Vision: Dynamic System Construction
+## Container: Dependency Injection Made Simple
 
-df serves as the foundational layer for building dynamic, configuration-driven Go applications. While traditional Go applications have fixed structures determined at compile time, df enables systems that can reconfigure their internal architecture based on runtime configuration.
+The `Container` type provides a modern dependency injection system with both singleton and named object registration:
 
-### The Three Layers
-
-1. **Data Binding Layer** (Current): Robust mapping between structured data and Go types
-2. **Component Registry Layer** (Planned): Dynamic instantiation of registered component types  
-3. **System Orchestration Layer** (Planned): Lifecycle management and dependency injection
-
-### From Static to Dynamic
+### Basic Container Usage
 
 ```go
-// traditional static approach
-server := &http.Server{
-    Handler: &MyHandler{},
-    Addr:    ":8080",
-}
+// Create container
+container := df.NewContainer()
 
-// df-enabled dynamic approach  
-config := map[string]any{
-    "type": "http_server",
-    "addr": ":8080", 
-    "handler": map[string]any{
-        "type": "my_handler",
-        "routes": []any{...},
-    },
-}
+// Register singleton objects by type
+database := &Database{URL: "localhost:5432"}
+container.Set(database)
 
-var server Component
-df.Bind(&server, config)  // creates the right concrete types
+// Register named objects (multiple instances)
+container.SetNamed("primary", &Database{URL: "primary-db:5432"})
+container.SetNamed("cache", &Database{URL: "cache-db:6379"})
+
+// Retrieve objects
+db, found := df.Get[*Database](container)           // Get singleton
+primary, found := df.GetNamed[*Database](container, "primary") // Get named
+
+// Query by type (returns all instances)
+allDatabases := df.OfType[*Database](container)     // [singleton, primary, cache]
+
+// Query by interface (returns compatible objects)
+startables := df.AsType[df.Startable](container)    // All objects implementing Startable
 ```
 
-This foundation enables applications that can be reconfigured without recompilation, supporting use cases like:
-- **Plugin architectures** - Load and configure components dynamically
-- **A/B testing** - Switch between different component implementations
-- **Environment-specific topologies** - Different system layouts per environment  
-- **Configuration-driven composition** - Assemble complex systems from simple parts
+### Container Introspection
+
+```go
+// Human-readable output
+output, _ := container.Inspect(df.InspectHuman)
+fmt.Println(output)
+
+// Machine-readable formats
+jsonOutput, _ := container.Inspect(df.InspectJSON)
+yamlOutput, _ := container.Inspect(df.InspectYAML)
+```
+
+## Application: Complete Lifecycle Management
+
+The `Application` type orchestrates object creation, dependency injection, and lifecycle management:
+
+### Application Phases
+
+1. **Build**: Factories create and register objects in the container
+2. **Link**: Objects implementing `Linkable` establish dependencies  
+3. **Start**: Objects implementing `Startable` are initialized
+4. **Stop**: Objects implementing `Stoppable` are gracefully shut down
+
+### Lifecycle Interfaces
+
+```go
+// Linkable: Establish dependencies after all objects are created
+type DatabaseService struct {
+    db *Database
+}
+
+func (s *DatabaseService) Link(c *df.Container) error {
+    db, found := df.Get[*Database](c)
+    if !found {
+        return errors.New("database not found")
+    }
+    s.db = db
+    return nil
+}
+
+// Startable: Initialize resources
+func (s *DatabaseService) Start() error {
+    return s.db.Connect()
+}
+
+// Stoppable: Clean up resources  
+func (s *DatabaseService) Stop() error {
+    return s.db.Disconnect()
+}
+```
+
+### Factory Pattern
+
+```go
+type DatabaseServiceFactory struct{}
+
+func (f *DatabaseServiceFactory) Build(app *df.Application[Config]) error {
+    service := &DatabaseService{}
+    df.SetAs[*DatabaseService](app.C, service)
+    return nil
+}
+
+// Register factory with application
+app := df.NewApplication(config)
+df.WithFactory(app, &DatabaseServiceFactory{})
+```
+
+### Configuration Integration
+
+```go
+// Load configuration from multiple sources
+app := df.NewApplication(defaultConfig)
+
+// Layer 1: Configuration file
+app.Initialize("config.yaml")
+
+// Layer 2: Environment-specific overrides  
+app.Initialize("config.prod.yaml")
+
+// Layer 3: Build and start
+app.Start()
+```
 
 ## Struct Tags
 
@@ -809,40 +991,106 @@ The `Linker` provides options for:
 
 See [examples/df_pointers](examples/df_pointers) for a complete working example.
 
-## Current Capabilities
+## Architecture & Use Cases
 
-The current df implementation provides the essential data binding layer with these key capabilities:
+df enables a range of application architectures from simple data binding to complex distributed systems:
 
-### Core Binding Operations
-- **Bidirectional data mapping** between Go structs and structured data (JSON, YAML, maps)
-- **Type-safe conversion** with support for primitives, pointers, slices, and nested structures
-- **Flexible field mapping** via struct tags with custom naming and validation rules
+### Simple Configuration Loading
+```go
+// Load application settings
+type Config struct {
+    Database DatabaseConfig `df:"database"`
+    Server   ServerConfig   `df:"server"`
+}
 
-### Advanced Features  
-- **Polymorphic data structures** via the Dynamic interface for runtime type selection
-- **Object references** with cycle-safe pointer resolution using df.Pointer[T]
-- **Custom marshaling/unmarshaling** with `Marshaler` and `Unmarshaler` interfaces
-- **Round-trip compatibility** ensuring data integrity across bind/unbind operations
+config, err := df.NewFromYAML[Config]("config.yaml")
+```
 
-### Foundation for Dynamic Systems
-Today's df provides the building blocks that future layers will leverage:
-- **Structured data normalization** - Converting various input formats to Go types
-- **Type discrimination** - Runtime selection of concrete types based on configuration
-- **Object relationship mapping** - Managing complex interconnected data structures
+### Dependency Injection Applications
+```go
+// Build applications with automatic dependency resolution
+app := df.NewApplication(config)
+df.WithFactory(app, &DatabaseFactory{})
+df.WithFactory(app, &APIFactory{})
+df.WithFactory(app, &WorkerFactory{})
+
+app.Initialize()
+app.Start()
+```
+
+### Plugin-Based Systems
+```go
+// Load and configure plugins dynamically
+container := df.NewContainer()
+
+// Register plugin types
+pluginConfigs := loadPluginConfigs()
+for _, pluginConfig := range pluginConfigs {
+    plugin, err := df.New[Plugin](pluginConfig)
+    container.SetNamed(plugin.Name(), plugin)
+}
+
+// Find all plugins implementing specific interfaces  
+authPlugins := df.AsType[AuthenticationPlugin](container)
+```
+
+### Microservice Orchestration
+```go
+// Coordinate multiple services with shared dependencies
+app := df.NewApplication(serviceConfig)
+
+// Shared infrastructure
+df.WithFactory(app, &DatabaseFactory{})
+df.WithFactory(app, &MessageQueueFactory{})
+
+// Service-specific components
+df.WithFactory(app, &UserServiceFactory{})
+df.WithFactory(app, &OrderServiceFactory{})
+df.WithFactory(app, &NotificationServiceFactory{})
+
+app.Initialize()
+app.Start()
+
+// Services automatically discover and link to shared infrastructure
+```
+
+## Current Status
+
+df provides a complete, production-ready framework with three integrated layers:
+
+### ✅ Data Binding Layer (Complete)
+- **Bidirectional binding** between Go structs and structured data formats
+- **Type-safe conversion** with comprehensive type system support
+- **Polymorphic data** via Dynamic interface for runtime type discrimination
+- **Object references** with cycle-safe pointer resolution
+- **Custom marshaling** with Marshaler/Unmarshaler interfaces
+- **Configuration merging** for layered configuration systems
+
+### ✅ Container Layer (Complete)  
+- **Dependency injection** with singleton and named object registration
+- **Type queries** for exact type matching and interface compatibility
+- **Container introspection** with multiple output formats
+- **Object lifecycle** management with automatic cleanup
+
+### ✅ Application Layer (Complete)
+- **Lifecycle orchestration** with configurable phases (build → link → start → stop)
+- **Factory pattern** for configuration-driven object creation
+- **Dependency injection** with automatic resolution during linking
+- **Configuration integration** supporting multiple file sources
 
 ## Roadmap
 
-df is the foundational component in a _dynamic framework_ approach to building Go applications. The next phases will build upon this solid data binding foundation:
+Future enhancements will build upon this solid foundation:
 
-### Phase 2: Component Registry
-- Registration and discovery of component types
-- Factory pattern integration with df binding
-- Plugin loading and configuration
+### Enhanced Configuration
+- **Schema validation** for configuration structures
+- **Hot-reload** capabilities for runtime reconfiguration
+- **Environment templating** for deployment-specific configurations
 
-### Phase 3: System Orchestration  
-- Dependency injection and lifecycle management
-- Configuration validation and schema enforcement
-- Hot-reload capabilities for runtime reconfiguration
+### Advanced Patterns
+- **Plugin discovery** with automatic registration
+- **Service mesh** integration for distributed applications  
+- **Observability** integration with metrics and tracing
 
 ## License
 
