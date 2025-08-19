@@ -18,7 +18,8 @@ type registryTestRepository struct {
 func TestNewRegistry(t *testing.T) {
 	registry := NewRegistry()
 	assert.NotNil(t, registry)
-	assert.NotNil(t, registry.objects)
+	assert.NotNil(t, registry.singletons)
+	assert.NotNil(t, registry.namedObjects)
 }
 
 func TestRegistry_Set_And_Get(t *testing.T) {

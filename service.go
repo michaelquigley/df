@@ -122,22 +122,21 @@ func (s *Service[C]) Start() error {
 }
 
 // Stop shuts down all Stoppable objects for graceful cleanup.
-// Objects are stopped in reverse registration order to respect dependencies.
 // Returns the first error encountered, but continues attempting to stop remaining objects.
 func (s *Service[C]) Stop() error {
-	types := s.R.Types()
 	var firstError error
 
-	// Visit objects in reverse order for proper cleanup
-	for i := len(types) - 1; i >= 0; i-- {
-		objType := types[i]
-		if obj, exists := s.R.objects[objType]; exists {
-			if stoppable, ok := obj.(Stoppable); ok {
-				if err := stoppable.Stop(); err != nil && firstError == nil {
-					firstError = err
-				}
+	err := s.R.Visit(func(object any) error {
+		if stoppable, ok := object.(Stoppable); ok {
+			if err := stoppable.Stop(); err != nil && firstError == nil {
+				firstError = err
 			}
 		}
+		return nil
+	})
+
+	if err != nil {
+		return err
 	}
 
 	return firstError
