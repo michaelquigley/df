@@ -27,7 +27,7 @@ func BenchmarkToSnakeCase(b *testing.B) {
 func BenchmarkStripIndices(b *testing.B) {
 	testCases := []string{
 		"Root.Items[0].Action",
-		"Container.Users[42].Profile.Settings[1].Value",
+		"Registry.Users[42].Profile.Settings[1].Value",
 		"Simple.Path.Without.Indices",
 		"Deep[0].Nested[1].Array[2].Access[3].Pattern[4]",
 		"Mixed.Path[100].With.Some[999].Indices",
@@ -70,7 +70,7 @@ func TestStringOptimizationsCorrectness(t *testing.T) {
 		expected string
 	}{
 		{"Root.Items[0].Action", "Root.Items.Action"},
-		{"Container.Users[42].Profile", "Container.Users.Profile"},
+		{"Registry.Users[42].Profile", "Registry.Users.Profile"},
 		{"Simple.Path.Without.Indices", "Simple.Path.Without.Indices"},
 		{"Deep[0].Nested[1].Array[2]", "Deep.Nested.Array"},
 		{"", ""},

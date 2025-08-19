@@ -142,7 +142,7 @@ func (ci ContactInfo) MarshalDf() (map[string]any, error) {
 		result["phone"] = ci.Phone
 		// format phone for display
 		if len(ci.Phone) == 10 {
-			result["phone_formatted"] = fmt.Sprintf("(%s) %s-%s", 
+			result["phone_formatted"] = fmt.Sprintf("(%s) %s-%s",
 				ci.Phone[:3], ci.Phone[3:6], ci.Phone[6:])
 		}
 	}
@@ -258,7 +258,7 @@ func (lu LegacyUser) MarshalDf() (map[string]any, error) {
 	return result, nil
 }
 
-// Container for demonstration
+// Registry for demonstration
 type UserProfile struct {
 	CreatedAt    CustomTime
 	User         LegacyUser
@@ -273,10 +273,10 @@ func main() {
 	// step 1: demonstrate CustomTime with multiple formats
 	fmt.Println("\n=== step 1: custom time handling ===")
 	timeData := []map[string]any{
-		{"time": "2023-12-01T10:30:00Z"},        // rfc3339
-		{"time": "2023-12-02 15:45:30"},         // custom format
-		{"time": "12/03/2023"},                  // US date format
-		{"time": "12-04-2023 09:15"},            // another custom format
+		{"time": "2023-12-01T10:30:00Z"}, // rfc3339
+		{"time": "2023-12-02 15:45:30"},  // custom format
+		{"time": "12/03/2023"},           // US date format
+		{"time": "12-04-2023 09:15"},     // another custom format
 	}
 
 	for i, data := range timeData {
@@ -312,13 +312,13 @@ func main() {
 		var contact ContactInfo
 		fmt.Printf("\ncontact test %d:\n", i+1)
 		fmt.Printf("  input: %+v\n", data)
-		
+
 		if err := contact.UnmarshalDf(data); err != nil {
 			fmt.Printf("  error: %v\n", err)
 			continue
 		}
-		
-		fmt.Printf("  normalized: name=%s, email=%s, phone=%s\n", 
+
+		fmt.Printf("  normalized: name=%s, email=%s, phone=%s\n",
 			contact.Name, contact.Email, contact.Phone)
 
 		// demonstrate marshaling
@@ -340,8 +340,8 @@ func main() {
 			"email":      "alice@example.com",
 			"phone":      "555-111-2222",
 			"settings": map[string]any{
-				"theme":    "dark",
-				"language": "en",
+				"theme":         "dark",
+				"language":      "en",
 				"notifications": true,
 			},
 		},
@@ -354,7 +354,7 @@ func main() {
 				"phone": "555-333-4444",
 			},
 			"settings": map[string]string{
-				"theme": "light",
+				"theme":    "light",
 				"timezone": "UTC",
 			},
 		},
@@ -364,12 +364,12 @@ func main() {
 		var user LegacyUser
 		fmt.Printf("\nlegacy user %d:\n", i+1)
 		fmt.Printf("  input format: %+v\n", data)
-		
+
 		if err := user.UnmarshalDf(data); err != nil {
 			fmt.Printf("  error: %v\n", err)
 			continue
 		}
-		
+
 		fmt.Printf("  normalized: ID=%d, Name=%s\n", user.ID, user.FullName)
 		fmt.Printf("  contact: %s (%s)\n", user.Contact.Name, user.Contact.Email)
 

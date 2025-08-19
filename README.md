@@ -754,7 +754,7 @@ func (d *Document) GetId() string { return d.ID }
 
 ```go
 // Phase 1: Bind data with $ref strings
-var container Container
+var container DataContainer
 df.Bind(&container, data)
 
 // Phase 2: Resolve all pointer references

@@ -97,11 +97,11 @@ func TestPointerLinkingWithCycles(t *testing.T) {
 		},
 	}
 
-	type Container struct {
+	type TestContainer struct {
 		Nodes []*Node `df:"nodes"`
 	}
 
-	var container Container
+	var container TestContainer
 	err := Bind(&container, data)
 	if err != nil {
 		t.Fatalf("Bind failed: %v", err)
@@ -160,12 +160,12 @@ func TestMultipleTypesWithSameIDs(t *testing.T) {
 		},
 	}
 
-	type Container struct {
+	type TestContainer struct {
 		Users     []*User     `df:"users"`
 		Documents []*Document `df:"documents"`
 	}
 
-	var container Container
+	var container TestContainer
 	err := Bind(&container, data)
 	if err != nil {
 		t.Fatalf("Bind failed: %v", err)
@@ -379,12 +379,12 @@ func TestUnbindPointerSlices(t *testing.T) {
 
 func TestCompleteUnbindRoundTrip(t *testing.T) {
 	// start with objects, bind, link, unbind, and verify the result
-	type Container struct {
+	type TestContainer struct {
 		Users     []*User     `df:"users"`
 		Documents []*Document `df:"documents"`
 	}
 
-	container := Container{
+	container := TestContainer{
 		Users: []*User{
 			{Id: "user1", Name: "Alice", Age: 25},
 			{Id: "user2", Name: "Bob", Age: 30},
@@ -480,12 +480,12 @@ func TestRoundTripWithPointers(t *testing.T) {
 		},
 	}
 
-	type Container struct {
+	type TestContainer struct {
 		Nodes []*Node `df:"nodes"`
 	}
 
 	// bind and link
-	var container Container
+	var container TestContainer
 	err := Bind(&container, originalData)
 	if err != nil {
 		t.Fatalf("Bind failed: %v", err)
@@ -596,11 +596,11 @@ func TestLinkerBasicFunctionality(t *testing.T) {
 		},
 	}
 
-	type Container struct {
+	type TestContainer struct {
 		Nodes []*Node `df:"nodes"`
 	}
 
-	var container Container
+	var container TestContainer
 	err := Bind(&container, data)
 	if err != nil {
 		t.Fatalf("Bind failed: %v", err)
@@ -631,12 +631,12 @@ func TestLinkerBasicFunctionality(t *testing.T) {
 }
 
 func TestLinkerCaching(t *testing.T) {
-	type Container struct {
+	type TestContainer struct {
 		Nodes []*Node `df:"nodes"`
 	}
 
 	// create test data that we'll use twice
-	createTestData := func() (Container, error) {
+	createTestData := func() (TestContainer, error) {
 		data := map[string]any{
 			"nodes": []any{
 				map[string]any{
@@ -654,7 +654,7 @@ func TestLinkerCaching(t *testing.T) {
 			},
 		}
 
-		var container Container
+		var container TestContainer
 		err := Bind(&container, data)
 		return container, err
 	}
@@ -686,10 +686,10 @@ func TestLinkerCaching(t *testing.T) {
 
 	// verify both containers are properly linked
 	if !container1.Nodes[0].Children[0].IsResolved() {
-		t.Errorf("Container1 not properly linked")
+		t.Errorf("container1 not properly linked")
 	}
 	if !container2.Nodes[0].Children[0].IsResolved() {
-		t.Errorf("Container2 not properly linked")
+		t.Errorf("container2 not properly linked")
 	}
 
 	// clear cache and try again
@@ -705,7 +705,7 @@ func TestLinkerCaching(t *testing.T) {
 	}
 
 	if !container3.Nodes[0].Children[0].IsResolved() {
-		t.Errorf("Container3 not properly linked after cache clear")
+		t.Errorf("container3 not properly linked after cache clear")
 	}
 }
 
@@ -911,11 +911,11 @@ func TestVariadicLinkerLink(t *testing.T) {
 		},
 	}
 
-	type Container struct {
+	type TestContainer struct {
 		Nodes []*Node `df:"nodes"`
 	}
 
-	var container1, container2 Container
+	var container1, container2 TestContainer
 
 	err := Bind(&container1, source1)
 	if err != nil {

@@ -26,8 +26,8 @@ type Document struct {
 
 func (d *Document) GetId() string { return d.ID }
 
-// Container holds all objects
-type Container struct {
+// DataContainer holds all objects
+type DataContainer struct {
 	Users     []*User
 	Documents []*Document
 }
@@ -77,7 +77,7 @@ func main() {
 
 	// phase 1: df.Bind() loads data and stores $ref strings (doesn't resolve yet)
 	fmt.Println("\n=== phase 1: df.Bind() - load data and $ref strings ===")
-	var container Container
+	var container DataContainer
 	if err := df.Bind(&container, data); err != nil {
 		log.Fatal("bind failed:", err)
 	}
