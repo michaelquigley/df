@@ -11,6 +11,15 @@ type Factory[C any] interface {
 	Build(a *Application[C]) error
 }
 
+// FactoryFunc is a function type that implements Factory[C].
+// It allows using raw functions as factories without defining separate types.
+type FactoryFunc[C any] func(a *Application[C]) error
+
+// Build implements the Factory interface for FactoryFunc.
+func (f FactoryFunc[C]) Build(a *Application[C]) error {
+	return f(a)
+}
+
 // Linkable defines objects that can establish connections to other container objects
 // during the linking phase after all objects have been created.
 type Linkable interface {
@@ -51,6 +60,12 @@ func NewApplication[C any](cfg C) *Application[C] {
 func WithFactory[C any](a *Application[C], f Factory[C]) *Application[C] {
 	a.Factories = append(a.Factories, f)
 	return a
+}
+
+// WithFactoryFunc adds a function factory to the application for fluent configuration.
+// Returns the application to enable method chaining.
+func WithFactoryFunc[C any](a *Application[C], f func(a *Application[C]) error) *Application[C] {
+	return WithFactory(a, FactoryFunc[C](f))
 }
 
 // Initialize executes Configure, Build, and Link phases in sequence.

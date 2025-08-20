@@ -350,3 +350,63 @@ func TestApplication_InitializeError(t *testing.T) {
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "build failed")
 }
+
+func TestWithFactoryFunc(t *testing.T) {
+	cfg := testConfig{Name: "test", Port: 8080}
+	app := NewApplication(cfg)
+
+	// test with function factory
+	result := WithFactoryFunc(app, func(a *Application[testConfig]) error {
+		db := &testApplicationDatabase{connected: true}
+		SetAs[*testApplicationDatabase](a.C, db)
+		return nil
+	})
+
+	assert.Equal(t, app, result) // should return same app
+	assert.Len(t, app.Factories, 1)
+
+	// build should work
+	err := app.Build()
+	assert.NoError(t, err)
+
+	// verify object was created and registered
+	db, found := Get[*testApplicationDatabase](app.C)
+	assert.True(t, found)
+	assert.True(t, db.connected)
+}
+
+func TestFactoryFunc_Build(t *testing.T) {
+	cfg := testConfig{Name: "test", Port: 8080}
+	app := NewApplication(cfg)
+
+	// create function factory directly
+	factoryFunc := FactoryFunc[testConfig](func(a *Application[testConfig]) error {
+		server := &testWebServer{}
+		SetAs[*testWebServer](a.C, server)
+		return nil
+	})
+
+	WithFactory(app, factoryFunc)
+
+	err := app.Build()
+	assert.NoError(t, err)
+
+	// verify object was created
+	server, found := Get[*testWebServer](app.C)
+	assert.True(t, found)
+	assert.NotNil(t, server)
+}
+
+func TestFactoryFunc_Error(t *testing.T) {
+	cfg := testConfig{Name: "test", Port: 8080}
+	app := NewApplication(cfg)
+
+	// test error handling in function factory
+	WithFactoryFunc(app, func(a *Application[testConfig]) error {
+		return errors.New("function factory failed")
+	})
+
+	err := app.Build()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "function factory failed")
+}

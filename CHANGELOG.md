@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## v0.2.1
+
+FEATURE: Support for standalone `Factory` functions (https://github.com/michaelquigley/df/issues/17)
+
 ## v0.2.0
 
 FEATURE: New `df.Container` and `df.Application` providing the foundation for dynamic application construction.
