@@ -2,7 +2,7 @@
 
 ## v0.2.2
 
-FEATURE: Support for raw `map[string]any` and `map[string]interface{}` fields in `Bind`, `Unbind`, and `Inspect` operations
+FEATURE: Support for raw `map[string]any` and `map[string]interface{}` fields in `Bind`, `Unbind`, and `Inspect` operations (https://github.com/michaelquigley/df/issues/19)
 
 ## v0.2.1
 
