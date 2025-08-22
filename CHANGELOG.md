@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## v0.2.2
+
+FEATURE: Support for raw `map[string]any` and `map[string]interface{}` fields in `Bind`, `Unbind`, and `Inspect` operations
+
 ## v0.2.1
 
 FEATURE: Support for standalone `Factory` functions (https://github.com/michaelquigley/df/issues/17)

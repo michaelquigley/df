@@ -328,6 +328,29 @@ func setNonPtrValue(fieldVal reflect.Value, raw interface{}, path string, opt *O
 		fieldVal.Set(out)
 		return nil
 
+	case reflect.Map:
+		// support map[string]any and map[string]interface{}
+		if fieldVal.Type().Key().Kind() != reflect.String {
+			return fmt.Errorf("%s: only map[string]any and map[string]interface{} are supported, got %v", path, fieldVal.Type())
+		}
+		elemType := fieldVal.Type().Elem()
+		if elemType.Kind() != reflect.Interface {
+			return fmt.Errorf("%s: only map[string]any and map[string]interface{} are supported, got %v", path, fieldVal.Type())
+		}
+		
+		rawMap, ok := raw.(map[string]any)
+		if !ok {
+			return fmt.Errorf("%s: expected object for map field, got %T", path, raw)
+		}
+		
+		// create new map and populate it
+		newMap := reflect.MakeMap(fieldVal.Type())
+		for key, value := range rawMap {
+			newMap.SetMapIndex(reflect.ValueOf(key), reflect.ValueOf(value))
+		}
+		fieldVal.Set(newMap)
+		return nil
+
 	case reflect.Interface:
 		// support fields of type Dynamic via binder map
 		if fieldVal.Type() == dynamicInterfaceType {

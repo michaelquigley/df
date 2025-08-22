@@ -194,6 +194,38 @@ func valueToInterface(v reflect.Value, opt *Options) (interface{}, bool, error) 
 		}
 		return arr, true, nil
 
+	case reflect.Map:
+		// support map[string]any and map[string]interface{}
+		if v.Type().Key().Kind() != reflect.String {
+			return nil, false, &UnsupportedError{Operation: fmt.Sprintf("map with %v keys", v.Type().Key().Kind())}
+		}
+		elemType := v.Type().Elem()
+		if elemType.Kind() != reflect.Interface {
+			return nil, false, &UnsupportedError{Operation: fmt.Sprintf("map with %v values", elemType)}
+		}
+		
+		// convert map to map[string]any
+		result := make(map[string]any)
+		for _, key := range v.MapKeys() {
+			keyStr := key.String()
+			mapVal := v.MapIndex(key)
+			
+			// handle nil interface values
+			if !mapVal.IsValid() || (mapVal.Kind() == reflect.Interface && mapVal.IsNil()) {
+				result[keyStr] = nil
+				continue
+			}
+			
+			converted, present, err := valueToInterface(mapVal, opt)
+			if err != nil {
+				return nil, false, err
+			}
+			if present {
+				result[keyStr] = converted
+			}
+		}
+		return result, true, nil
+
 	case reflect.Interface:
 		// omit nil interfaces
 		if v.IsNil() {
@@ -205,10 +237,8 @@ func valueToInterface(v reflect.Value, opt *Options) (interface{}, bool, error) 
 			dyn := v.Interface().(Dynamic)
 			return dynamicToMap(dyn), true, nil
 		}
-		return nil, false, &UnsupportedError{Operation: "interface fields"}
-
-	case reflect.Map:
-		return nil, false, &UnsupportedError{Operation: "map fields"}
+		// for interface{} or any types, unwrap and process the actual value
+		return valueToInterface(v.Elem(), opt)
 
 	case reflect.String, reflect.Bool,
 		reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,

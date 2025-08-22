@@ -384,6 +384,8 @@ func inspectValueWithAlignment(val reflect.Value, builder *strings.Builder, dept
 		return inspectSliceWithAlignment(val, builder, depth, opt, globalColonPos)
 	case reflect.Struct:
 		return inspectStructWithAlignment(val, builder, depth, opt, globalColonPos)
+	case reflect.Map:
+		return inspectMapWithAlignment(val, builder, depth, opt, globalColonPos)
 	case reflect.Interface:
 		if val.IsNil() {
 			builder.WriteString("<nil>")
@@ -498,6 +500,54 @@ func inspectPointerTypeWithAlignment(val reflect.Value, builder *strings.Builder
 	}
 
 	return inspectValueWithAlignment(resolvedField, builder, depth, opt, globalColonPos)
+}
+
+func inspectMapWithAlignment(val reflect.Value, builder *strings.Builder, depth int, opt *InspectOptions, globalColonPos int) error {
+	if val.IsNil() {
+		builder.WriteString("<nil map>")
+		return nil
+	}
+
+	if val.Len() == 0 {
+		builder.WriteString("{}")
+		return nil
+	}
+
+	builder.WriteString("{\n")
+
+	keys := val.MapKeys()
+	for i, key := range keys {
+		// write indentation
+		for j := 0; j <= depth; j++ {
+			builder.WriteString(opt.Indent)
+		}
+
+		// write key
+		if key.Kind() == reflect.String {
+			builder.WriteString(strconv.Quote(key.String()))
+		} else {
+			builder.WriteString(fmt.Sprintf("%v", key.Interface()))
+		}
+		builder.WriteString(": ")
+
+		mapVal := val.MapIndex(key)
+		if err := inspectValueWithAlignment(mapVal, builder, depth+1, opt, globalColonPos); err != nil {
+			return err
+		}
+
+		if i < len(keys)-1 {
+			builder.WriteString(",")
+		}
+		builder.WriteString("\n")
+	}
+
+	// write closing brace indentation
+	for j := 0; j < depth; j++ {
+		builder.WriteString(opt.Indent)
+	}
+	builder.WriteString("}")
+
+	return nil
 }
 
 func max(a, b int) int {
