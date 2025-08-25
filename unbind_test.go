@@ -211,3 +211,21 @@ func TestUnbindCustomMarshaler(t *testing.T) {
 		assert.Equal(t, expected, m)
 	})
 }
+
+func TestUnbindCustomStringConstType(t *testing.T) {
+	source := &struct {
+		Name   string
+		Status Status
+	}{
+		Name:   "test item",
+		Status: StatusActive,
+	}
+
+	m, err := Unbind(source)
+	assert.NoError(t, err)
+	expected := map[string]any{
+		"name":   "test item",
+		"status": Status("active"), // Custom types are preserved in Unbind
+	}
+	assert.Equal(t, expected, m)
+}

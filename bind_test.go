@@ -582,3 +582,117 @@ func TestBindDeferredUnmarshaler(t *testing.T) {
 	assert.Equal(t, "was bound", target.OtherField)
 	assert.Equal(t, "hello", target.Dep.Value)
 }
+
+// custom string const type for testing
+type Status string
+
+const (
+	StatusActive   Status = "active"
+	StatusInactive Status = "inactive"
+	StatusPending  Status = "pending"
+)
+
+func TestBindCustomStringConstType(t *testing.T) {
+	target := &struct {
+		Name   string
+		Status Status
+	}{}
+
+	data := map[string]any{
+		"name":   "test item",
+		"status": "active",
+	}
+
+	err := Bind(target, data)
+	assert.NoError(t, err)
+	assert.Equal(t, "test item", target.Name)
+	assert.Equal(t, StatusActive, target.Status)
+}
+
+func TestBindUnbindCustomStringConstTypeRoundTrip(t *testing.T) {
+	// start with a struct containing custom string const type
+	original := &struct {
+		Name   string
+		Status Status
+	}{
+		Name:   "round trip test",
+		Status: StatusPending,
+	}
+
+	// unbind to map
+	data, err := Unbind(original)
+	assert.NoError(t, err)
+
+	// bind back to a new struct
+	target := &struct {
+		Name   string
+		Status Status
+	}{}
+
+	err = Bind(target, data)
+	assert.NoError(t, err)
+	assert.Equal(t, "round trip test", target.Name)
+	assert.Equal(t, StatusPending, target.Status)
+}
+
+// custom primitive types for comprehensive testing
+type CustomString string
+type CustomInt int
+type CustomBool bool
+type CustomFloat float64
+
+func TestBindCustomPrimitiveTypes(t *testing.T) {
+	target := &struct {
+		MyString CustomString
+		MyInt    CustomInt
+		MyBool   CustomBool
+		MyFloat  CustomFloat
+	}{}
+
+	data := map[string]any{
+		"my_string": "hello world",
+		"my_int":    42,
+		"my_bool":   true,
+		"my_float":  3.14,
+	}
+
+	err := Bind(target, data)
+	assert.NoError(t, err)
+	assert.Equal(t, CustomString("hello world"), target.MyString)
+	assert.Equal(t, CustomInt(42), target.MyInt)
+	assert.Equal(t, CustomBool(true), target.MyBool)
+	assert.Equal(t, CustomFloat(3.14), target.MyFloat)
+}
+
+func TestBindUnbindCustomPrimitiveTypesRoundTrip(t *testing.T) {
+	original := &struct {
+		MyString CustomString
+		MyInt    CustomInt
+		MyBool   CustomBool
+		MyFloat  CustomFloat
+	}{
+		MyString: CustomString("test string"),
+		MyInt:    CustomInt(99),
+		MyBool:   CustomBool(false),
+		MyFloat:  CustomFloat(2.718),
+	}
+
+	// unbind to map
+	data, err := Unbind(original)
+	assert.NoError(t, err)
+
+	// bind back to a new struct
+	target := &struct {
+		MyString CustomString
+		MyInt    CustomInt
+		MyBool   CustomBool
+		MyFloat  CustomFloat
+	}{}
+
+	err = Bind(target, data)
+	assert.NoError(t, err)
+	assert.Equal(t, CustomString("test string"), target.MyString)
+	assert.Equal(t, CustomInt(99), target.MyInt)
+	assert.Equal(t, CustomBool(false), target.MyBool)
+	assert.Equal(t, CustomFloat(2.718), target.MyFloat)
+}

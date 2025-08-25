@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## v0.2.4
+
+FEATURE: Enhanced type conversion to support custom primitive types (e.g., `type Status string`) in `Bind` and `Unbind` operations without requiring custom converters (https://github.com/michaelquigley/df/issues/21)
+
 ## v0.2.3
 
 FEATURE: Support for embedded structs in `Bind`, `Unbind`, `New`, `Merge`, and `Inspect` functions with automatic field promotion and smart pointer allocation (https://github.com/michaelquigley/df/issues/20)

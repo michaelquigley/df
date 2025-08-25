@@ -41,12 +41,20 @@ func convertAndSet(dst reflect.Value, raw interface{}, path string, opt *Options
 
 	switch dstKind {
 	case reflect.String:
-		s, ok := raw.(string)
-		if !ok {
+		// handle both string and custom string types
+		switch v := raw.(type) {
+		case string:
+			dst.SetString(v)
+			return nil
+		default:
+			// check if raw value is also a string-based custom type
+			rawValue := reflect.ValueOf(raw)
+			if rawValue.Kind() == reflect.String {
+				dst.SetString(rawValue.String())
+				return nil
+			}
 			return &TypeMismatchError{Path: path, Expected: "string", Actual: fmt.Sprintf("%T", raw)}
 		}
-		dst.SetString(s)
-		return nil
 
 	case reflect.Bool:
 		switch v := raw.(type) {
@@ -61,6 +69,12 @@ func convertAndSet(dst reflect.Value, raw interface{}, path string, opt *Options
 			dst.SetBool(b)
 			return nil
 		default:
+			// check if raw value is a bool-based custom type
+			rawValue := reflect.ValueOf(raw)
+			if rawValue.Kind() == reflect.Bool {
+				dst.SetBool(rawValue.Bool())
+				return nil
+			}
 			return &TypeMismatchError{Path: path, Expected: "bool", Actual: fmt.Sprintf("%T", raw)}
 		}
 
@@ -120,6 +134,15 @@ func coerceToInt64(raw interface{}) (int64, bool) {
 		if f, err := strconv.ParseFloat(strings.TrimSpace(v), 64); err == nil {
 			return int64(f), true
 		}
+	default:
+		// handle custom integer types using reflection
+		rawValue := reflect.ValueOf(raw)
+		switch rawValue.Kind() {
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			return rawValue.Int(), true
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+			return int64(rawValue.Uint()), true
+		}
 	}
 	return 0, false
 }
@@ -164,6 +187,19 @@ func coerceToUint64(raw interface{}) (uint64, bool) {
 		if f, err := strconv.ParseFloat(strings.TrimSpace(v), 64); err == nil && f >= 0 {
 			return uint64(f), true
 		}
+	default:
+		// handle custom unsigned integer types using reflection
+		rawValue := reflect.ValueOf(raw)
+		switch rawValue.Kind() {
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+			return rawValue.Uint(), true
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			i := rawValue.Int()
+			if i < 0 {
+				return 0, false
+			}
+			return uint64(i), true
+		}
 	}
 	return 0, false
 }
@@ -184,6 +220,17 @@ func coerceToFloat64(raw interface{}) (float64, bool) {
 		}
 		if f, err := strconv.ParseFloat(strings.TrimSpace(v), 64); err == nil {
 			return f, true
+		}
+	default:
+		// handle custom float types using reflection
+		rawValue := reflect.ValueOf(raw)
+		switch rawValue.Kind() {
+		case reflect.Float32, reflect.Float64:
+			return rawValue.Float(), true
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			return float64(rawValue.Int()), true
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+			return float64(rawValue.Uint()), true
 		}
 	}
 	return 0, false
