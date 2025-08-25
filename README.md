@@ -317,6 +317,45 @@ type Example struct {
 }
 ```
 
+## Embedded Structs
+
+df fully supports Go's embedded struct feature, automatically flattening embedded fields during binding and unbinding operations:
+
+```go
+type Person struct {
+    Name string `df:"name"`
+    Age  int    `df:"age"`
+}
+
+type Employee struct {
+    Person // embedded struct - fields are promoted to parent level
+    Title  string `df:"title"`
+    Salary int    `df:"salary"`
+}
+
+// Input data - embedded fields appear at the top level
+data := map[string]any{
+    "name":   "John Doe",    // from embedded Person
+    "age":    30,            // from embedded Person
+    "title":  "Engineer",
+    "salary": 75000,
+}
+
+// Works with all binding functions
+employee, err := df.New[Employee](data)
+// employee.Name == "John Doe" (promoted from embedded Person)
+
+result, err := df.Unbind(employee)  
+// result flattens embedded fields: {"name": "John Doe", "age": 30, ...}
+```
+
+**Key features:**
+- **Field promotion**: Embedded struct fields appear at the parent level in data
+- **Pointer embedding**: Supports both value (`Person`) and pointer (`*Person`) embedding
+- **Smart allocation**: Pointer embedded structs only allocated when their fields are present
+- **Deep nesting**: Multiple levels of embedding work seamlessly
+- **Tag inheritance**: Embedded fields respect their original `df` struct tags
+
 ## New[T] vs Bind
 
 df provides two ways to populate structs from data:

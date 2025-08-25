@@ -50,6 +50,33 @@ func structToMap(structVal reflect.Value, opt *Options) (map[string]any, error) 
 			continue
 		}
 
+		fieldVal := structVal.Field(i)
+		
+		// handle embedded structs by flattening their fields into the parent map
+		if field.Anonymous {
+			var embeddedVal reflect.Value
+			if field.Type.Kind() == reflect.Ptr {
+				if fieldVal.IsNil() {
+					continue // skip nil embedded pointer
+				}
+				embeddedVal = fieldVal.Elem()
+			} else {
+				embeddedVal = fieldVal
+			}
+			
+			if embeddedVal.Kind() == reflect.Struct {
+				embeddedMap, err := structToMap(embeddedVal, opt)
+				if err != nil {
+					return nil, err
+				}
+				// flatten embedded fields into parent map
+				for k, v := range embeddedMap {
+					out[k] = v
+				}
+			}
+			continue
+		}
+
 		tag := parseDfTag(field)
 		if tag.Skip {
 			continue
@@ -59,7 +86,6 @@ func structToMap(structVal reflect.Value, opt *Options) (map[string]any, error) 
 			name = toSnakeCase(field.Name)
 		}
 
-		fieldVal := structVal.Field(i)
 		// omit nil pointer fields entirely
 		if fieldVal.Kind() == reflect.Ptr && fieldVal.IsNil() {
 			continue

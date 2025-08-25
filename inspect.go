@@ -140,12 +140,31 @@ func calculateMaxDepthFromStruct(structVal reflect.Value, depth int, opt *Inspec
 			continue
 		}
 
+		fieldVal := structVal.Field(i)
+		
+		// handle embedded structs by recursively calculating their depth
+		if field.Anonymous {
+			var embeddedVal reflect.Value
+			if field.Type.Kind() == reflect.Ptr {
+				if fieldVal.IsNil() {
+					continue // skip nil embedded pointer
+				}
+				embeddedVal = fieldVal.Elem()
+			} else {
+				embeddedVal = fieldVal
+			}
+			
+			if embeddedVal.Kind() == reflect.Struct {
+				maxDepth = max(maxDepth, calculateMaxDepth(embeddedVal, depth, opt))
+			}
+			continue
+		}
+
 		tag := parseDfTag(field)
 		if tag.Skip {
 			continue
 		}
 
-		fieldVal := structVal.Field(i)
 		// recursively check nested structures
 		maxDepth = max(maxDepth, calculateMaxDepth(fieldVal, depth+1, opt))
 	}
@@ -197,6 +216,26 @@ func calculateMaxFieldNameLengthFromStruct(structVal reflect.Value, depth int, o
 			continue
 		}
 
+		fieldVal := structVal.Field(i)
+		
+		// handle embedded structs by recursively calculating their field name lengths
+		if field.Anonymous {
+			var embeddedVal reflect.Value
+			if field.Type.Kind() == reflect.Ptr {
+				if fieldVal.IsNil() {
+					continue // skip nil embedded pointer
+				}
+				embeddedVal = fieldVal.Elem()
+			} else {
+				embeddedVal = fieldVal
+			}
+			
+			if embeddedVal.Kind() == reflect.Struct {
+				maxLength = max(maxLength, calculateMaxFieldNameLength(embeddedVal, depth, opt))
+			}
+			continue
+		}
+
 		tag := parseDfTag(field)
 		if tag.Skip {
 			continue
@@ -215,7 +254,6 @@ func calculateMaxFieldNameLengthFromStruct(structVal reflect.Value, depth int, o
 
 		maxLength = max(maxLength, len(displayName))
 
-		fieldVal := structVal.Field(i)
 		// recursively check nested structures
 		maxLength = max(maxLength, calculateMaxFieldNameLength(fieldVal, depth+1, opt))
 	}
@@ -254,6 +292,58 @@ func inspectStructWithAlignment(structVal reflect.Value, builder *strings.Builde
 			continue
 		}
 
+		fieldVal := structVal.Field(i)
+		
+		// handle embedded structs by flattening their fields into the parent
+		if field.Anonymous {
+			var embeddedVal reflect.Value
+			if field.Type.Kind() == reflect.Ptr {
+				if fieldVal.IsNil() {
+					continue // skip nil embedded pointer
+				}
+				embeddedVal = fieldVal.Elem()
+			} else {
+				embeddedVal = fieldVal
+			}
+			
+			if embeddedVal.Kind() == reflect.Struct {
+				// recursively collect embedded struct fields
+				embeddedType := embeddedVal.Type()
+				for j := 0; j < embeddedVal.NumField(); j++ {
+					embeddedField := embeddedType.Field(j)
+					if embeddedField.PkgPath != "" { // unexported
+						continue
+					}
+					
+					embeddedTag := parseDfTag(embeddedField)
+					if embeddedTag.Skip {
+						continue
+					}
+					
+					embeddedName := embeddedTag.Name
+					if embeddedName == "" {
+						embeddedName = toSnakeCase(embeddedField.Name)
+					}
+					
+					embeddedFieldVal := embeddedVal.Field(j)
+					
+					// calculate display name with secret annotation
+					embeddedDisplayName := embeddedName
+					if embeddedTag.Secret {
+						embeddedDisplayName += " (secret)"
+					}
+					
+					fields = append(fields, fieldInfo{
+						name:        embeddedName,
+						tag:         embeddedTag,
+						fieldVal:    embeddedFieldVal,
+						displayName: embeddedDisplayName,
+					})
+				}
+			}
+			continue
+		}
+
 		tag := parseDfTag(field)
 		if tag.Skip {
 			continue
@@ -262,8 +352,6 @@ func inspectStructWithAlignment(structVal reflect.Value, builder *strings.Builde
 		if name == "" {
 			name = toSnakeCase(field.Name)
 		}
-
-		fieldVal := structVal.Field(i)
 
 		// calculate display name with secret annotation
 		displayName := name

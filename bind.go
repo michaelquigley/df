@@ -130,6 +130,65 @@ func bindStruct(structValue reflect.Value, data map[string]any, path string, opt
 		}
 
 		fieldVal := structValue.Field(i)
+		
+		// handle embedded structs by recursively binding their fields
+		if field.Anonymous {
+			if field.Type.Kind() == reflect.Ptr {
+				// for pointer embedded structs, only allocate if there are fields for it in data
+				if fieldVal.IsNil() {
+					// check if any fields for this embedded struct exist in data
+					hasEmbeddedFields := false
+					embeddedType := field.Type.Elem()
+					if embeddedType.Kind() == reflect.Struct {
+						for j := 0; j < embeddedType.NumField(); j++ {
+							embeddedField := embeddedType.Field(j)
+							if embeddedField.PkgPath != "" { // unexported
+								continue
+							}
+							embeddedTag := parseDfTag(embeddedField)
+							if embeddedTag.Skip {
+								continue
+							}
+							embeddedName := embeddedTag.Name
+							if embeddedName == "" {
+								embeddedName = toSnakeCase(embeddedField.Name)
+							}
+							if _, exists := data[embeddedName]; exists {
+								hasEmbeddedFields = true
+								break
+							}
+						}
+					}
+					
+					if hasEmbeddedFields {
+						// allocate new instance for pointer embedded struct
+						fieldVal.Set(reflect.New(field.Type.Elem()))
+					} else {
+						// skip if no embedded fields in data
+						continue
+					}
+				}
+				
+				if !fieldVal.IsNil() {
+					embeddedVal := fieldVal.Elem()
+					if embeddedVal.Kind() == reflect.Struct {
+						if err := bindStruct(embeddedVal, data, path, opt, preserveExisting); err != nil {
+							return err
+						}
+					}
+				}
+			} else {
+				// value embedded struct
+				embeddedVal := fieldVal
+				if embeddedVal.Kind() == reflect.Struct {
+					if err := bindStruct(embeddedVal, data, path, opt, preserveExisting); err != nil {
+						return err
+					}
+				}
+			}
+			continue
+		}
+		
 		tag := parseDfTag(field)
 		if tag.Skip {
 			continue
