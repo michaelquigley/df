@@ -152,19 +152,19 @@ func Fatalf(format string, args ...any) {
 	os.Exit(1)
 }
 
-// Channel creates a logger with a specific channel attribute for categorizing log entries
-func Channel(name string) *LogBuilder {
+// Logger returns a general logger builder for adding contextual attributes
+func Logger() *LogBuilder {
+	ensureLogger()
+	return &LogBuilder{logger: defaultLogger}
+}
+
+// LoggerChannel creates a logger with a specific channel attribute for categorizing log entries
+func LoggerChannel(name string) *LogBuilder {
 	ensureLogger()
 	return &LogBuilder{
 		logger: defaultLogger,
 		attrs:  []slog.Attr{slog.String("channel", name)},
 	}
-}
-
-// Logger returns a general logger builder for adding contextual attributes
-func Logger() *LogBuilder {
-	ensureLogger()
-	return &LogBuilder{logger: defaultLogger}
 }
 
 func ensureLogger() {
