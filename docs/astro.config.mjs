@@ -6,14 +6,19 @@ import starlight from '@astrojs/starlight';
 export default defineConfig({
 	integrations: [
 		starlight({
-			title: 'df Docs',
+			title: 'df',
 			social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/michaelquigley/df' }],
 			sidebar: [
 				{
 					label: 'Guides',
 					items: [
 						// Each item here is one entry in the navigation menu.
-						{ label: 'df Guide', slug: 'guides/df' },
+						{ label: 'How to Learn df', slug: 'guides/df' },
+						{ label: 'Getting Started', slug: 'guides/getting-started' },
+						{ label: 'Data Binding', slug: 'guides/data-binding' },
+						{ label: 'Dependency Injection', slug: 'guides/dependency-injection' },
+						{ label: 'Application Lifecycle', slug: 'guides/application-lifecycle' },
+						{ label: 'Advanced Features', slug: 'guides/advanced-features' },
 					],
 				},
 				{
