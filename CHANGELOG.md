@@ -4,6 +4,8 @@
 
 FEATURE: Initial documentation site, including a guide and a reference manual. Also streamlined the `README.md` and directed details to the documentation site (https://github.com/michaelquigley/df/issues/12)
 
+CHANGE: `Dynamic.ToMap` now returns `error`; as in `ToMap() (map[string]any, error)` instead of `ToMap() map[string]any`.
+
 ## v0.2.4
 
 FEATURE: Enhanced type conversion to support custom primitive types (e.g., `type Status string`) in `Bind` and `Unbind` operations without requiring custom converters (https://github.com/michaelquigley/df/issues/21)
