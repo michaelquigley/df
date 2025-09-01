@@ -14,7 +14,7 @@ The `Dynamic` interface enables polymorphic data structures where the actual typ
 ```go
 type Dynamic interface {
     Type() string
-    ToMap() map[string]any
+    ToMap() (map[string]any, error)
 }
 ```
 
@@ -31,12 +31,12 @@ type EmailAction struct {
 }
 
 func (e EmailAction) Type() string { return "email" }
-func (e EmailAction) ToMap() map[string]any {
+func (e EmailAction) ToMap() (map[string]any, error) {
     return map[string]any{
         "recipient": e.Recipient,
         "subject":   e.Subject,
         "body":      e.Body,
-    }
+    }, nil
 }
 
 // SMS notification action
@@ -46,11 +46,11 @@ type SMSAction struct {
 }
 
 func (s SMSAction) Type() string { return "sms" }
-func (s SMSAction) ToMap() map[string]any {
+func (s SMSAction) ToMap() (map[string]any, error) {
     return map[string]any{
         "phone_number": s.PhoneNumber,
         "message":      s.Message,
-    }
+    }, nil
 }
 
 // Webhook action
@@ -61,12 +61,12 @@ type WebhookAction struct {
 }
 
 func (w WebhookAction) Type() string { return "webhook" }
-func (w WebhookAction) ToMap() map[string]any {
+func (w WebhookAction) ToMap() (map[string]any, error) {
     return map[string]any{
         "url":     w.URL,
         "method":  w.Method,
         "headers": w.Headers,
-    }
+    }, nil
 }
 ```
 
@@ -493,12 +493,12 @@ type FilterPlugin struct {
 }
 
 func (f FilterPlugin) Type() string { return "filter" }
-func (f FilterPlugin) ToMap() map[string]any {
+func (f FilterPlugin) ToMap() (map[string]any, error) {
     return map[string]any{
         "field":     f.Field,
         "operation": f.Operation,
         "value":     f.Value,
-    }
+    }, nil
 }
 
 func (f FilterPlugin) Execute(context map[string]any) (map[string]any, error) {

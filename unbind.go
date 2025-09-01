@@ -16,7 +16,7 @@ import (
 // slices, structs, and nested pointers are handled recursively. time.Duration values
 // are emitted as strings using Duration.String() (e.g., "30s"). Interface fields are
 // not supported, except for fields of type `Dynamic` (and slices of `Dynamic`), which
-// are converted via their ToMap() method. Map-typed fields are not supported.
+// are converted via their ToMap() method which now returns (map[string]any, error). Map-typed fields are not supported.
 //
 // opts are optional; pass nil or omit to use defaults.
 func Unbind(source interface{}, opts ...*Options) (map[string]any, error) {
@@ -159,13 +159,21 @@ func valueToInterface(v reflect.Value, opt *Options) (interface{}, bool, error) 
 		// prefer serializing via ToMap() to preserve the discriminator and schema.
 		if v.Type().Implements(dynamicInterfaceType) {
 			dyn := v.Interface().(Dynamic)
-			return dynamicToMap(dyn), true, nil
+			m, err := dynamicToMap(dyn)
+			if err != nil {
+				return nil, false, err
+			}
+			return m, true, nil
 		}
 		if v.CanAddr() {
 			ptr := v.Addr()
 			if ptr.Type().Implements(dynamicInterfaceType) {
 				dyn := ptr.Interface().(Dynamic)
-				return dynamicToMap(dyn), true, nil
+				m, err := dynamicToMap(dyn)
+				if err != nil {
+					return nil, false, err
+				}
+				return m, true, nil
 			}
 		}
 		m, err := structToMap(v, opt)
@@ -201,7 +209,11 @@ func valueToInterface(v reflect.Value, opt *Options) (interface{}, bool, error) 
 				if !ok {
 					return nil, false, &IndexError{Index: i, Cause: &TypeMismatchError{Expected: "Dynamic", Actual: "non-Dynamic element"}}
 				}
-				arr = append(arr, dynamicToMap(dyn))
+				m, err := dynamicToMap(dyn)
+				if err != nil {
+					return nil, false, &IndexError{Index: i, Cause: err}
+				}
+				arr = append(arr, m)
 			}
 			return arr, true, nil
 		}
@@ -257,11 +269,15 @@ func valueToInterface(v reflect.Value, opt *Options) (interface{}, bool, error) 
 		if v.IsNil() {
 			return nil, false, nil
 		}
-		// support Dynamic interface by delegating to ToMap(); handle both when the field type is Dynamic and when the
+		// support Dynamic interface by delegating to ToMap() which returns (map, error); handle both when the field type is Dynamic and when the
 		// concrete value implements it
 		if v.Type().Implements(dynamicInterfaceType) || reflect.TypeOf(v.Interface()).Implements(dynamicInterfaceType) {
 			dyn := v.Interface().(Dynamic)
-			return dynamicToMap(dyn), true, nil
+			m, err := dynamicToMap(dyn)
+			if err != nil {
+				return nil, false, err
+			}
+			return m, true, nil
 		}
 		// for interface{} or any types, unwrap and process the actual value
 		return valueToInterface(v.Elem(), opt)
@@ -277,12 +293,15 @@ func valueToInterface(v reflect.Value, opt *Options) (interface{}, bool, error) 
 }
 
 // dynamicToMap converts a Dynamic value to a map and enforces that the discriminator key "type" is present and
-// consistent with d.Type(). if ToMap() returns nil, an empty map is created.
-func dynamicToMap(d Dynamic) map[string]any {
-	m := d.ToMap()
+// consistent with d.Type(). if ToMap() returns nil, an empty map is created. returns (map, error).
+func dynamicToMap(d Dynamic) (map[string]any, error) {
+	m, err := d.ToMap()
+	if err != nil {
+		return nil, err
+	}
 	if m == nil {
 		m = make(map[string]any)
 	}
 	m[TypeKey] = d.Type()
-	return m
+	return m, nil
 }

@@ -16,13 +16,13 @@ type ProcessStep struct {
 }
 
 func (p ProcessStep) Type() string { return "process" }
-func (p ProcessStep) ToMap() map[string]any {
+func (p ProcessStep) ToMap() (map[string]any, error) {
 	return map[string]any{
 		"type":      "process",
 		"command":   p.Command,
 		"arguments": p.Arguments,
 		"timeout":   p.Timeout.String(),
-	}
+	}, nil
 }
 
 func (p ProcessStep) Execute() string {
@@ -36,13 +36,13 @@ type DecisionStep struct {
 }
 
 func (d DecisionStep) Type() string { return "decision" }
-func (d DecisionStep) ToMap() map[string]any {
+func (d DecisionStep) ToMap() (map[string]any, error) {
 	return map[string]any{
 		"type":       "decision",
 		"condition":  d.Condition,
 		"true_path":  d.TruePath,
 		"false_path": d.FalsePath,
-	}
+	}, nil
 }
 
 func (d DecisionStep) Execute() string {
@@ -56,13 +56,13 @@ type NotificationStep struct {
 }
 
 func (n NotificationStep) Type() string { return "notification" }
-func (n NotificationStep) ToMap() map[string]any {
+func (n NotificationStep) ToMap() (map[string]any, error) {
 	return map[string]any{
 		"type":       "notification",
 		"recipients": n.Recipients,
 		"subject":    n.Subject,
 		"template":   n.Template,
-	}
+	}, nil
 }
 
 func (n NotificationStep) Execute() string {
@@ -76,12 +76,12 @@ type LogAction struct {
 }
 
 func (l LogAction) Type() string { return "log" }
-func (l LogAction) ToMap() map[string]any {
+func (l LogAction) ToMap() (map[string]any, error) {
 	return map[string]any{
 		"type":    "log",
 		"level":   l.Level,
 		"message": l.Message,
-	}
+	}, nil
 }
 
 func (l LogAction) Execute() string {
@@ -94,12 +94,12 @@ type MetricAction struct {
 }
 
 func (m MetricAction) Type() string { return "metric" }
-func (m MetricAction) ToMap() map[string]any {
+func (m MetricAction) ToMap() (map[string]any, error) {
 	return map[string]any{
 		"type":  "metric",
 		"name":  m.Name,
 		"value": m.Value,
-	}
+	}, nil
 }
 
 func (m MetricAction) Execute() string {
@@ -113,13 +113,13 @@ type AlertAction struct {
 }
 
 func (a AlertAction) Type() string { return "alert" }
-func (a AlertAction) ToMap() map[string]any {
+func (a AlertAction) ToMap() (map[string]any, error) {
 	return map[string]any{
 		"type":     "alert",
 		"severity": a.Severity,
 		"message":  a.Message,
 		"channel":  a.Channel,
-	}
+	}, nil
 }
 
 func (a AlertAction) Execute() string {
@@ -133,12 +133,12 @@ type TimeCondition struct {
 }
 
 func (t TimeCondition) Type() string { return "time" }
-func (t TimeCondition) ToMap() map[string]any {
+func (t TimeCondition) ToMap() (map[string]any, error) {
 	return map[string]any{
 		"type":     "time",
 		"schedule": t.Schedule,
 		"timezone": t.Timezone,
-	}
+	}, nil
 }
 
 func (t TimeCondition) Evaluate() string {
@@ -151,12 +151,12 @@ type EventCondition struct {
 }
 
 func (e EventCondition) Type() string { return "event" }
-func (e EventCondition) ToMap() map[string]any {
+func (e EventCondition) ToMap() (map[string]any, error) {
 	return map[string]any{
 		"type":       "event",
 		"event_type": e.EventType,
 		"source":     e.Source,
-	}
+	}, nil
 }
 
 func (e EventCondition) Evaluate() string {
@@ -170,12 +170,12 @@ type JSONTransformer struct {
 }
 
 func (j JSONTransformer) Type() string { return "json" }
-func (j JSONTransformer) ToMap() map[string]any {
+func (j JSONTransformer) ToMap() (map[string]any, error) {
 	return map[string]any{
 		"type":      "json",
 		"json_path": j.JSONPath,
 		"default":   j.Default,
-	}
+	}, nil
 }
 
 func (j JSONTransformer) Transform() string {
@@ -189,13 +189,13 @@ type RegexTransformer struct {
 }
 
 func (r RegexTransformer) Type() string { return "regex" }
-func (r RegexTransformer) ToMap() map[string]any {
+func (r RegexTransformer) ToMap() (map[string]any, error) {
 	return map[string]any{
 		"type":        "regex",
 		"pattern":     r.Pattern,
 		"replacement": r.Replacement,
 		"global":      r.Global,
-	}
+	}, nil
 }
 
 func (r RegexTransformer) Transform() string {

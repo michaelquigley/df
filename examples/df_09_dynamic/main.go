@@ -17,14 +17,14 @@ type EmailAction struct {
 
 func (e EmailAction) Type() string { return "email" }
 
-func (e EmailAction) ToMap() map[string]any {
+func (e EmailAction) ToMap() (map[string]any, error) {
 	return map[string]any{
 		"type":    "email",
 		"to":      e.To,
 		"subject": e.Subject,
 		"body":    e.Body,
 		"html":    e.IsHTML,
-	}
+	}, nil
 }
 
 func (e EmailAction) Execute() string {
@@ -44,13 +44,13 @@ type SlackAction struct {
 
 func (s SlackAction) Type() string { return "slack" }
 
-func (s SlackAction) ToMap() map[string]any {
+func (s SlackAction) ToMap() (map[string]any, error) {
 	return map[string]any{
 		"type":    "slack",
 		"channel": s.Channel,
 		"message": s.Message,
 		"urgent":  s.Urgent,
-	}
+	}, nil
 }
 
 func (s SlackAction) Execute() string {
@@ -70,13 +70,13 @@ type WebhookAction struct {
 
 func (w WebhookAction) Type() string { return "webhook" }
 
-func (w WebhookAction) ToMap() map[string]any {
+func (w WebhookAction) ToMap() (map[string]any, error) {
 	return map[string]any{
 		"type":    "webhook",
 		"url":     w.URL,
 		"method":  w.Method,
 		"payload": w.Payload,
-	}
+	}, nil
 }
 
 func (w WebhookAction) Execute() string {
