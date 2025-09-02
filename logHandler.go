@@ -14,6 +14,22 @@ import (
 
 const ChannelKey = "channel"
 
+// NewDfHandler creates a handler that supports both pretty and JSON modes
+func NewDfHandler(opts *LogOptions) slog.Handler {
+	if opts == nil {
+		opts = DefaultLogOptions()
+	}
+
+	if opts.UseJSON {
+		return slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+			Level:     opts.Level,
+			AddSource: true,
+		})
+	}
+
+	return NewPrettyHandler(opts.Level, opts)
+}
+
 // PrettyHandler is a direct port of pfxlog's PrettyHandler for df
 type PrettyHandler struct {
 	level   slog.Level
@@ -69,14 +85,14 @@ func (h *PrettyHandler) Handle(_ context.Context, r slog.Record) error {
 	// collect handler attributes
 	allAttrs := make([]slog.Attr, 0, len(h.attrs)+r.NumAttrs())
 	allAttrs = append(allAttrs, h.attrs...)
-	
+
 	// collect record attributes
 	fieldsMap := make(map[string]interface{}, r.NumAttrs())
 	r.Attrs(func(a slog.Attr) bool {
 		allAttrs = append(allAttrs, a)
 		return true
 	})
-	
+
 	// process all attributes
 	for _, a := range allAttrs {
 		if a.Key != ChannelKey {
@@ -85,7 +101,7 @@ func (h *PrettyHandler) Handle(_ context.Context, r slog.Record) error {
 			out.WriteString(h.options.ChannelColor + " |" + a.Value.String() + "|" + h.options.getDefaultFgColor())
 		}
 	}
-	
+
 	fieldsBytes, err := json.Marshal(fieldsMap)
 	if err != nil {
 		return err
@@ -111,20 +127,4 @@ func (h *PrettyHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 // WithGroup implements slog.Handler.WithGroup
 func (h *PrettyHandler) WithGroup(name string) slog.Handler {
 	return h
-}
-
-// NewDfHandler creates a handler that supports both pretty and JSON modes
-func NewDfHandler(opts *LogOptions) slog.Handler {
-	if opts == nil {
-		opts = DefaultLogOptions()
-	}
-	
-	if opts.UseJSON {
-		return slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
-			Level:     opts.Level,
-			AddSource: true,
-		})
-	}
-	
-	return NewPrettyHandler(opts.Level, opts)
 }

@@ -16,8 +16,11 @@ func InitLogging(opts ...*LogOptions) {
 		options = DefaultLogOptions()
 	}
 
-	handler := NewDfHandler(options)
-	defaultLogger = slog.New(handler)
+	if options.OverrideHandler != nil {
+		defaultLogger = slog.New(options.OverrideHandler)
+	} else {
+		defaultLogger = slog.New(NewDfHandler(options))
+	}
 }
 
 // Log returns a general logger builder for adding contextual attributes

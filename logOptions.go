@@ -33,6 +33,8 @@ type LogOptions struct {
 	WarningColor   string
 	InfoColor      string
 	DebugColor     string
+
+	OverrideHandler slog.Handler
 }
 
 // DefaultLogOptions creates a default configuration with sensible defaults
@@ -63,6 +65,18 @@ func DefaultLogOptions() *LogOptions {
 		out.DebugLabel = out.DebugColor + out.DebugLabel + out.DefaultFgColor
 	}
 	return out
+}
+
+// SetTrimPrefix sets the function trim prefix
+func (o *LogOptions) SetTrimPrefix(prefix string) *LogOptions {
+	o.TrimPrefix = prefix
+	return o
+}
+
+// SetLevel allows setting the level threshold
+func (o *LogOptions) SetLevel(level slog.Level) *LogOptions {
+	o.Level = level
+	return o
 }
 
 // Color enables colored output with default color scheme
