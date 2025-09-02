@@ -20,22 +20,22 @@ func InitLogging(opts ...*LogOptions) {
 	defaultLogger = slog.New(handler)
 }
 
-// Logger returns a general logger builder for adding contextual attributes
-func Logger() *LogBuilder {
-	ensureLogger()
+// Log returns a general logger builder for adding contextual attributes
+func Log() *LogBuilder {
+	ensureInit()
 	return &LogBuilder{logger: defaultLogger}
 }
 
-// LoggerChannel creates a logger with a specific channel attribute for categorizing log entries
-func LoggerChannel(name string) *LogBuilder {
-	ensureLogger()
+// ChannelLog creates a logger with a specific channel attribute for categorizing log entries
+func ChannelLog(name string) *LogBuilder {
+	ensureInit()
 	return &LogBuilder{
 		logger: defaultLogger,
 		attrs:  []slog.Attr{slog.String("channel", name)},
 	}
 }
 
-func ensureLogger() {
+func ensureInit() {
 	if defaultLogger == nil {
 		InitLogging()
 	}

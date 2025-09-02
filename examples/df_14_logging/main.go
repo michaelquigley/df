@@ -37,19 +37,19 @@ func demonstrateBasicLogging() {
 	df.InitLogging()
 
 	// global logging functions
-	df.Logger().Debug("this is a debug message")
-	df.Logger().Info("application starting up")
-	df.Logger().Warn("this is a warning message")
-	df.Logger().Error("this is an error message")
+	df.Log().Debug("this is a debug message")
+	df.Log().Info("application starting up")
+	df.Log().Warn("this is a warning message")
+	df.Log().Error("this is an error message")
 
 	// formatted logging
 	username := "alice"
 	sessionId := "abc-123"
-	df.Logger().Infof("user %s logged in with session %s", username, sessionId)
-	df.Logger().Debugf("processing %d items", 42)
+	df.Log().Infof("user %s logged in with session %s", username, sessionId)
+	df.Log().Debugf("processing %d items", 42)
 
 	// structured logging with key-value pairs
-	df.Logger().
+	df.Log().
 		With("user", username).
 		With("action", "login").
 		With("duration", 150*time.Millisecond).
@@ -63,9 +63,9 @@ func demonstrateChannelLogging() {
 	println("=== channel-based logging demonstration ===")
 
 	// create loggers for different channels
-	authLogger := df.LoggerChannel("auth")
-	dbLogger := df.LoggerChannel("database")
-	httpLogger := df.LoggerChannel("http")
+	authLogger := df.ChannelLog("auth")
+	dbLogger := df.ChannelLog("database")
+	httpLogger := df.ChannelLog("http")
 
 	// log messages with different channels
 	authLogger.With("user", "bob").Info("user authentication successful")
@@ -83,7 +83,7 @@ func demonstrateContextualLogging() {
 	println("=== contextual logging demonstration ===")
 
 	// create a logger with persistent context
-	requestLogger := df.Logger().
+	requestLogger := df.Log().
 		With("request_id", "req-456").
 		With("user_id", "user-789")
 
@@ -109,16 +109,16 @@ func demonstrateJSONLogging() {
 	df.InitLogging(jsonOpts)
 
 	// log some messages in json format
-	df.Logger().Info("json logging enabled")
+	df.Log().Info("json logging enabled")
 
-	df.LoggerChannel("api").
+	df.ChannelLog("api").
 		With("method", "POST").
 		With("path", "/api/orders").
 		With("status", 400).
 		With("error", "invalid payload").
 		Error("request processing failed")
 
-	df.Logger().
+	df.Log().
 		With("component", "payment").
 		With("transaction_id", "txn-999").
 		With("delay", 5*time.Second).
@@ -142,17 +142,17 @@ func demonstrateApplicationIntegration() {
 
 	// initialize the application
 	if err := app.Build(); err != nil {
-		df.Logger().With("error", err).Error("failed to build application")
+		df.Log().With("error", err).Error("failed to build application")
 		return
 	}
 
 	if err := app.Link(); err != nil {
-		df.Logger().With("error", err).Error("failed to link application")
+		df.Log().With("error", err).Error("failed to link application")
 		return
 	}
 
 	// logging is now configured via the application container
-	df.Logger().With("app", cfg.AppName).Info("application initialized successfully")
+	df.Log().With("app", cfg.AppName).Info("application initialized successfully")
 
 	// demonstrate that logger is available in container
 	logger, found := df.Get[*slog.Logger](app.C)
