@@ -2,6 +2,8 @@
 
 ## v0.2.5
 
+FEATURE: Initial implementation of `slog`-based logging framework derived from `pfxlog` (https://github.com/michaelquigley/pfxlog). This is just the start of a next-generation `slog`-based implementation just meant to cover the center-case covered by `pfxlog` (https://github.com/michaelquigley/df/issues/22)
+
 FEATURE: Initial documentation site, including a guide and a reference manual. Also streamlined the `README.md` and directed details to the documentation site (https://github.com/michaelquigley/df/issues/12)
 
 CHANGE: `Dynamic.ToMap` now returns `error`; as in `ToMap() (map[string]any, error)` instead of `ToMap() map[string]any`.
