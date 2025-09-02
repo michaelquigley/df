@@ -30,14 +30,14 @@ type LogOptions struct {
 	FieldsColor    string
 	DefaultFgColor string // pfxlog uses this for reset
 	ErrorColor     string
-	WarnColor      string
+	WarningColor   string
 	InfoColor      string
 	DebugColor     string
 }
 
 // DefaultLogOptions creates a default configuration with sensible defaults
 func DefaultLogOptions() *LogOptions {
-	return &LogOptions{
+	out := &LogOptions{
 		Level:           slog.LevelInfo,
 		UseColor:        isTerminal() && shouldUseColor(),
 		TimestampFormat: "2006-01-02 15:04:05.000",
@@ -52,10 +52,17 @@ func DefaultLogOptions() *LogOptions {
 		FieldsColor:     "\033[33m", // yellow
 		DefaultFgColor:  "\033[0m",  // reset
 		ErrorColor:      "\033[31m", // red
-		WarnColor:       "\033[33m", // yellow
-		InfoColor:       "\033[32m", // green
-		DebugColor:      "\033[37m", // white
+		WarningColor:    "\033[33m", // yellow
+		InfoColor:       "\033[37m", // white
+		DebugColor:      "\033[34m", // blue
 	}
+	if out.UseColor && !out.UseJSON {
+		out.ErrorLabel = out.ErrorColor + out.ErrorLabel + out.DefaultFgColor
+		out.WarningLabel = out.WarningColor + out.WarningLabel + out.DefaultFgColor
+		out.InfoLabel = out.InfoColor + out.InfoLabel + out.DefaultFgColor
+		out.DebugLabel = out.DebugColor + out.DebugLabel + out.DefaultFgColor
+	}
+	return out
 }
 
 // Color enables colored output with default color scheme

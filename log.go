@@ -1,7 +1,6 @@
 package df
 
 import (
-	"fmt"
 	"log/slog"
 )
 
@@ -39,16 +38,5 @@ func LoggerChannel(name string) *LogBuilder {
 func ensureLogger() {
 	if defaultLogger == nil {
 		InitLogging()
-	}
-}
-
-// addArgsToRecord converts key-value pairs to slog attributes and adds them to the record
-func addArgsToRecord(r *slog.Record, args ...any) {
-	for i := 0; i < len(args); i += 2 {
-		if i+1 < len(args) {
-			key := fmt.Sprintf("%v", args[i])
-			value := args[i+1]
-			r.AddAttrs(slog.Any(key, value))
-		}
 	}
 }

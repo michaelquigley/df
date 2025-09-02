@@ -110,7 +110,7 @@ func demonstrateJSONLogging() {
 
 	// log some messages in json format
 	df.Logger().Info("json logging enabled")
-	
+
 	df.LoggerChannel("api").
 		With("method", "POST").
 		With("path", "/api/orders").
