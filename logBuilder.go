@@ -26,7 +26,7 @@ func (b *LogBuilder) With(key string, value any) *LogBuilder {
 }
 
 // Debug logs a debug message with the accumulated attributes
-func (b *LogBuilder) Debug(msg string, args ...any) {
+func (b *LogBuilder) Debug(msg string) {
 	if !b.logger.Enabled(context.Background(), slog.LevelDebug) {
 		return
 	}
@@ -36,69 +36,7 @@ func (b *LogBuilder) Debug(msg string, args ...any) {
 	for _, attr := range b.attrs {
 		r.AddAttrs(attr)
 	}
-	addArgsToRecord(&r, args...)
 	_ = b.logger.Handler().Handle(context.Background(), r)
-}
-
-// Info logs an info message with the accumulated attributes
-func (b *LogBuilder) Info(msg string, args ...any) {
-	if !b.logger.Enabled(context.Background(), slog.LevelInfo) {
-		return
-	}
-	var pcs [1]uintptr
-	runtime.Callers(2, pcs[:]) // skip [Callers, Info]
-	r := slog.NewRecord(time.Now(), slog.LevelInfo, fmt.Sprint(msg), pcs[0])
-	for _, attr := range b.attrs {
-		r.AddAttrs(attr)
-	}
-	addArgsToRecord(&r, args...)
-	_ = b.logger.Handler().Handle(context.Background(), r)
-}
-
-// Warn logs a warning message with the accumulated attributes
-func (b *LogBuilder) Warn(msg string, args ...any) {
-	if !b.logger.Enabled(context.Background(), slog.LevelWarn) {
-		return
-	}
-	var pcs [1]uintptr
-	runtime.Callers(2, pcs[:]) // skip [Callers, Warn]
-	r := slog.NewRecord(time.Now(), slog.LevelWarn, fmt.Sprint(msg), pcs[0])
-	for _, attr := range b.attrs {
-		r.AddAttrs(attr)
-	}
-	addArgsToRecord(&r, args...)
-	_ = b.logger.Handler().Handle(context.Background(), r)
-}
-
-// Error logs an error message with the accumulated attributes
-func (b *LogBuilder) Error(msg string, args ...any) {
-	if !b.logger.Enabled(context.Background(), slog.LevelError) {
-		return
-	}
-	var pcs [1]uintptr
-	runtime.Callers(2, pcs[:]) // skip [Callers, Error]
-	r := slog.NewRecord(time.Now(), slog.LevelError, fmt.Sprint(msg), pcs[0])
-	for _, attr := range b.attrs {
-		r.AddAttrs(attr)
-	}
-	addArgsToRecord(&r, args...)
-	_ = b.logger.Handler().Handle(context.Background(), r)
-}
-
-// Fatal logs a fatal error message with the accumulated attributes and exits the program
-func (b *LogBuilder) Fatal(msg string, args ...any) {
-	if !b.logger.Enabled(context.Background(), slog.LevelError) {
-		return
-	}
-	var pcs [1]uintptr
-	runtime.Callers(2, pcs[:]) // skip [Callers, Fatal]
-	r := slog.NewRecord(time.Now(), slog.LevelError, fmt.Sprint(msg), pcs[0])
-	for _, attr := range b.attrs {
-		r.AddAttrs(attr)
-	}
-	addArgsToRecord(&r, args...)
-	_ = b.logger.Handler().Handle(context.Background(), r)
-	os.Exit(1)
 }
 
 // Debugf logs a formatted debug message with the accumulated attributes
@@ -109,6 +47,20 @@ func (b *LogBuilder) Debugf(format string, args ...any) {
 	var pcs [1]uintptr
 	runtime.Callers(2, pcs[:]) // skip [Callers, Debugf]
 	r := slog.NewRecord(time.Now(), slog.LevelDebug, fmt.Sprintf(format, args...), pcs[0])
+	for _, attr := range b.attrs {
+		r.AddAttrs(attr)
+	}
+	_ = b.logger.Handler().Handle(context.Background(), r)
+}
+
+// Info logs an info message with the accumulated attributes
+func (b *LogBuilder) Info(msg string) {
+	if !b.logger.Enabled(context.Background(), slog.LevelInfo) {
+		return
+	}
+	var pcs [1]uintptr
+	runtime.Callers(2, pcs[:]) // skip [Callers, Info]
+	r := slog.NewRecord(time.Now(), slog.LevelInfo, fmt.Sprint(msg), pcs[0])
 	for _, attr := range b.attrs {
 		r.AddAttrs(attr)
 	}
@@ -129,6 +81,20 @@ func (b *LogBuilder) Infof(format string, args ...any) {
 	_ = b.logger.Handler().Handle(context.Background(), r)
 }
 
+// Warn logs a warning message with the accumulated attributes
+func (b *LogBuilder) Warn(msg string) {
+	if !b.logger.Enabled(context.Background(), slog.LevelWarn) {
+		return
+	}
+	var pcs [1]uintptr
+	runtime.Callers(2, pcs[:]) // skip [Callers, Warn]
+	r := slog.NewRecord(time.Now(), slog.LevelWarn, fmt.Sprint(msg), pcs[0])
+	for _, attr := range b.attrs {
+		r.AddAttrs(attr)
+	}
+	_ = b.logger.Handler().Handle(context.Background(), r)
+}
+
 // Warnf logs a formatted warning message with the accumulated attributes
 func (b *LogBuilder) Warnf(format string, args ...any) {
 	if !b.logger.Enabled(context.Background(), slog.LevelWarn) {
@@ -137,6 +103,20 @@ func (b *LogBuilder) Warnf(format string, args ...any) {
 	var pcs [1]uintptr
 	runtime.Callers(2, pcs[:]) // skip [Callers, Warnf]
 	r := slog.NewRecord(time.Now(), slog.LevelWarn, fmt.Sprintf(format, args...), pcs[0])
+	for _, attr := range b.attrs {
+		r.AddAttrs(attr)
+	}
+	_ = b.logger.Handler().Handle(context.Background(), r)
+}
+
+// Error logs an error message with the accumulated attributes
+func (b *LogBuilder) Error(msg string) {
+	if !b.logger.Enabled(context.Background(), slog.LevelError) {
+		return
+	}
+	var pcs [1]uintptr
+	runtime.Callers(2, pcs[:]) // skip [Callers, Error]
+	r := slog.NewRecord(time.Now(), slog.LevelError, fmt.Sprint(msg), pcs[0])
 	for _, attr := range b.attrs {
 		r.AddAttrs(attr)
 	}
@@ -155,6 +135,21 @@ func (b *LogBuilder) Errorf(format string, args ...any) {
 		r.AddAttrs(attr)
 	}
 	_ = b.logger.Handler().Handle(context.Background(), r)
+}
+
+// Fatal logs a fatal error message with the accumulated attributes and exits the program
+func (b *LogBuilder) Fatal(msg string) {
+	if !b.logger.Enabled(context.Background(), slog.LevelError) {
+		return
+	}
+	var pcs [1]uintptr
+	runtime.Callers(2, pcs[:]) // skip [Callers, Fatal]
+	r := slog.NewRecord(time.Now(), slog.LevelError, fmt.Sprint(msg), pcs[0])
+	for _, attr := range b.attrs {
+		r.AddAttrs(attr)
+	}
+	_ = b.logger.Handler().Handle(context.Background(), r)
+	os.Exit(1)
 }
 
 // Fatalf logs a formatted fatal error message with the accumulated attributes and exits the program

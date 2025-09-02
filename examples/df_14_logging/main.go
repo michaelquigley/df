@@ -37,23 +37,24 @@ func demonstrateBasicLogging() {
 	df.InitLogging()
 
 	// global logging functions
-	df.Debug("this is a debug message")
-	df.Info("application starting up")
-	df.Warn("this is a warning message")
-	df.Error("this is an error message")
+	df.Logger().Debug("this is a debug message")
+	df.Logger().Info("application starting up")
+	df.Logger().Warn("this is a warning message")
+	df.Logger().Error("this is an error message")
 
 	// formatted logging
 	username := "alice"
 	sessionId := "abc-123"
-	df.Infof("user %s logged in with session %s", username, sessionId)
-	df.Debugf("processing %d items", 42)
+	df.Logger().Infof("user %s logged in with session %s", username, sessionId)
+	df.Logger().Debugf("processing %d items", 42)
 
 	// structured logging with key-value pairs
-	df.Info("user action completed",
-		"user", username,
-		"action", "login",
-		"duration", 150*time.Millisecond,
-		"success", true)
+	df.Logger().
+		With("user", username).
+		With("action", "login").
+		With("duration", 150*time.Millisecond).
+		With("success", true).
+		Info("user action completed")
 
 	println()
 }
@@ -67,9 +68,9 @@ func demonstrateChannelLogging() {
 	httpLogger := df.LoggerChannel("http")
 
 	// log messages with different channels
-	authLogger.Info("user authentication successful", "user", "bob")
-	dbLogger.Warn("connection pool running low", "available", 2, "max", 10)
-	httpLogger.Error("request failed", "status", 500, "path", "/api/users")
+	authLogger.With("user", "bob").Info("user authentication successful")
+	dbLogger.With("available", 2).With("max", 10).Warn("connection pool running low")
+	httpLogger.With("status", 500).With("path", "/api/users").Error("request failed")
 
 	// formatted logging with channels
 	authLogger.Debugf("validating token for user %s", "charlie")
@@ -89,12 +90,12 @@ func demonstrateContextualLogging() {
 	// all messages from this logger will include the context
 	requestLogger.Info("processing request")
 	requestLogger.Debug("validating input parameters")
-	requestLogger.Warn("rate limit approaching", "current", 95, "limit", 100)
+	requestLogger.With("current", 95).With("limit", 100).Warn("rate limit approaching")
 
 	// chain additional context
 	operationLogger := requestLogger.With("operation", "create_user")
 	operationLogger.Info("starting operation")
-	operationLogger.Error("validation failed", "field", "email", "reason", "invalid format")
+	operationLogger.With("field", "email").With("reason", "invalid format").Error("validation failed")
 
 	println()
 }
@@ -108,17 +109,20 @@ func demonstrateJSONLogging() {
 	df.InitLogging(jsonOpts)
 
 	// log some messages in json format
-	df.Info("json logging enabled")
-	df.LoggerChannel("api").Error("request processing failed",
-		"method", "POST",
-		"path", "/api/orders",
-		"status", 400,
-		"error", "invalid payload")
+	df.Logger().Info("json logging enabled")
+	
+	df.LoggerChannel("api").
+		With("method", "POST").
+		With("path", "/api/orders").
+		With("status", 400).
+		With("error", "invalid payload").
+		Error("request processing failed")
 
 	df.Logger().
 		With("component", "payment").
 		With("transaction_id", "txn-999").
-		Warn("payment processing delayed", "delay", 5*time.Second)
+		With("delay", 5*time.Second).
+		Warn("payment processing delayed")
 
 	println()
 }
@@ -138,17 +142,17 @@ func demonstrateApplicationIntegration() {
 
 	// initialize the application
 	if err := app.Build(); err != nil {
-		df.Error("failed to build application", "error", err)
+		df.Logger().With("error", err).Error("failed to build application")
 		return
 	}
 
 	if err := app.Link(); err != nil {
-		df.Error("failed to link application", "error", err)
+		df.Logger().With("error", err).Error("failed to link application")
 		return
 	}
 
 	// logging is now configured via the application container
-	df.Info("application initialized successfully", "app", cfg.AppName)
+	df.Logger().With("app", cfg.AppName).Info("application initialized successfully")
 
 	// demonstrate that logger is available in container
 	logger, found := df.Get[*slog.Logger](app.C)
