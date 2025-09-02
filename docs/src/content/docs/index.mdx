@@ -1,0 +1,37 @@
+---
+title: Welcome to df
+description: Get started building your application with the df Framework.
+template: splash
+hero:
+  tagline: A powerful framework for dynamic golang applications.
+  actions:
+    - text: How to Learn df
+      link: /guides/df/
+      icon: right-arrow
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+
+## Key Features
+
+<CardGrid stagger>
+  <Card title="Data Binding Foundation" icon="puzzle">
+    Bidirectional binding between Go structs and structured data (JSON, YAML, maps) with type-safe conversion and support for primitives, pointers, slices, and nested structures.
+  </Card>
+  <Card title="Dependency Injection Container" icon="setting">
+    Object management with singleton and named registration patterns, type queries for exact matching and interface compatibility, plus container introspection.
+  </Card>
+  <Card title="Application Orchestration" icon="rocket">
+    Lifecycle management with configurable phases (build → link → start → stop), factory pattern for configuration-driven object creation, and automatic dependency injection.
+  </Card>
+  <Card title="Polymorphic Data Support" icon="random">
+    Dynamic interface for runtime type discrimination, enabling flexible data structures that can adapt based on configuration.
+  </Card>
+  <Card title="Object References" icon="link">
+    Cycle-safe pointer resolution with generic `Pointer[T]` type, supporting complex object relationships and circular references.
+  </Card>
+  <Card title="Configuration Merging" icon="merge">
+    Layer multiple configuration sources with intelligent defaults preservation using the `Merge` function for sophisticated configuration hierarchies.
+  </Card>
+</CardGrid>

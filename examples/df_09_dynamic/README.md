@@ -26,8 +26,8 @@ this example demonstrates polymorphic data binding using the `df.Dynamic` interf
 
 ```go
 type Dynamic interface {
-    Type() string              // returns the discriminator string
-    ToMap() map[string]any    // converts the struct to a map for unbinding
+    Type() string                         // returns the discriminator string
+    ToMap() (map[string]any, error)      // converts the struct to a map for unbinding
 }
 ```
 

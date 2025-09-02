@@ -807,8 +807,8 @@ Support polymorphic data structures with the `Dynamic` interface for fields that
 
 ```go
 type Dynamic interface {
-    Type() string              // Returns the discriminator string
-    ToMap() map[string]any    // Converts the struct to a map
+    Type() string                         // Returns the discriminator string
+    ToMap() (map[string]any, error)      // Converts the struct to a map
 }
 ```
 
@@ -822,11 +822,11 @@ type EmailAction struct {
 }
 
 func (e EmailAction) Type() string { return "email" }
-func (e EmailAction) ToMap() map[string]any {
+func (e EmailAction) ToMap() (map[string]any, error) {
     return map[string]any{
         "recipient": e.Recipient,
         "subject":   e.Subject,
-    }
+    }, nil
 }
 
 type SlackAction struct {
@@ -835,11 +835,11 @@ type SlackAction struct {
 }
 
 func (s SlackAction) Type() string { return "slack" }
-func (s SlackAction) ToMap() map[string]any {
+func (s SlackAction) ToMap() (map[string]any, error) {
     return map[string]any{
         "channel": s.Channel,
         "message": s.Message,
-    }
+    }, nil
 }
 
 // Use Dynamic fields in structs
