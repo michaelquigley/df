@@ -44,10 +44,10 @@ func DefaultLogOptions() *LogOptions {
 		UseColor:        isTerminal() && shouldUseColor(),
 		TimestampFormat: "2006-01-02 15:04:05.000",
 		StartTimestamp:  time.Now(),
-		ErrorLabel:      "ERROR  ",
+		ErrorLabel:      "  ERROR",
 		WarningLabel:    "WARNING",
-		InfoLabel:       "INFO   ",
-		DebugLabel:      "DEBUG  ",
+		InfoLabel:       "   INFO",
+		DebugLabel:      "  DEBUG",
 		TimestampColor:  "\033[90m", // dark gray
 		FunctionColor:   "\033[36m", // cyan
 		ChannelColor:    "\033[35m", // magenta
