@@ -17,9 +17,9 @@ type LogOptions struct {
 	TimestampFormat string
 	TrimPrefix      string
 
-	// level labels - matching pfxlog names
+	// level labels
 	ErrorLabel   string
-	WarningLabel string // pfxlog uses WarningLabel, not WarnLabel
+	WarningLabel string
 	InfoLabel    string
 	DebugLabel   string
 
@@ -28,7 +28,7 @@ type LogOptions struct {
 	FunctionColor  string
 	ChannelColor   string
 	FieldsColor    string
-	DefaultFgColor string // pfxlog uses this for reset
+	DefaultFgColor string // used for resetting colors
 	ErrorColor     string
 	WarningColor   string
 	InfoColor      string
@@ -44,10 +44,10 @@ func DefaultLogOptions() *LogOptions {
 		UseColor:        isTerminal() && shouldUseColor(),
 		TimestampFormat: "2006-01-02 15:04:05.000",
 		StartTimestamp:  time.Now(),
-		ErrorLabel:      "ERROR",
-		WarningLabel:    "WARN ",
-		InfoLabel:       "INFO ",
-		DebugLabel:      "DEBUG",
+		ErrorLabel:      "ERROR   ",
+		WarningLabel:    "WARNING ",
+		InfoLabel:       "INFO    ",
+		DebugLabel:      "DEBUG   ",
 		TimestampColor:  "\033[90m", // dark gray
 		FunctionColor:   "\033[36m", // cyan
 		ChannelColor:    "\033[35m", // magenta
@@ -114,7 +114,7 @@ func isTerminal() bool {
 
 // shouldUseColor checks environment variables to determine if color should be used
 func shouldUseColor() bool {
-	if env := os.Getenv("PFXLOG_USE_COLOR"); env != "" {
+	if env := os.Getenv("DFLOG_USE_COLOR"); env != "" {
 		if val, err := strconv.ParseBool(env); err == nil {
 			return val
 		}
