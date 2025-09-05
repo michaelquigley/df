@@ -2,6 +2,7 @@ package main
 
 import (
 	"log/slog"
+	"os"
 	"time"
 
 	"github.com/michaelquigley/df"
@@ -19,6 +20,9 @@ func main() {
 
 	// demonstrate channel-based logging
 	demonstrateChannelLogging()
+
+	// demonstrate per-channel configuration
+	demonstratePerChannelConfiguration()
 
 	// demonstrate contextual logging with builder pattern
 	demonstrateContextualLogging()
@@ -75,6 +79,52 @@ func demonstrateChannelLogging() {
 	// formatted logging with channels
 	authLogger.Debugf("validating token for user %s", "charlie")
 	dbLogger.Infof("query executed in %v", 25*time.Millisecond)
+
+	println()
+}
+
+func demonstratePerChannelConfiguration() {
+	println("=== per-channel configuration demonstration ===")
+
+	// configure different destinations for different channels
+	
+	// create a temporary file for database logs
+	dbFile, err := os.CreateTemp("", "database-*.log")
+	if err != nil {
+		df.Log().With("error", err).Error("failed to create temp file")
+		return
+	}
+	defer os.Remove(dbFile.Name())
+	defer dbFile.Close()
+
+	// configure database channel to log to file
+	df.ConfigureChannel("database", df.DefaultLogOptions().SetOutput(dbFile))
+
+	// configure http channel for JSON format to stderr
+	df.ConfigureChannel("http", df.DefaultLogOptions().JSON().SetOutput(os.Stderr))
+
+	// configure error channel with different colors
+	df.ConfigureChannel("errors", df.DefaultLogOptions().Color())
+
+	// now log to different channels
+	df.ChannelLog("database").Info("database connection established")
+	df.ChannelLog("database").With("query", "SELECT * FROM users").Debug("executing query")
+
+	df.ChannelLog("http").With("method", "GET").With("path", "/api/users").Info("http request received")
+
+	df.ChannelLog("errors").With("code", 500).Error("internal server error")
+
+	// normal channel logging still goes to console
+	df.ChannelLog("auth").Info("user authenticated successfully")
+
+	// show what was written to the database log file
+	dbFile.Seek(0, 0)
+	content := make([]byte, 1024)
+	n, _ := dbFile.Read(content)
+	if n > 0 {
+		println("\n--- content of database log file ---")
+		println(string(content[:n]))
+	}
 
 	println()
 }
@@ -178,8 +228,7 @@ func (f *LoggingFactory) Build(a *df.Application[Config]) error {
 	df.InitLogging(opts)
 
 	// register logger in container for dependency injection
-	// note: we would need access to the internal defaultLogger
-	// for now, create a new logger instance to demonstrate the pattern
+	// for demonstration, create a new logger instance with the same options
 	handler := df.NewDfHandler(opts)
 	logger := slog.New(handler)
 	df.SetAs[*slog.Logger](a.C, logger)

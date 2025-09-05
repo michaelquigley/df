@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"runtime"
@@ -20,8 +21,13 @@ func NewDfHandler(opts *LogOptions) slog.Handler {
 		opts = DefaultLogOptions()
 	}
 
+	output := opts.Output
+	if output == nil {
+		output = os.Stdout
+	}
+
 	if opts.UseJSON {
-		return slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		return slog.NewJSONHandler(output, &slog.HandlerOptions{
 			Level:     opts.Level,
 			AddSource: true,
 		})
@@ -32,15 +38,26 @@ func NewDfHandler(opts *LogOptions) slog.Handler {
 
 // PrettyHandler is a direct port of pfxlog's PrettyHandler for df
 type PrettyHandler struct {
-	level   slog.Level
-	options *LogOptions
-	lock    sync.Mutex
-	attrs   []slog.Attr
+	level       slog.Level
+	options     *LogOptions
+	output      io.Writer
+	channelName string // optional channel name to display
+	lock        sync.Mutex
+	attrs       []slog.Attr
 }
 
 // NewPrettyHandler creates a new pretty handler - direct port from pfxlog
 func NewPrettyHandler(level slog.Level, options *LogOptions) slog.Handler {
-	return &PrettyHandler{level: level, options: options}
+	return NewPrettyHandlerWithChannel(level, options, "")
+}
+
+// NewPrettyHandlerWithChannel creates a pretty handler with an optional channel name
+func NewPrettyHandlerWithChannel(level slog.Level, options *LogOptions, channelName string) slog.Handler {
+	output := options.Output
+	if output == nil {
+		output = os.Stdout
+	}
+	return &PrettyHandler{level: level, options: options, output: output, channelName: channelName}
 }
 
 // Enabled implements slog.Handler.Enabled
@@ -93,6 +110,11 @@ func (h *PrettyHandler) Handle(_ context.Context, r slog.Record) error {
 		return true
 	})
 
+	// add channel name if specified
+	if h.channelName != "" {
+		out.WriteString(h.options.ChannelColor + " |" + h.channelName + "|" + h.options.getDefaultFgColor())
+	}
+
 	// process all attributes
 	for _, a := range allAttrs {
 		if a.Key != ChannelKey {
@@ -113,7 +135,7 @@ func (h *PrettyHandler) Handle(_ context.Context, r slog.Record) error {
 	out.WriteString(" " + r.Message)
 
 	h.lock.Lock()
-	fmt.Println(out.String())
+	fmt.Fprintln(h.output, out.String())
 	h.lock.Unlock()
 
 	return nil
@@ -121,7 +143,7 @@ func (h *PrettyHandler) Handle(_ context.Context, r slog.Record) error {
 
 // WithAttrs implements slog.Handler.WithAttrs
 func (h *PrettyHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
-	return &PrettyHandler{level: h.level, options: h.options, attrs: attrs}
+	return &PrettyHandler{level: h.level, options: h.options, output: h.output, channelName: h.channelName, attrs: attrs}
 }
 
 // WithGroup implements slog.Handler.WithGroup

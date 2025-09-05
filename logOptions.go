@@ -1,6 +1,7 @@
 package df
 
 import (
+	"io"
 	"log/slog"
 	"os"
 	"strconv"
@@ -16,6 +17,8 @@ type LogOptions struct {
 	StartTimestamp  time.Time
 	TimestampFormat string
 	TrimPrefix      string
+	Output          io.Writer // output destination, defaults to os.Stdout
+	CustomHandler   slog.Handler
 
 	// level labels
 	ErrorLabel   string
@@ -33,8 +36,6 @@ type LogOptions struct {
 	WarningColor   string
 	InfoColor      string
 	DebugColor     string
-
-	OverrideHandler slog.Handler
 }
 
 // DefaultLogOptions creates a default configuration with sensible defaults
@@ -44,6 +45,7 @@ func DefaultLogOptions() *LogOptions {
 		UseColor:        isTerminal() && shouldUseColor(),
 		TimestampFormat: "2006-01-02 15:04:05.000",
 		StartTimestamp:  time.Now(),
+		Output:          os.Stdout,
 		ErrorLabel:      "  ERROR",
 		WarningLabel:    "WARNING",
 		InfoLabel:       "   INFO",
@@ -100,6 +102,12 @@ func (o *LogOptions) JSON() *LogOptions {
 // Pretty enables pretty-printed output format (default)
 func (o *LogOptions) Pretty() *LogOptions {
 	o.UseJSON = false
+	return o
+}
+
+// SetOutput sets the output destination
+func (o *LogOptions) SetOutput(w io.Writer) *LogOptions {
+	o.Output = w
 	return o
 }
 
