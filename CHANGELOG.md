@@ -2,6 +2,8 @@
 
 ## v0.2.6
 
+FEATURE: Channelized logging supporting reconfiguration and indepdendent destinations per-channel (https://github.com/michaelquigley/df/issues/24)
+
 CHANGE: Minor tweaks and improvements in `df.Log` based on real-world feedback from porting existing `pfxlog`/`slog` codebases to `df.Log` (https://github.com/michaelquigley/df/issues/24)
 
 ## v0.2.5
