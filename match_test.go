@@ -41,7 +41,7 @@ func TestMatchConstraint(t *testing.T) {
 
 		var valueErr *ValueMismatchError
 		assert.ErrorAs(t, err, &valueErr)
-		assert.Equal(t, "Config.Version", valueErr.Path+"."+valueErr.Field)
+		assert.Equal(t, "Config.version", valueErr.Path+"."+valueErr.Field)
 		assert.Equal(t, "1.0.0", valueErr.Expected)
 		assert.Equal(t, "2.0.0", valueErr.Actual)
 	})
@@ -76,7 +76,7 @@ func TestMatchConstraint(t *testing.T) {
 
 		var valueErr *ValueMismatchError
 		assert.ErrorAs(t, err, &valueErr)
-		assert.Equal(t, "Config.Port", valueErr.Path+"."+valueErr.Field)
+		assert.Equal(t, "Config.port", valueErr.Path+"."+valueErr.Field)
 		assert.Equal(t, "8080", valueErr.Expected)
 		assert.Equal(t, "9000", valueErr.Actual)
 	})
@@ -111,7 +111,7 @@ func TestMatchConstraint(t *testing.T) {
 
 		var valueErr *ValueMismatchError
 		assert.ErrorAs(t, err, &valueErr)
-		assert.Equal(t, "Config.Debug", valueErr.Path+"."+valueErr.Field)
+		assert.Equal(t, "Config.debug", valueErr.Path+"."+valueErr.Field)
 		assert.Equal(t, "true", valueErr.Expected)
 		assert.Equal(t, "false", valueErr.Actual)
 	})
@@ -317,7 +317,7 @@ func TestMatchConstraintParsing(t *testing.T) {
 		assert.Equal(t, "", tag.MatchValue)
 	})
 
-	t.Run("malformed match - no quotes", func(t *testing.T) {
+	t.Run("unquoted match value", func(t *testing.T) {
 		type TestStruct struct {
 			Field string `df:"match=value"`
 		}
@@ -325,8 +325,8 @@ func TestMatchConstraintParsing(t *testing.T) {
 		field, _ := getStructField[TestStruct]("Field")
 		tag := parseDfTag(field)
 
-		assert.False(t, tag.HasMatch)
-		assert.Equal(t, "", tag.MatchValue)
+		assert.True(t, tag.HasMatch)
+		assert.Equal(t, "value", tag.MatchValue)
 	})
 
 	t.Run("malformed match - incomplete quotes", func(t *testing.T) {
@@ -420,6 +420,35 @@ func TestMatchConstraintWithMerge(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, "1.0.0", config.Version) // Preserved
 		assert.Equal(t, "updated", config.Name)  // Updated
+	})
+
+	t.Run("unquoted match values work in binding", func(t *testing.T) {
+		type Config struct {
+			QuotedVersion   string `df:"quoted_version,match=\"1.0.0\""`
+			UnquotedVersion string `df:"unquoted_version,match=1.0.0"`
+		}
+
+		// should succeed with matching values
+		data := map[string]any{
+			"quoted_version":   "1.0.0",
+			"unquoted_version": "1.0.0",
+		}
+
+		config, err := New[Config](data)
+		assert.NoError(t, err)
+		assert.Equal(t, "1.0.0", config.QuotedVersion)
+		assert.Equal(t, "1.0.0", config.UnquotedVersion)
+
+		// should fail with non-matching values
+		badData := map[string]any{
+			"quoted_version":   "2.0.0", // wrong
+			"unquoted_version": "1.0.0", // correct
+		}
+
+		_, err = New[Config](badData)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "quoted_version")
+		assert.Contains(t, err.Error(), "1.0.0")
 	})
 }
 

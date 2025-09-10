@@ -53,7 +53,7 @@ type DfTag struct {
 
 // parseDfTag parses the `df` struct tag on a field.
 //
-// tag format: df:"[name][,required][,secret][,match=\"expected_value\"]"
+// tag format: df:"[name][,required][,secret][,match=\"expected_value\"|match=expected_value]"
 //
 // special cases:
 // - "-"          → skip the field entirely (skip=true)
@@ -64,7 +64,7 @@ type DfTag struct {
 // - if the first token is not "required", "secret", or "match=...", it is taken as the external field name.
 // - the presence of a "required" token (any position) sets required=true.
 // - the presence of a "secret" token (any position) sets secret=true.
-// - a "match=\"value\"" token sets a value constraint that must be satisfied during binding.
+// - a "match=\"value\"" or "match=value" token sets a value constraint that must be satisfied during binding.
 // - unrecognized tokens are ignored.
 func parseDfTag(sf reflect.StructField) DfTag {
 	tag := sf.Tag.Get("df")
@@ -83,13 +83,19 @@ func parseDfTag(sf reflect.StructField) DfTag {
 			continue
 		}
 
-		// check for match="value" pattern
+		// check for match="value" or match=value pattern
 		if strings.HasPrefix(p, "match=") {
 			matchPart := strings.TrimPrefix(p, "match=")
 			if len(matchPart) >= 2 && matchPart[0] == '"' && matchPart[len(matchPart)-1] == '"' {
-				result.MatchValue = matchPart[1 : len(matchPart)-1] // remove quotes
+				// properly quoted value: remove quotes
+				result.MatchValue = matchPart[1 : len(matchPart)-1]
+				result.HasMatch = true
+			} else if len(matchPart) > 0 && !strings.Contains(matchPart, "\"") {
+				// unquoted value (no quotes at all): use as-is
+				result.MatchValue = matchPart
 				result.HasMatch = true
 			}
+			// malformed quoted values (incomplete quotes) are ignored
 			continue
 		}
 

@@ -212,7 +212,7 @@ func bindStruct(structValue reflect.Value, data map[string]any, path string, opt
 			if actualStr != tag.MatchValue {
 				return &ValueMismatchError{
 					Path:     path,
-					Field:    field.Name,
+					Field:    name,
 					Expected: tag.MatchValue,
 					Actual:   actualStr,
 				}
