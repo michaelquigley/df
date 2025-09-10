@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## v0.2.8
+
+CHANGE: The `df:"match=..."` tag now works with quoted or unquoted values (https://github.com/michaelquigley/df/issues/27)
+
 ## v0.2.7
 
 FEATURE: Support for `match` constraints on data; useful for data version specifications and other data-constants (https://github.com/michaelquigley/df/issues/26)
