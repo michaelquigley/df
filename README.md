@@ -163,11 +163,11 @@ For simple data binding without the application framework:
 
 ```go
 type User struct {
-    Name     string `df:"required"`
+    Name     string `df:"+required"`
     Email    string
     Age      int    
     Active   bool   `df:"is_active"`
-    Password string `df:"secret"`
+    Password string `df:"+secret"`
 }
 
 // Input data
@@ -308,10 +308,10 @@ Control field binding behavior with `df` struct tags:
 
 ```go
 type Example struct {
-    Name     string `df:"custom_name,required"` // Custom field name, required
+    Name     string `df:"custom_name,+required"` // Custom field name, required
     Email    string `df:"email"`                // Custom field name
-    Age      int    `df:",required"`            // Default name (snake_case), required  
-    Password string `df:",secret"`              // Secret field (hidden in Inspect)
+    Age      int    `df:",+required"`            // Default name (snake_case), required  
+    Password string `df:",+secret"`              // Secret field (hidden in Inspect)
     Internal string `df:"-"`                    // Skip this field
     Default  string                             // Uses snake_case: "default"
 }
@@ -746,13 +746,13 @@ The `Inspect` function provides human-readable output for debugging bound config
 type Config struct {
     Host     string `df:"host"`
     Port     int    `df:"port"`
-    APIKey   string `df:"api_key,secret"`
+    APIKey   string `df:"api_key,+secret"`
     Database *DBConfig `df:"database"`
 }
 
 type DBConfig struct {
     Host     string `df:"host"`
-    Password string `df:"password,secret"`
+    Password string `df:"password,+secret"`
 }
 
 // Inspect with secrets hidden (default)

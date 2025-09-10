@@ -10,12 +10,12 @@ this example demonstrates all supported struct tag features for customizing fiel
 - **name inheritance**: nested structs respect parent naming conventions
 
 ### **field validation**
-- **required fields**: mark fields as mandatory using `df:",required"`
+- **required fields**: mark fields as mandatory using `df:",+required"`
 - **validation timing**: required field validation occurs during binding
 - **nested validation**: required flags apply to all nesting levels
 
 ### **security and privacy**
-- **secret fields**: hide sensitive data using `df:",secret"` 
+- **secret fields**: hide sensitive data using `df:",+secret"` 
 - **inspect filtering**: secret fields are hidden by default in df.Inspect()
 - **unbind behavior**: secret fields are included in unbinding (use with care)
 
@@ -25,7 +25,7 @@ this example demonstrates all supported struct tag features for customizing fiel
 - **unbinding exclusion**: excluded fields are not included in unbind output
 
 ### **tag combination**
-- **multiple flags**: combine flags like `df:"name,required,secret"`
+- **multiple flags**: combine flags like `df:"name,+required,+secret"`
 - **flag precedence**: required validation always applies regardless of other flags
 - **inheritance**: nested struct fields inherit tag behavior appropriately
 
@@ -43,12 +43,12 @@ this example demonstrates all supported struct tag features for customizing fiel
 ```go
 type Example struct {
     Field1 string `df:"custom_name"`              // custom field name
-    Field2 string `df:",required"`                // required field with default name
-    Field3 string `df:",secret"`                  // secret field (hidden in inspect)
-    Field4 string `df:"custom,required"`          // custom name + required
-    Field5 string `df:"custom,secret"`            // custom name + secret  
-    Field6 string `df:"custom,required,secret"`   // custom name + required + secret
-    Field7 string `df:",required,secret"`         // default name + required + secret
+    Field2 string `df:",+required"`                // required field with default name
+    Field3 string `df:",+secret"`                  // secret field (hidden in inspect)
+    Field4 string `df:"custom,+required"`          // custom name + required
+    Field5 string `df:"custom,+secret"`            // custom name + secret  
+    Field6 string `df:"custom,+required,+secret"`   // custom name + required + secret
+    Field7 string `df:",+required,+secret"`         // default name + required + secret
     Field8 string `df:"-"`                        // exclude from binding/unbinding
 }
 ```

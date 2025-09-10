@@ -53,7 +53,7 @@ type DfTag struct {
 
 // parseDfTag parses the `df` struct tag on a field.
 //
-// tag format: df:"[name][,required][,secret][,match=\"expected_value\"|match=expected_value]"
+// tag format: df:"[name][,+required][,+secret][,+match=\"expected_value\"|+match=expected_value]"
 //
 // special cases:
 // - "-"          → skip the field entirely (skip=true)
@@ -61,10 +61,10 @@ type DfTag struct {
 //
 // rules:
 // - tokens are comma-separated; surrounding whitespace is ignored.
-// - if the first token is not "required", "secret", or "match=...", it is taken as the external field name.
-// - the presence of a "required" token (any position) sets required=true.
-// - the presence of a "secret" token (any position) sets secret=true.
-// - a "match=\"value\"" or "match=value" token sets a value constraint that must be satisfied during binding.
+// - if the first token is not "+required", "+secret", or "+match=...", it is taken as the external field name.
+// - the presence of a "+required" token (any position) sets required=true.
+// - the presence of a "+secret" token (any position) sets secret=true.
+// - a "+match=\"value\"" or "+match=value" token sets a value constraint that must be satisfied during binding.
 // - unrecognized tokens are ignored.
 func parseDfTag(sf reflect.StructField) DfTag {
 	tag := sf.Tag.Get("df")
@@ -83,9 +83,9 @@ func parseDfTag(sf reflect.StructField) DfTag {
 			continue
 		}
 
-		// check for match="value" or match=value pattern
-		if strings.HasPrefix(p, "match=") {
-			matchPart := strings.TrimPrefix(p, "match=")
+		// check for +match="value" or +match=value pattern
+		if strings.HasPrefix(p, "+match=") {
+			matchPart := strings.TrimPrefix(p, "+match=")
 			if len(matchPart) >= 2 && matchPart[0] == '"' && matchPart[len(matchPart)-1] == '"' {
 				// properly quoted value: remove quotes
 				result.MatchValue = matchPart[1 : len(matchPart)-1]
@@ -99,15 +99,15 @@ func parseDfTag(sf reflect.StructField) DfTag {
 			continue
 		}
 
-		if i == 0 && p != "required" && p != "secret" && !strings.HasPrefix(p, "match=") {
-			// first token as name unless it's literally "required", "secret", or "match=..."
+		if i == 0 && p != "+required" && p != "+secret" && !strings.HasPrefix(p, "+match=") {
+			// first token as name unless it's literally "+required", "+secret", or "+match=..."
 			result.Name = p
 			continue
 		}
-		if p == "required" {
+		if p == "+required" {
 			result.Required = true
 		}
-		if p == "secret" {
+		if p == "+secret" {
 			result.Secret = true
 		}
 	}

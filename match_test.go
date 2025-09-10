@@ -10,7 +10,7 @@ import (
 func TestMatchConstraint(t *testing.T) {
 	t.Run("successful string match", func(t *testing.T) {
 		type Config struct {
-			Version string `df:"version,match=\"1.0.0\""`
+			Version string `df:"version,+match=\"1.0.0\""`
 			Name    string `df:"name"`
 		}
 
@@ -28,7 +28,7 @@ func TestMatchConstraint(t *testing.T) {
 
 	t.Run("failed string match", func(t *testing.T) {
 		type Config struct {
-			Version string `df:"version,match=\"1.0.0\""`
+			Version string `df:"version,+match=\"1.0.0\""`
 		}
 
 		data := map[string]any{
@@ -48,7 +48,7 @@ func TestMatchConstraint(t *testing.T) {
 
 	t.Run("successful numeric match", func(t *testing.T) {
 		type Config struct {
-			Port int `df:"port,match=\"8080\""`
+			Port int `df:"port,+match=\"8080\""`
 		}
 
 		data := map[string]any{
@@ -63,7 +63,7 @@ func TestMatchConstraint(t *testing.T) {
 
 	t.Run("failed numeric match", func(t *testing.T) {
 		type Config struct {
-			Port int `df:"port,match=\"8080\""`
+			Port int `df:"port,+match=\"8080\""`
 		}
 
 		data := map[string]any{
@@ -83,7 +83,7 @@ func TestMatchConstraint(t *testing.T) {
 
 	t.Run("successful boolean match", func(t *testing.T) {
 		type Config struct {
-			Debug bool `df:"debug,match=\"true\""`
+			Debug bool `df:"debug,+match=\"true\""`
 		}
 
 		data := map[string]any{
@@ -98,7 +98,7 @@ func TestMatchConstraint(t *testing.T) {
 
 	t.Run("failed boolean match", func(t *testing.T) {
 		type Config struct {
-			Debug bool `df:"debug,match=\"true\""`
+			Debug bool `df:"debug,+match=\"true\""`
 		}
 
 		data := map[string]any{
@@ -118,7 +118,7 @@ func TestMatchConstraint(t *testing.T) {
 
 	t.Run("match with custom field name", func(t *testing.T) {
 		type Config struct {
-			APIVersion string `df:"api_version,match=\"v1\""`
+			APIVersion string `df:"api_version,+match=\"v1\""`
 		}
 
 		data := map[string]any{
@@ -133,7 +133,7 @@ func TestMatchConstraint(t *testing.T) {
 
 	t.Run("match with required flag", func(t *testing.T) {
 		type Config struct {
-			Mode string `df:"mode,required,match=\"production\""`
+			Mode string `df:"mode,+required,+match=\"production\""`
 		}
 
 		data := map[string]any{
@@ -148,7 +148,7 @@ func TestMatchConstraint(t *testing.T) {
 
 	t.Run("failed match with required flag", func(t *testing.T) {
 		type Config struct {
-			Mode string `df:"mode,required,match=\"production\""`
+			Mode string `df:"mode,+required,+match=\"production\""`
 		}
 
 		data := map[string]any{
@@ -167,7 +167,7 @@ func TestMatchConstraint(t *testing.T) {
 
 	t.Run("match with secret flag", func(t *testing.T) {
 		type Config struct {
-			KeyType string `df:"key_type,secret,match=\"rsa\""`
+			KeyType string `df:"key_type,+secret,+match=\"rsa\""`
 		}
 
 		data := map[string]any{
@@ -182,7 +182,7 @@ func TestMatchConstraint(t *testing.T) {
 
 	t.Run("missing field with match constraint - no error", func(t *testing.T) {
 		type Config struct {
-			Version string `df:"version,match=\"1.0.0\""`
+			Version string `df:"version,+match=\"1.0.0\""`
 		}
 
 		data := map[string]any{}
@@ -195,7 +195,7 @@ func TestMatchConstraint(t *testing.T) {
 
 	t.Run("missing required field with match constraint", func(t *testing.T) {
 		type Config struct {
-			Version string `df:"version,required,match=\"1.0.0\""`
+			Version string `df:"version,+required,+match=\"1.0.0\""`
 		}
 
 		data := map[string]any{}
@@ -212,7 +212,7 @@ func TestMatchConstraint(t *testing.T) {
 
 	t.Run("nested struct with match constraint", func(t *testing.T) {
 		type Database struct {
-			Driver string `df:"driver,match=\"postgresql\""`
+			Driver string `df:"driver,+match=\"postgresql\""`
 		}
 
 		type Config struct {
@@ -233,7 +233,7 @@ func TestMatchConstraint(t *testing.T) {
 
 	t.Run("nested struct with failed match constraint", func(t *testing.T) {
 		type Database struct {
-			Driver string `df:"driver,match=\"postgresql\""`
+			Driver string `df:"driver,+match=\"postgresql\""`
 		}
 
 		type Config struct {
@@ -265,7 +265,7 @@ func TestMatchConstraint(t *testing.T) {
 func TestMatchConstraintParsing(t *testing.T) {
 	t.Run("basic match parsing", func(t *testing.T) {
 		type TestStruct struct {
-			Field string `df:"field,match=\"value\""`
+			Field string `df:"field,+match=\"value\""`
 		}
 
 		field, _ := getStructField[TestStruct]("Field")
@@ -278,7 +278,7 @@ func TestMatchConstraintParsing(t *testing.T) {
 
 	t.Run("match with other flags", func(t *testing.T) {
 		type TestStruct struct {
-			Field string `df:"custom_name,required,secret,match=\"test\""`
+			Field string `df:"custom_name,+required,+secret,+match=\"test\""`
 		}
 
 		field, _ := getStructField[TestStruct]("Field")
@@ -293,7 +293,7 @@ func TestMatchConstraintParsing(t *testing.T) {
 
 	t.Run("match as first token", func(t *testing.T) {
 		type TestStruct struct {
-			Field string `df:"match=\"first\",required"`
+			Field string `df:"+match=\"first\",+required"`
 		}
 
 		field, _ := getStructField[TestStruct]("Field")
@@ -307,7 +307,7 @@ func TestMatchConstraintParsing(t *testing.T) {
 
 	t.Run("empty match value", func(t *testing.T) {
 		type TestStruct struct {
-			Field string `df:"match=\"\""`
+			Field string `df:"+match=\"\""`
 		}
 
 		field, _ := getStructField[TestStruct]("Field")
@@ -319,7 +319,7 @@ func TestMatchConstraintParsing(t *testing.T) {
 
 	t.Run("unquoted match value", func(t *testing.T) {
 		type TestStruct struct {
-			Field string `df:"match=value"`
+			Field string `df:"+match=value"`
 		}
 
 		field, _ := getStructField[TestStruct]("Field")
@@ -331,7 +331,7 @@ func TestMatchConstraintParsing(t *testing.T) {
 
 	t.Run("malformed match - incomplete quotes", func(t *testing.T) {
 		type TestStruct struct {
-			Field string `df:"match=\"value"`
+			Field string `df:"+match=\"value"`
 		}
 
 		field, _ := getStructField[TestStruct]("Field")
@@ -345,7 +345,7 @@ func TestMatchConstraintParsing(t *testing.T) {
 func TestMatchConstraintWithMerge(t *testing.T) {
 	t.Run("merge with successful match", func(t *testing.T) {
 		type Config struct {
-			Version string `df:"version,match=\"1.0.0\""`
+			Version string `df:"version,+match=\"1.0.0\""`
 			Name    string `df:"name"`
 		}
 
@@ -369,7 +369,7 @@ func TestMatchConstraintWithMerge(t *testing.T) {
 
 	t.Run("merge with failed match", func(t *testing.T) {
 		type Config struct {
-			Version string `df:"version,match=\"1.0.0\""`
+			Version string `df:"version,+match=\"1.0.0\""`
 			Name    string `df:"name"`
 		}
 
@@ -400,7 +400,7 @@ func TestMatchConstraintWithMerge(t *testing.T) {
 
 	t.Run("merge preserves existing values when constraint field missing", func(t *testing.T) {
 		type Config struct {
-			Version string `df:"version,match=\"1.0.0\""`
+			Version string `df:"version,+match=\"1.0.0\""`
 			Name    string `df:"name"`
 		}
 
@@ -424,8 +424,8 @@ func TestMatchConstraintWithMerge(t *testing.T) {
 
 	t.Run("unquoted match values work in binding", func(t *testing.T) {
 		type Config struct {
-			QuotedVersion   string `df:"quoted_version,match=\"1.0.0\""`
-			UnquotedVersion string `df:"unquoted_version,match=1.0.0"`
+			QuotedVersion   string `df:"quoted_version,+match=\"1.0.0\""`
+			UnquotedVersion string `df:"unquoted_version,+match=1.0.0"`
 		}
 
 		// should succeed with matching values

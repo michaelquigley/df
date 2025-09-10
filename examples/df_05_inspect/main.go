@@ -11,7 +11,7 @@ import (
 type AppConfig struct {
 	Name     string `df:"app_name"`
 	Port     int
-	APIKey   string `df:"api_key,secret"`
+	APIKey   string `df:"api_key,+secret"`
 	Timeout  time.Duration
 	Debug    bool
 	Database *DatabaseConfig
@@ -22,7 +22,7 @@ type DatabaseConfig struct {
 	Host     string
 	Port     int
 	Username string
-	Password string `df:",secret"`
+	Password string `df:",+secret"`
 	Database string
 }
 

@@ -196,7 +196,7 @@ func TestMergeEmptySlice(t *testing.T) {
 
 func TestMergeRequiredField(t *testing.T) {
 	config := &struct {
-		Host string `df:",required"`
+		Host string `df:",+required"`
 		Port int
 	}{
 		Host: "localhost",

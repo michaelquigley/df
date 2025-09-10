@@ -251,7 +251,7 @@ func TestEmbeddedStructTags(t *testing.T) {
 		ID       string `df:"id"`
 		Name     string `df:"custom_name"`
 		Internal string `df:"-"`
-		Secret   string `df:",secret"`
+		Secret   string `df:",+secret"`
 	}
 
 	type Extended struct {
@@ -360,7 +360,7 @@ func TestNestedEmbeddedStructs(t *testing.T) {
 // Test embedded struct with required fields
 func TestEmbeddedStructRequired(t *testing.T) {
 	type Base struct {
-		Required string `df:"required,required"`
+		Required string `df:"+required"`
 		Optional string `df:"optional"`
 	}
 

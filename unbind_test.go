@@ -16,7 +16,7 @@ func TestUnbindBasic(t *testing.T) {
 
 func TestUnbindRenaming(t *testing.T) {
 	s := &struct {
-		SomeInt int `df:"some_int_,required"`
+		SomeInt int `df:"some_int_,+required"`
 	}{SomeInt: 46}
 	m, err := Unbind(s)
 	assert.Nil(t, err)

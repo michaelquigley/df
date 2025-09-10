@@ -36,15 +36,15 @@ func (e ValidationErrors) Error() string {
 
 // UserRegistration demonstrates comprehensive user input validation
 type UserRegistration struct {
-	Username    string    `df:",required"`
-	Email       string    `df:",required"`
-	Password    string    `df:",required,secret"`
-	Age         int       `df:",required"`
-	Country     string    `df:",required"`
+	Username    string    `df:",+required"`
+	Email       string    `df:",+required"`
+	Password    string    `df:",+required,+secret"`
+	Age         int       `df:",+required"`
+	Country     string    `df:",+required"`
 	PhoneNumber string    `df:"phone"`
 	Website     string
 	BirthDate   time.Time `df:"birth_date"`
-	Terms       bool      `df:"accept_terms,required"`
+	Terms       bool      `df:"accept_terms,+required"`
 }
 
 func (ur *UserRegistration) UnmarshalDf(data map[string]any) error {
@@ -373,16 +373,16 @@ func abs(x int) int {
 
 // ConfigurationFile demonstrates file error handling
 type ConfigurationFile struct {
-	DatabaseURL string `df:"database_url,required"`
-	Port        int    `df:",required"`
+	DatabaseURL string `df:"database_url,+required"`
+	Port        int    `df:",+required"`
 	Debug       bool
 	Features    []string
 }
 
 // DataRecord demonstrates bulk import error handling
 type DataRecord struct {
-	ID    string `df:",required"`
-	Name  string `df:",required"`
+	ID    string `df:",+required"`
+	Name  string `df:",+required"`
 	Value string
 }
 

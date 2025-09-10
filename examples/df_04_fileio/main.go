@@ -21,7 +21,7 @@ type DatabaseConfig struct {
 	Port     int
 	Database string
 	Username string
-	Password string `df:"password,secret"`
+	Password string `df:"password,+secret"`
 }
 
 type AppConfig struct {

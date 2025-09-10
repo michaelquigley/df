@@ -12,7 +12,7 @@ import (
 type testConfig struct {
 	Name     string `df:"app_name"`
 	Port     int
-	Secret   string `df:"api_key,secret"`
+	Secret   string `df:"api_key,+secret"`
 	Timeout  time.Duration
 	Enabled  bool
 	Database *testDB
@@ -22,7 +22,7 @@ type testConfig struct {
 type testDB struct {
 	Host     string
 	Username string
-	Password string `df:"secret"`
+	Password string `df:"+secret"`
 	Port     int
 }
 

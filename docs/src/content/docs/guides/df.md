@@ -84,11 +84,11 @@ Explore sophisticated patterns:
 ### Simple Data Binding
 ```go
 type User struct {
-    Name     string `df:"required"`
+    Name     string `df:"+required"`
     Email    string
     Age      int    
     Active   bool   `df:"is_active"`
-    Password string `df:"secret"`
+    Password string `df:"+secret"`
 }
 
 data := map[string]any{

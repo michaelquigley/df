@@ -25,7 +25,7 @@ func TestBasicNew(t *testing.T) {
 
 func TestNewWithOptions(t *testing.T) {
 	type StructWithTag struct {
-		SomeInt int `df:"some_int_,required"`
+		SomeInt int `df:"some_int_,+required"`
 	}
 
 	data := map[string]any{
@@ -69,7 +69,7 @@ func TestBasicBind(t *testing.T) {
 
 func TestRenaming(t *testing.T) {
 	renamed := &struct {
-		SomeInt int `df:"some_int_,required"`
+		SomeInt int `df:"some_int_,+required"`
 	}{}
 
 	data := map[string]any{
@@ -111,7 +111,7 @@ func TestIntArray(t *testing.T) {
 
 func TestRequired(t *testing.T) {
 	required := &struct {
-		Required int `df:",required"`
+		Required int `df:",+required"`
 	}{}
 
 	data := make(map[string]any)

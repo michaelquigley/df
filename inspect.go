@@ -20,7 +20,7 @@ type InspectOptions struct {
 
 // Inspect returns a human-readable representation of a struct's resolved state.
 // designed for configuration debugging and validation. secret fields marked with
-// `df:",secret"` are hidden unless ShowSecrets is true.
+// `df:",+secret"` are hidden unless ShowSecrets is true.
 //
 // the output format is a clean, indented pseudo-data structure optimized for
 // readability rather than parseability.

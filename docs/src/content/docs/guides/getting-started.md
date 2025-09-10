@@ -34,11 +34,11 @@ import (
 )
 
 type User struct {
-    Name     string `df:"required"`
+    Name     string `df:"+required"`
     Email    string
     Age      int    
     Active   bool   `df:"is_active"`
-    Password string `df:"secret"`
+    Password string `df:"+secret"`
 }
 
 func main() {
@@ -70,8 +70,8 @@ func main() {
 This example shows:
 - **Type-safe binding** with `df.New[T]()`
 - **Struct tags** for field mapping (`df:"is_active"`)
-- **Required fields** validation (`df:"required"`)
-- **Secret handling** (`df:"secret"` fields hidden in output)
+- **Required fields** validation (`df:"+required"`)
+- **Secret handling** (`df:"+secret"` fields hidden in output)
 - **Bidirectional conversion** with `df.Unbind()`
 
 ## Working with Files

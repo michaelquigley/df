@@ -14,7 +14,7 @@ Creates and populates a new struct instance:
 
 ```go
 type User struct {
-    Name  string `df:"required"`
+    Name  string `df:"+required"`
     Email string
     Age   int
 }
@@ -84,9 +84,9 @@ Control binding behavior with `df` struct tags:
 ```go
 type Example struct {
     Name     string `df:"custom_name"`       // Custom field name
-    Email    string `df:"email,required"`    // Custom name + required
-    Age      int    `df:",required"`         // Default name + required  
-    Password string `df:",secret"`           // Default name + secret
+    Email    string `df:"zmail,+required"`    // Custom name + required
+    Age      int    `df:",+required"`         // Default name + required  
+    Password string `df:",+secret"`           // Default name + secret
     Internal string `df:"-"`                 // Skip this field
     Default  string                          // Uses snake_case: "default"
 }
@@ -99,15 +99,15 @@ Map struct fields to different data keys:
 
 ```go
 type User struct {
-    FirstName string `df:"first_name"`
-    LastName  string `df:"last_name"`
-    EmailAddr string `df:"email"`
+    FirstName string `df:"First"`
+    LastName  string `df:"Last"`
+    EmailAddr string `df:"Email"`
 }
 
 data := map[string]any{
-    "first_name": "John",
-    "last_name":  "Doe", 
-    "email":      "john@example.com",
+    "First": "John",
+    "Last":  "Doe", 
+    "Email":      "john@example.com",
 }
 ```
 
@@ -116,8 +116,8 @@ Mark fields as mandatory:
 
 ```go
 type Config struct {
-    APIKey   string `df:"api_key,required"`
-    Database string `df:"db_url,required"`
+    APIKey   string `df:"api_key,+required"`
+    Database string `df:"db_url,+required"`
     LogLevel string `df:"log_level"` // Optional
 }
 
@@ -130,8 +130,8 @@ Hide sensitive data from inspection:
 ```go
 type Credentials struct {
     Username string `df:"username"`
-    Password string `df:"password,secret"`
-    APIToken string `df:"api_token,secret"`
+    Password string `df:"password,+secret"`
+    APIToken string `df:"api_token,+secret"`
 }
 
 creds, _ := df.New[Credentials](data)
@@ -332,8 +332,8 @@ df provides detailed error information for binding failures:
 
 ```go
 type User struct {
-    Name  string `df:"required"`
-    Email string `df:"email,required"`
+    Name  string `df:"+required"`
+    Email string `df:"email,+required"`
     Age   int    `df:"age"`
 }
 
@@ -377,7 +377,7 @@ type Config struct {
 
 ```go
 type Config struct {
-    APIKey   string  `df:"api_key,required"`     // Must be provided
+    APIKey   string  `df:"api_key,+required"`     // Must be provided
     LogLevel string  `df:"log_level"`            // Has default
     Debug    *bool   `df:"debug"`                // Truly optional
 }
@@ -394,7 +394,7 @@ type DatabaseConfig struct {
     Port     int    `df:"port"`
     Database string `df:"database"`
     Username string `df:"username"`
-    Password string `df:"password,secret"`
+    Password string `df:"password,+secret"`
 }
 ```
 

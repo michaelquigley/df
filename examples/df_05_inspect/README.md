@@ -4,7 +4,7 @@ this example demonstrates the `df.Inspect()` function, which provides human-read
 
 ## key features
 
-- **secret filtering**: fields marked with `df:",secret"` are hidden by default
+- **secret filtering**: fields marked with `df:",+secret"` are hidden by default
 - **human-readable output**: clean, indented pseudo-data structure format  
 - **configurable options**: custom indentation, depth limits, and secret visibility
 - **type-aware display**: special handling for durations, pointers, slices, and nested structs
@@ -23,12 +23,12 @@ this will show three different inspection outputs:
 
 ## secret fields
 
-fields can be marked as secret using the `secret` flag in the `df` struct tag:
+fields can be marked as secret using the `+secret` flag in the `df` struct tag:
 
 ```go
 type Config struct {
     PublicField string
-    SecretField string `df:"secret_field,secret"`
+    SecretField string `df:"secret_field,+secret"`
 }
 ```
 

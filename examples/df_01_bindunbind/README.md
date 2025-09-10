@@ -39,7 +39,7 @@ userData := map[string]any{
 
 ```go
 type User struct {
-    Name    string `df:"required"`       // required field
+    Name    string `df:"+required"`       // required field
     Email   string                       // default field mapping
     Age     int                          // type conversion
     Active  bool                         // boolean handling

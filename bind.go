@@ -25,7 +25,7 @@ type Options struct {
 }
 
 // Bind populates the exported fields of target (a pointer to a struct) from the given data map. Keys are matched using
-// either a struct tag `df:"name,required"` (where name overrides the key and the optional "required" flag enforces
+// either a struct tag `df:"name,+required"` (where name overrides the key and the optional "+required" flag enforces
 // presence), `df:"-"` to skip a field, or, when no tag is provided, a best-effort snake_case conversion of the
 // field name.
 //
