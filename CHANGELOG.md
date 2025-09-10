@@ -2,6 +2,8 @@
 
 ## v0.2.8
 
+CHANGE: The `required`, `secret` and `match` flags in the `df` struct tag have been renamed to `+required`, `+secret`, and `+match` to better differentiate them as options (https://github.com/michaelquigley/df/issues/27)
+
 CHANGE: The `df:"+match=..."` tag now works with quoted or unquoted values (https://github.com/michaelquigley/df/issues/27)
 
 ## v0.2.7
