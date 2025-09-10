@@ -43,25 +43,28 @@ type Converter interface {
 
 // DfTag holds the parsed values from a `df` struct tag.
 type DfTag struct {
-	Name     string // external field name override, empty means use default
-	Required bool   // true if field is required during binding
-	Secret   bool   // true if field contains sensitive data
-	Skip     bool   // true if field should be skipped entirely
+	Name       string // external field name override, empty means use default
+	Required   bool   // true if field is required during binding
+	Secret     bool   // true if field contains sensitive data
+	Skip       bool   // true if field should be skipped entirely
+	MatchValue string // expected value that must match during binding, empty means no constraint
+	HasMatch   bool   // true if a match constraint is specified
 }
 
 // parseDfTag parses the `df` struct tag on a field.
 //
-// tag format: df:"[name][,required][,secret]"
+// tag format: df:"[name][,required][,secret][,match=\"expected_value\"]"
 //
 // special cases:
 // - "-"          → skip the field entirely (skip=true)
-// - missing/empty → no override (default name, required=false, secret=false)
+// - missing/empty → no override (default name, required=false, secret=false, no match constraint)
 //
 // rules:
 // - tokens are comma-separated; surrounding whitespace is ignored.
-// - if the first token is not "required" or "secret", it is taken as the external field name.
+// - if the first token is not "required", "secret", or "match=...", it is taken as the external field name.
 // - the presence of a "required" token (any position) sets required=true.
 // - the presence of a "secret" token (any position) sets secret=true.
+// - a "match=\"value\"" token sets a value constraint that must be satisfied during binding.
 // - unrecognized tokens are ignored.
 func parseDfTag(sf reflect.StructField) DfTag {
 	tag := sf.Tag.Get("df")
@@ -79,7 +82,19 @@ func parseDfTag(sf reflect.StructField) DfTag {
 		if p == "" {
 			continue
 		}
-		if i == 0 && p != "required" && p != "secret" { // first token as name unless it's literally "required" or "secret"
+
+		// check for match="value" pattern
+		if strings.HasPrefix(p, "match=") {
+			matchPart := strings.TrimPrefix(p, "match=")
+			if len(matchPart) >= 2 && matchPart[0] == '"' && matchPart[len(matchPart)-1] == '"' {
+				result.MatchValue = matchPart[1 : len(matchPart)-1] // remove quotes
+				result.HasMatch = true
+			}
+			continue
+		}
+
+		if i == 0 && p != "required" && p != "secret" && !strings.HasPrefix(p, "match=") {
+			// first token as name unless it's literally "required", "secret", or "match=..."
 			result.Name = p
 			continue
 		}

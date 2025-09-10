@@ -172,6 +172,18 @@ func (e *RequiredFieldError) Error() string {
 	return fmt.Sprintf("%s.%s: required field missing", e.Path, e.Field)
 }
 
+// ValueMismatchError represents errors when a field value doesn't match the expected constraint
+type ValueMismatchError struct {
+	Path     string
+	Field    string
+	Expected string
+	Actual   string
+}
+
+func (e *ValueMismatchError) Error() string {
+	return fmt.Sprintf("%s.%s: expected value %q, got %q", e.Path, e.Field, e.Expected, e.Actual)
+}
+
 // IndexError represents errors with array/slice indexing
 type IndexError struct {
 	Index int

@@ -206,6 +206,19 @@ func bindStruct(structValue reflect.Value, data map[string]any, path string, opt
 			continue
 		}
 
+		// validate match constraint if specified
+		if tag.HasMatch {
+			actualStr := fmt.Sprintf("%v", raw)
+			if actualStr != tag.MatchValue {
+				return &ValueMismatchError{
+					Path:     path,
+					Field:    field.Name,
+					Expected: tag.MatchValue,
+					Actual:   actualStr,
+				}
+			}
+		}
+
 		// defer custom unmarshalers to run after all other fields are bound.
 		if (fieldVal.CanAddr() && fieldVal.Addr().Type().Implements(unmarshalerInterfaceType)) || fieldVal.Type().Implements(unmarshalerInterfaceType) {
 			deferred = append(deferred, deferredUnmarshal{
