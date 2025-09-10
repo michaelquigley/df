@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## v0.2.7
+
+FEATURE: Support for `match` constraints on data; useful for data version specifications and other data-constants (https://github.com/michaelquigley/df/issues/26)
+
 ## v0.2.6
 
 FEATURE: Channelized logging supporting reconfiguration and indepdendent destinations per-channel (https://github.com/michaelquigley/df/issues/24)
