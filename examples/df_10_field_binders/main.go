@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/michaelquigley/df"
+	"github.com/michaelquigley/df/dd"
 )
 
 // step types for workflow steps
@@ -209,10 +209,10 @@ func (r RegexTransformer) Transform() string {
 // main workflow structure
 type WorkflowDefinition struct {
 	Name         string
-	Steps        []df.Dynamic // workflow steps (process, decision, notification)
-	Actions      []df.Dynamic // step actions (log, metric, alert)
-	Triggers     []df.Dynamic // trigger conditions (time, event)
-	Transformers []df.Dynamic // data transformers (json, regex)
+	Steps        []dd.Dynamic // workflow steps (process, decision, notification)
+	Actions      []dd.Dynamic // step actions (log, metric, alert)
+	Triggers     []dd.Dynamic // trigger conditions (time, event)
+	Transformers []dd.Dynamic // data transformers (json, regex)
 }
 
 // interfaces for type safety
@@ -239,48 +239,48 @@ func main() {
 
 	// step 1: set up field-specific binders
 	fmt.Println("\n=== step 1: configuring field-specific binders ===")
-	opts := &df.Options{
-		FieldDynamicBinders: map[string]map[string]func(map[string]any) (df.Dynamic, error){
+	opts := &dd.Options{
+		FieldDynamicBinders: map[string]map[string]func(map[string]any) (dd.Dynamic, error){
 			// workflow steps have their own type namespace
 			"WorkflowDefinition.Steps": {
-				"process": func(m map[string]any) (df.Dynamic, error) {
-					return df.New[ProcessStep](m)
+				"process": func(m map[string]any) (dd.Dynamic, error) {
+					return dd.New[ProcessStep](m)
 				},
-				"decision": func(m map[string]any) (df.Dynamic, error) {
-					return df.New[DecisionStep](m)
+				"decision": func(m map[string]any) (dd.Dynamic, error) {
+					return dd.New[DecisionStep](m)
 				},
-				"notification": func(m map[string]any) (df.Dynamic, error) {
-					return df.New[NotificationStep](m)
+				"notification": func(m map[string]any) (dd.Dynamic, error) {
+					return dd.New[NotificationStep](m)
 				},
 			},
 			// step actions have a different type namespace
 			"WorkflowDefinition.Actions": {
-				"log": func(m map[string]any) (df.Dynamic, error) {
-					return df.New[LogAction](m)
+				"log": func(m map[string]any) (dd.Dynamic, error) {
+					return dd.New[LogAction](m)
 				},
-				"metric": func(m map[string]any) (df.Dynamic, error) {
-					return df.New[MetricAction](m)
+				"metric": func(m map[string]any) (dd.Dynamic, error) {
+					return dd.New[MetricAction](m)
 				},
-				"alert": func(m map[string]any) (df.Dynamic, error) {
-					return df.New[AlertAction](m)
+				"alert": func(m map[string]any) (dd.Dynamic, error) {
+					return dd.New[AlertAction](m)
 				},
 			},
 			// trigger conditions have their own namespace
 			"WorkflowDefinition.Triggers": {
-				"time": func(m map[string]any) (df.Dynamic, error) {
-					return df.New[TimeCondition](m)
+				"time": func(m map[string]any) (dd.Dynamic, error) {
+					return dd.New[TimeCondition](m)
 				},
-				"event": func(m map[string]any) (df.Dynamic, error) {
-					return df.New[EventCondition](m)
+				"event": func(m map[string]any) (dd.Dynamic, error) {
+					return dd.New[EventCondition](m)
 				},
 			},
 			// data transformers have their own namespace
 			"WorkflowDefinition.Transformers": {
-				"json": func(m map[string]any) (df.Dynamic, error) {
-					return df.New[JSONTransformer](m)
+				"json": func(m map[string]any) (dd.Dynamic, error) {
+					return dd.New[JSONTransformer](m)
 				},
-				"regex": func(m map[string]any) (df.Dynamic, error) {
-					return df.New[RegexTransformer](m)
+				"regex": func(m map[string]any) (dd.Dynamic, error) {
+					return dd.New[RegexTransformer](m)
 				},
 			},
 		},
@@ -362,7 +362,7 @@ func main() {
 	}
 
 	var workflow WorkflowDefinition
-	if err := df.Bind(&workflow, workflowData, opts); err != nil {
+	if err := dd.Bind(&workflow, workflowData, opts); err != nil {
 		log.Fatalf("failed to bind workflow: %v", err)
 	}
 
@@ -421,14 +421,14 @@ func main() {
 	}
 
 	var invalidWorkflow WorkflowDefinition
-	if err := df.Bind(&invalidWorkflow, invalidData, opts); err != nil {
+	if err := dd.Bind(&invalidWorkflow, invalidData, opts); err != nil {
 		fmt.Printf("✓ expected error: %v\n", err)
 		fmt.Printf("  field isolation working correctly - step types not available in action fields\n")
 	}
 
 	// step 5: demonstrate unbinding with field-specific marshalers
 	fmt.Println("\n=== step 5: unbinding with field-specific type information ===")
-	unboundData, err := df.Unbind(workflow)
+	unboundData, err := dd.Unbind(workflow)
 	if err != nil {
 		log.Fatalf("failed to unbind workflow: %v", err)
 	}

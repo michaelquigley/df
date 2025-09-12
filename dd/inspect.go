@@ -1,4 +1,4 @@
-package df
+package dd
 
 import (
 	"fmt"
@@ -141,7 +141,7 @@ func calculateMaxDepthFromStruct(structVal reflect.Value, depth int, opt *Inspec
 		}
 
 		fieldVal := structVal.Field(i)
-		
+
 		// handle embedded structs by recursively calculating their depth
 		if field.Anonymous {
 			var embeddedVal reflect.Value
@@ -153,7 +153,7 @@ func calculateMaxDepthFromStruct(structVal reflect.Value, depth int, opt *Inspec
 			} else {
 				embeddedVal = fieldVal
 			}
-			
+
 			if embeddedVal.Kind() == reflect.Struct {
 				maxDepth = max(maxDepth, calculateMaxDepth(embeddedVal, depth, opt))
 			}
@@ -217,7 +217,7 @@ func calculateMaxFieldNameLengthFromStruct(structVal reflect.Value, depth int, o
 		}
 
 		fieldVal := structVal.Field(i)
-		
+
 		// handle embedded structs by recursively calculating their field name lengths
 		if field.Anonymous {
 			var embeddedVal reflect.Value
@@ -229,7 +229,7 @@ func calculateMaxFieldNameLengthFromStruct(structVal reflect.Value, depth int, o
 			} else {
 				embeddedVal = fieldVal
 			}
-			
+
 			if embeddedVal.Kind() == reflect.Struct {
 				maxLength = max(maxLength, calculateMaxFieldNameLength(embeddedVal, depth, opt))
 			}
@@ -293,7 +293,7 @@ func inspectStructWithAlignment(structVal reflect.Value, builder *strings.Builde
 		}
 
 		fieldVal := structVal.Field(i)
-		
+
 		// handle embedded structs by flattening their fields into the parent
 		if field.Anonymous {
 			var embeddedVal reflect.Value
@@ -305,7 +305,7 @@ func inspectStructWithAlignment(structVal reflect.Value, builder *strings.Builde
 			} else {
 				embeddedVal = fieldVal
 			}
-			
+
 			if embeddedVal.Kind() == reflect.Struct {
 				// recursively collect embedded struct fields
 				embeddedType := embeddedVal.Type()
@@ -314,25 +314,25 @@ func inspectStructWithAlignment(structVal reflect.Value, builder *strings.Builde
 					if embeddedField.PkgPath != "" { // unexported
 						continue
 					}
-					
+
 					embeddedTag := parseDfTag(embeddedField)
 					if embeddedTag.Skip {
 						continue
 					}
-					
+
 					embeddedName := embeddedTag.Name
 					if embeddedName == "" {
 						embeddedName = toSnakeCase(embeddedField.Name)
 					}
-					
+
 					embeddedFieldVal := embeddedVal.Field(j)
-					
+
 					// calculate display name with secret annotation
 					embeddedDisplayName := embeddedName
 					if embeddedTag.Secret {
 						embeddedDisplayName += " (secret)"
 					}
-					
+
 					fields = append(fields, fieldInfo{
 						name:        embeddedName,
 						tag:         embeddedTag,

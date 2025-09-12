@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/michaelquigley/df"
+	"github.com/michaelquigley/df/dd"
 )
 
 // Document represents a versioned document with relationships
@@ -16,12 +16,12 @@ type Document struct {
 	Content     string
 	Version     int
 	Status      string
-	Author      *df.Pointer[*Author]
-	Reviewer    *df.Pointer[*Author]
-	Category    *df.Pointer[*Category]
-	PrevVersion *df.Pointer[*Document]
-	NextVersion *df.Pointer[*Document]
-	References  []*df.Pointer[*Document]
+	Author      *dd.Pointer[*Author]
+	Reviewer    *dd.Pointer[*Author]
+	Category    *dd.Pointer[*Category]
+	PrevVersion *dd.Pointer[*Document]
+	NextVersion *dd.Pointer[*Document]
+	References  []*dd.Pointer[*Document]
 	CreatedAt   time.Time
 }
 
@@ -32,9 +32,9 @@ type Author struct {
 	ID         string
 	Name       string
 	Email      string
-	Department *df.Pointer[*Department]
-	Manager    *df.Pointer[*Author]
-	Reports    []*df.Pointer[*Author]
+	Department *dd.Pointer[*Department]
+	Manager    *dd.Pointer[*Author]
+	Reports    []*dd.Pointer[*Author]
 	JoinedAt   time.Time
 }
 
@@ -42,11 +42,11 @@ func (a *Author) GetId() string { return a.ID }
 
 // Department represents organizational departments
 type Department struct {
-	ID      string
-	Name    string
-	Head    *df.Pointer[*Author]
-	Parent  *df.Pointer[*Department]
-	SubDepts []*df.Pointer[*Department] `df:"sub_departments"`
+	ID       string
+	Name     string
+	Head     *dd.Pointer[*Author]
+	Parent   *dd.Pointer[*Department]
+	SubDepts []*dd.Pointer[*Department] `df:"sub_departments"`
 }
 
 func (d *Department) GetId() string { return d.ID }
@@ -55,9 +55,9 @@ func (d *Department) GetId() string { return d.ID }
 type Category struct {
 	ID       string
 	Name     string
-	Parent   *df.Pointer[*Category]
-	Children []*df.Pointer[*Category]
-	Related  []*df.Pointer[*Category]
+	Parent   *dd.Pointer[*Category]
+	Children []*dd.Pointer[*Category]
+	Related  []*dd.Pointer[*Category]
 }
 
 func (c *Category) GetId() string { return c.ID }
@@ -66,10 +66,10 @@ func (c *Category) GetId() string { return c.ID }
 type Project struct {
 	ID           string
 	Name         string
-	Owner        *df.Pointer[*Author]
-	Dependencies []*df.Pointer[*Project]
-	Dependents   []*df.Pointer[*Project]
-	Documents    []*df.Pointer[*Document]
+	Owner        *dd.Pointer[*Author]
+	Dependencies []*dd.Pointer[*Project]
+	Dependents   []*dd.Pointer[*Project]
+	Documents    []*dd.Pointer[*Document]
 }
 
 func (p *Project) GetId() string { return p.ID }
@@ -109,14 +109,14 @@ func main() {
 
 	// step 1: create data with complex relationships
 	fmt.Println("\n=== step 1: creating complex object graph data ===")
-	
+
 	// configure options with time converter for proper time.Time handling
-	opts := &df.Options{
-		Converters: map[reflect.Type]df.Converter{
+	opts := &dd.Options{
+		Converters: map[reflect.Type]dd.Converter{
 			reflect.TypeOf(time.Time{}): &TimeConverter{},
 		},
 	}
-	
+
 	data := map[string]any{
 		"departments": []any{
 			map[string]any{
@@ -132,7 +132,7 @@ func main() {
 			},
 			map[string]any{
 				"id":     "backend",
-				"name":   "Backend Team", 
+				"name":   "Backend Team",
 				"parent": map[string]any{"$ref": "eng"},
 				"head":   map[string]any{"$ref": "charlie"},
 			},
@@ -143,7 +143,7 @@ func main() {
 				"name":       "Alice Johnson",
 				"email":      "alice@example.com",
 				"department": map[string]any{"$ref": "eng"},
-				"reports":    []any{
+				"reports": []any{
 					map[string]any{"$ref": "bob"},
 					map[string]any{"$ref": "charlie"},
 				},
@@ -155,7 +155,7 @@ func main() {
 				"email":      "bob@example.com",
 				"department": map[string]any{"$ref": "frontend"},
 				"manager":    map[string]any{"$ref": "alice"},
-				"reports":    []any{
+				"reports": []any{
 					map[string]any{"$ref": "david"},
 				},
 				"joined_at": "2020-03-10T09:00:00Z",
@@ -166,7 +166,7 @@ func main() {
 				"email":      "charlie@example.com",
 				"department": map[string]any{"$ref": "backend"},
 				"manager":    map[string]any{"$ref": "alice"},
-				"reports":    []any{
+				"reports": []any{
 					map[string]any{"$ref": "eve"},
 				},
 				"joined_at": "2020-02-20T09:00:00Z",
@@ -177,7 +177,7 @@ func main() {
 				"email":      "david@example.com",
 				"department": map[string]any{"$ref": "frontend"},
 				"manager":    map[string]any{"$ref": "bob"},
-				"joined_at": "2021-01-05T09:00:00Z",
+				"joined_at":  "2021-01-05T09:00:00Z",
 			},
 			map[string]any{
 				"id":         "eve",
@@ -185,7 +185,7 @@ func main() {
 				"email":      "eve@example.com",
 				"department": map[string]any{"$ref": "backend"},
 				"manager":    map[string]any{"$ref": "charlie"},
-				"joined_at": "2021-03-15T09:00:00Z",
+				"joined_at":  "2021-03-15T09:00:00Z",
 			},
 		},
 		"categories": []any{
@@ -227,14 +227,14 @@ func main() {
 				"created_at": "2023-01-15T10:30:00Z",
 			},
 			map[string]any{
-				"id":          "doc2",
-				"title":       "Frontend Architecture Guide v2",
-				"content":     "Updated guide with new patterns...",
-				"version":     2,
-				"status":      "draft",
-				"author":      map[string]any{"$ref": "david"},
-				"reviewer":    map[string]any{"$ref": "bob"},
-				"category":    map[string]any{"$ref": "frontend-tech"},
+				"id":           "doc2",
+				"title":        "Frontend Architecture Guide v2",
+				"content":      "Updated guide with new patterns...",
+				"version":      2,
+				"status":       "draft",
+				"author":       map[string]any{"$ref": "david"},
+				"reviewer":     map[string]any{"$ref": "bob"},
+				"category":     map[string]any{"$ref": "frontend-tech"},
 				"prev_version": map[string]any{"$ref": "doc1"},
 				"references": []any{
 					map[string]any{"$ref": "doc3"},
@@ -255,8 +255,8 @@ func main() {
 		},
 		"projects": []any{
 			map[string]any{
-				"id":   "web-app",
-				"name": "Web Application",
+				"id":    "web-app",
+				"name":  "Web Application",
 				"owner": map[string]any{"$ref": "alice"},
 				"dependencies": []any{
 					map[string]any{"$ref": "api-service"},
@@ -267,8 +267,8 @@ func main() {
 				},
 			},
 			map[string]any{
-				"id":   "api-service",
-				"name": "API Service",
+				"id":    "api-service",
+				"name":  "API Service",
 				"owner": map[string]any{"$ref": "charlie"},
 				"dependents": []any{
 					map[string]any{"$ref": "web-app"},
@@ -282,10 +282,10 @@ func main() {
 
 	fmt.Printf("✓ created complex data with circular references and deep relationships\n")
 
-	// step 2: demonstrate basic binding  
+	// step 2: demonstrate basic binding
 	fmt.Println("\n=== step 2: basic binding ===")
 	var cms ContentManagementSystem
-	if err := df.Bind(&cms, data, opts); err != nil {
+	if err := dd.Bind(&cms, data, opts); err != nil {
 		log.Fatalf("failed to bind CMS data: %v", err)
 	}
 
@@ -294,13 +294,13 @@ func main() {
 
 	// step 3: demonstrate advanced linker with custom options
 	fmt.Println("\n=== step 3: advanced linker with custom options ===")
-	
+
 	// create a new linker instance for advanced operations
-	linker := df.NewLinker()
-	
+	linker := dd.NewLinker()
+
 	// register objects in stages to demonstrate multi-stage linking
 	fmt.Println("registering objects in stages...")
-	
+
 	// stage 1: register departments first
 	for _, dept := range cms.Departments {
 		if err := linker.Register(dept); err != nil {
@@ -308,7 +308,7 @@ func main() {
 		}
 	}
 	fmt.Printf("  stage 1: registered %d departments\n", len(cms.Departments))
-	
+
 	// stage 2: register authors (depends on departments)
 	for _, author := range cms.Authors {
 		if err := linker.Register(author); err != nil {
@@ -316,7 +316,7 @@ func main() {
 		}
 	}
 	fmt.Printf("  stage 2: registered %d authors\n", len(cms.Authors))
-	
+
 	// stage 3: register categories
 	for _, category := range cms.Categories {
 		if err := linker.Register(category); err != nil {
@@ -324,7 +324,7 @@ func main() {
 		}
 	}
 	fmt.Printf("  stage 3: registered %d categories\n", len(cms.Categories))
-	
+
 	// stage 4: register documents (depends on authors and categories)
 	for _, doc := range cms.Documents {
 		if err := linker.Register(doc); err != nil {
@@ -332,7 +332,7 @@ func main() {
 		}
 	}
 	fmt.Printf("  stage 4: registered %d documents\n", len(cms.Documents))
-	
+
 	// stage 5: register projects (depends on authors and documents)
 	for _, project := range cms.Projects {
 		if err := linker.Register(project); err != nil {
@@ -349,7 +349,7 @@ func main() {
 
 	// step 4: demonstrate complex relationship traversal
 	fmt.Println("\n=== step 4: complex relationship traversal ===")
-	
+
 	// traverse organizational hierarchy
 	alice := cms.Authors[0] // Alice Johnson
 	fmt.Printf("organizational hierarchy starting from %s:\n", alice.Name)
@@ -358,7 +358,7 @@ func main() {
 	for _, report := range alice.Reports {
 		reportAuthor := report.Resolve()
 		fmt.Printf("    - %s (%s)\n", reportAuthor.Name, reportAuthor.Department.Resolve().Name)
-		
+
 		// show their reports too
 		for _, subReport := range reportAuthor.Reports {
 			subReportAuthor := subReport.Resolve()
@@ -370,12 +370,12 @@ func main() {
 	fmt.Printf("\ndocument version chain:\n")
 	doc1 := cms.Documents[0]
 	fmt.Printf("  v%d: %s (by %s)\n", doc1.Version, doc1.Title, doc1.Author.Resolve().Name)
-	
+
 	// find documents that reference this one as next_version
 	for _, doc := range cms.Documents {
 		if doc.PrevVersion != nil && doc.PrevVersion.Resolve().ID == doc1.ID {
 			fmt.Printf("  v%d: %s (by %s)\n", doc.Version, doc.Title, doc.Author.Resolve().Name)
-			
+
 			// show references
 			if len(doc.References) > 0 {
 				fmt.Printf("    references:\n")
@@ -394,7 +394,7 @@ func main() {
 	for _, child := range techCategory.Children {
 		childCat := child.Resolve()
 		fmt.Printf("    - %s\n", childCat.Name)
-		
+
 		// show related categories
 		if len(childCat.Related) > 0 {
 			fmt.Printf("      related: ")
@@ -412,7 +412,7 @@ func main() {
 	fmt.Println("\n=== step 5: project dependency analysis ===")
 	for _, project := range cms.Projects {
 		fmt.Printf("project: %s (owner: %s)\n", project.Name, project.Owner.Resolve().Name)
-		
+
 		if len(project.Dependencies) > 0 {
 			fmt.Printf("  depends on:\n")
 			for _, dep := range project.Dependencies {
@@ -420,7 +420,7 @@ func main() {
 				fmt.Printf("    - %s (owner: %s)\n", depProject.Name, depProject.Owner.Resolve().Name)
 			}
 		}
-		
+
 		if len(project.Dependents) > 0 {
 			fmt.Printf("  depended on by:\n")
 			for _, dependent := range project.Dependents {
@@ -428,7 +428,7 @@ func main() {
 				fmt.Printf("    - %s (owner: %s)\n", depProject.Name, depProject.Owner.Resolve().Name)
 			}
 		}
-		
+
 		if len(project.Documents) > 0 {
 			fmt.Printf("  documentation:\n")
 			for _, docPtr := range project.Documents {
@@ -441,7 +441,7 @@ func main() {
 
 	// step 6: demonstrate linker caching and performance
 	fmt.Println("\n=== step 6: linker caching and performance ===")
-	
+
 	// create additional objects to test incremental updates
 	newAuthorData := []map[string]any{
 		{
@@ -450,7 +450,7 @@ func main() {
 			"email":      "frank@example.com",
 			"department": map[string]any{"$ref": "eng"},
 			"manager":    map[string]any{"$ref": "alice"},
-			"joined_at": "2023-09-01T09:00:00Z",
+			"joined_at":  "2023-09-01T09:00:00Z",
 		},
 	}
 
@@ -458,7 +458,7 @@ func main() {
 	var newAuthors []*Author
 	for _, authorData := range newAuthorData {
 		var author Author
-		if err := df.Bind(&author, authorData, opts); err != nil {
+		if err := dd.Bind(&author, authorData, opts); err != nil {
 			log.Fatalf("failed to bind new author: %v", err)
 		}
 		newAuthors = append(newAuthors, &author)
@@ -482,21 +482,21 @@ func main() {
 
 	// step 7: demonstrate error handling and validation
 	fmt.Println("\n=== step 7: error handling and missing references ===")
-	
+
 	// create document with invalid reference
 	invalidDocData := map[string]any{
-		"id":       "invalid-doc",
-		"title":    "Invalid Document",
-		"content":  "This document has invalid references",
-		"version":  1,
-		"status":   "draft",
-		"author":   map[string]any{"$ref": "nonexistent-author"}, // invalid reference
-		"category": map[string]any{"$ref": "frontend-tech"},       // valid reference
+		"id":         "invalid-doc",
+		"title":      "Invalid Document",
+		"content":    "This document has invalid references",
+		"version":    1,
+		"status":     "draft",
+		"author":     map[string]any{"$ref": "nonexistent-author"}, // invalid reference
+		"category":   map[string]any{"$ref": "frontend-tech"},      // valid reference
 		"created_at": "2023-12-01T10:00:00Z",
 	}
 
 	var invalidDoc Document
-	if err := df.Bind(&invalidDoc, invalidDocData, opts); err != nil {
+	if err := dd.Bind(&invalidDoc, invalidDocData, opts); err != nil {
 		log.Fatalf("failed to bind invalid document: %v", err)
 	}
 
@@ -507,7 +507,7 @@ func main() {
 
 	fmt.Println("\n=== advanced linker capabilities demonstrated ===")
 	fmt.Println("✓ multi-stage object registration and linking")
-	fmt.Println("✓ complex circular reference resolution") 
+	fmt.Println("✓ complex circular reference resolution")
 	fmt.Println("✓ hierarchical relationship traversal")
 	fmt.Println("✓ incremental object graph updates")
 	fmt.Println("✓ performance optimization with caching")

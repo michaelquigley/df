@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/michaelquigley/df"
+	"github.com/michaelquigley/df/dd"
 )
 
 type ServerConfig struct {
@@ -33,7 +33,7 @@ func main() {
 	fmt.Println("• application defaults (compiled-in)")
 	fmt.Println("• environment overrides (dev/staging/prod)")
 	fmt.Println("• user preferences (runtime customization)")
-	
+
 	// step 1: pre-initialized config with sensible defaults
 	config := &AppConfig{
 		Server: ServerConfig{
@@ -43,7 +43,7 @@ func main() {
 			Debug:   false,
 		},
 		Database: DatabaseConfig{
-			Host:     "localhost", 
+			Host:     "localhost",
 			Port:     5432,
 			Database: "myapp",
 			SSL:      true,
@@ -59,7 +59,7 @@ func main() {
 	// step 2: partial configuration from environment/config file (only specifies overrides)
 	partialData := map[string]any{
 		"server": map[string]any{
-			"host":  "api.example.com", // override for production 
+			"host":  "api.example.com", // override for production
 			"debug": true,              // enable for debugging
 			// note: port and timeout not specified - will preserve defaults
 		},
@@ -70,19 +70,19 @@ func main() {
 		},
 		"features": []string{"basic", "auth", "premium"}, // add premium features
 	}
-	
+
 	fmt.Println("\n=== step 2: partial configuration (environment overrides) ===")
 	fmt.Printf("partial data: %+v\n", partialData)
 	fmt.Println("note: only specifies values that should change from defaults")
 
 	// merge partial data onto existing config, intelligently preserving defaults
-	if err := df.Merge(config, partialData); err != nil {
+	if err := dd.Merge(config, partialData); err != nil {
 		log.Fatalf("failed to merge partial config: %v", err)
 	}
 
 	fmt.Println("\n=== step 3: final merged configuration ===")
 	fmt.Printf("server: %+v\n", config.Server)
-	fmt.Printf("database: %+v\n", config.Database)  
+	fmt.Printf("database: %+v\n", config.Database)
 	fmt.Printf("features: %v\n", config.Features)
 
 	fmt.Println("\n=== key differences vs df.Bind() ===")

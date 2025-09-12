@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/michaelquigley/df"
+	"github.com/michaelquigley/df/dd"
 )
 
 type ServerConfig struct {
@@ -25,11 +25,11 @@ type DatabaseConfig struct {
 }
 
 type AppConfig struct {
-	Name     string         `df:"app_name"`
+	Name     string `df:"app_name"`
 	Version  string
 	Server   ServerConfig
 	Database DatabaseConfig
-	Features []string       `df:"enabled_features"`
+	Features []string `df:"enabled_features"`
 }
 
 func main() {
@@ -47,7 +47,7 @@ func main() {
 	// step 2: load configuration from JSON file
 	fmt.Println("\n=== step 2: loading configuration from JSON file ===")
 	var jsonConfig AppConfig
-	if err := df.BindFromJSON(&jsonConfig, "config.json"); err != nil {
+	if err := dd.BindFromJSON(&jsonConfig, "config.json"); err != nil {
 		log.Fatalf("failed to load JSON config: %v", err)
 	}
 	fmt.Printf("✓ loaded from config.json: %s v%s\n", jsonConfig.Name, jsonConfig.Version)
@@ -57,7 +57,7 @@ func main() {
 	// step 3: load configuration from YAML file
 	fmt.Println("\n=== step 3: loading configuration from YAML file ===")
 	var yamlConfig AppConfig
-	if err := df.BindFromYAML(&yamlConfig, "config.yaml"); err != nil {
+	if err := dd.BindFromYAML(&yamlConfig, "config.yaml"); err != nil {
 		log.Fatalf("failed to load YAML config: %v", err)
 	}
 	fmt.Printf("✓ loaded from config.yaml: %s v%s\n", yamlConfig.Name, yamlConfig.Version)
@@ -72,13 +72,13 @@ func main() {
 	jsonConfig.Features = append(jsonConfig.Features, "monitoring", "metrics")
 
 	// save modified config as JSON
-	if err := df.UnbindToJSON(jsonConfig, "output.json"); err != nil {
+	if err := dd.UnbindToJSON(jsonConfig, "output.json"); err != nil {
 		log.Fatalf("failed to save JSON config: %v", err)
 	}
 	fmt.Printf("✓ saved modified config to output.json\n")
 
 	// save modified config as YAML
-	if err := df.UnbindToYAML(jsonConfig, "output.yaml"); err != nil {
+	if err := dd.UnbindToYAML(jsonConfig, "output.yaml"); err != nil {
 		log.Fatalf("failed to save YAML config: %v", err)
 	}
 	fmt.Printf("✓ saved modified config to output.yaml\n")
@@ -88,14 +88,14 @@ func main() {
 	var errorConfig AppConfig
 
 	// try to load non-existent file
-	err := df.BindFromJSON(&errorConfig, "nonexistent.json")
+	err := dd.BindFromJSON(&errorConfig, "nonexistent.json")
 	if err != nil {
 		fmt.Printf("expected file error: %v\n", err)
 	}
 
 	// try to load invalid JSON
 	if err := os.WriteFile("invalid.json", []byte(`{"invalid": json`), 0644); err == nil {
-		err = df.BindFromJSON(&errorConfig, "invalid.json")
+		err = dd.BindFromJSON(&errorConfig, "invalid.json")
 		if err != nil {
 			fmt.Printf("expected parse error: %v\n", err)
 		}
@@ -104,11 +104,11 @@ func main() {
 	fmt.Println("\n=== step 6: format conversion (JSON to YAML) ===")
 	// load from JSON and save as YAML
 	var convertConfig AppConfig
-	if err := df.BindFromJSON(&convertConfig, "output.json"); err != nil {
+	if err := dd.BindFromJSON(&convertConfig, "output.json"); err != nil {
 		log.Fatalf("failed to load for conversion: %v", err)
 	}
 
-	if err := df.UnbindToYAML(convertConfig, "converted.yaml"); err != nil {
+	if err := dd.UnbindToYAML(convertConfig, "converted.yaml"); err != nil {
 		log.Fatalf("failed to convert to YAML: %v", err)
 	}
 	fmt.Printf("✓ converted output.json → converted.yaml\n")
@@ -152,7 +152,7 @@ func createSampleFiles() error {
 		Features: []string{"auth", "logging"},
 	}
 
-	if err := df.UnbindToJSON(jsonConfig, "config.json"); err != nil {
+	if err := dd.UnbindToJSON(jsonConfig, "config.json"); err != nil {
 		return fmt.Errorf("failed to create config.json: %v", err)
 	}
 
@@ -177,7 +177,7 @@ func createSampleFiles() error {
 		Features: []string{"auth", "logging", "caching"},
 	}
 
-	if err := df.UnbindToYAML(yamlConfig, "config.yaml"); err != nil {
+	if err := dd.UnbindToYAML(yamlConfig, "config.yaml"); err != nil {
 		return fmt.Errorf("failed to create config.yaml: %v", err)
 	}
 

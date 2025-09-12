@@ -1,4 +1,4 @@
-package df
+package dd
 
 import (
 	"errors"
@@ -237,7 +237,7 @@ func TestConverterIncompatibleReturn(t *testing.T) {
 	assert.Error(t, err)
 	var bindingErr *BindingError
 	assert.True(t, errors.As(err, &bindingErr))
-	assert.Contains(t, err.Error(), "expected df.Email, got string")
+	assert.Contains(t, err.Error(), "expected dd.Email, got string")
 }
 
 // Test with pointer fields

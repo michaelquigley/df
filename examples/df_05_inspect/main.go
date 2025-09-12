@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/michaelquigley/df"
+	"github.com/michaelquigley/df/dd"
 )
 
 type AppConfig struct {
@@ -71,13 +71,13 @@ func main() {
 	fmt.Printf("note: contains secret fields (api_key, password)\n")
 
 	// bind configuration to strongly-typed structs
-	config, err := df.New[AppConfig](configData)
+	config, err := dd.New[AppConfig](configData)
 	if err != nil {
 		log.Fatalf("failed to bind config: %v", err)
 	}
 
 	fmt.Println("\n=== 1. default inspect (secrets automatically hidden) ===")
-	output, err := df.Inspect(config)
+	output, err := dd.Inspect(config)
 	if err != nil {
 		log.Fatalf("failed to inspect config: %v", err)
 	}
@@ -85,7 +85,7 @@ func main() {
 	fmt.Println("notice: secret fields are replaced with <set> (or <unset>) for security")
 
 	fmt.Println("\n=== 2. inspect with secrets visible (debug mode) ===")
-	output, err = df.Inspect(config, &df.InspectOptions{ShowSecrets: true})
+	output, err = dd.Inspect(config, &dd.InspectOptions{ShowSecrets: true})
 	if err != nil {
 		log.Fatalf("failed to inspect config with secrets: %v", err)
 	}
@@ -93,7 +93,7 @@ func main() {
 	fmt.Println("use ShowSecrets: true only in secure debugging environments")
 
 	fmt.Println("\n=== 3. inspect with custom formatting ===")
-	output, err = df.Inspect(config, &df.InspectOptions{
+	output, err = dd.Inspect(config, &dd.InspectOptions{
 		Indent:      "    ", // wider indentation
 		ShowSecrets: false,  // keep secrets hidden
 		MaxDepth:    3,      // limit nesting depth

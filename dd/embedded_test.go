@@ -1,4 +1,4 @@
-package df
+package dd
 
 import (
 	"testing"
@@ -14,7 +14,7 @@ func TestEmbeddedStructBasics(t *testing.T) {
 	}
 
 	type Employee struct {
-		Person // embedded struct
+		Person        // embedded struct
 		Title  string `df:"title"`
 		Salary int    `df:"salary"`
 	}
@@ -423,7 +423,7 @@ func TestEmbeddedStructInspect(t *testing.T) {
 
 	result, err := Inspect(emp)
 	assert.Nil(t, err)
-	
+
 	// Check that all fields are present and flattened
 	assert.Contains(t, result, "name")
 	assert.Contains(t, result, "age")
@@ -572,7 +572,7 @@ func TestEmbeddedStructEdgeCases(t *testing.T) {
 
 		data := map[string]any{
 			"top":  "level1",
-			"mid":  "level2", 
+			"mid":  "level2",
 			"deep": "level3",
 		}
 

@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/michaelquigley/df"
+	"github.com/michaelquigley/df/dd"
 )
 
 // APIConfiguration demonstrates field naming and requirements
@@ -116,7 +116,7 @@ func main() {
 	}
 
 	var incomplete APIConfiguration
-	if err := df.Bind(&incomplete, incompleteData); err != nil {
+	if err := dd.Bind(&incomplete, incompleteData); err != nil {
 		fmt.Printf("✓ expected error for missing required fields: %v\n", err)
 	}
 
@@ -134,7 +134,7 @@ func main() {
 	}
 
 	var api APIConfiguration
-	if err := df.Bind(&api, completeData); err != nil {
+	if err := dd.Bind(&api, completeData); err != nil {
 		log.Fatalf("failed to bind complete API config: %v", err)
 	}
 
@@ -149,7 +149,7 @@ func main() {
 	fmt.Println("\n=== step 3: field exclusion with df:\"-\" ===")
 	api.Internal = "this should not be bound or unbound"
 
-	unbound, err := df.Unbind(api)
+	unbound, err := dd.Unbind(api)
 	if err != nil {
 		log.Fatalf("failed to unbind API config: %v", err)
 	}
@@ -162,7 +162,7 @@ func main() {
 
 	// step 4: demonstrate secret field handling with inspection
 	fmt.Println("\n=== step 4: secret field handling ===")
-	inspectData, err := df.Inspect(api)
+	inspectData, err := dd.Inspect(api)
 	if err != nil {
 		log.Fatalf("failed to inspect API config: %v", err)
 	}
@@ -222,7 +222,7 @@ func main() {
 	}
 
 	var container DemoContainer
-	if err := df.Bind(&container, complexData); err != nil {
+	if err := dd.Bind(&container, complexData); err != nil {
 		log.Fatalf("failed to bind complex structure: %v", err)
 	}
 
@@ -263,12 +263,12 @@ func main() {
 	}
 
 	var demo FlagDemo
-	if err := df.Bind(&demo, flagData); err != nil {
+	if err := dd.Bind(&demo, flagData); err != nil {
 		log.Fatalf("failed to bind flag demo: %v", err)
 	}
 
 	// unbind to see field name mapping
-	unboundDemo, err := df.Unbind(demo)
+	unboundDemo, err := dd.Unbind(demo)
 	if err != nil {
 		log.Fatalf("failed to unbind flag demo: %v", err)
 	}

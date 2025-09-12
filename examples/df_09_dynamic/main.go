@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/michaelquigley/df"
+	"github.com/michaelquigley/df/dd"
 )
 
 // EmailAction sends email notifications
@@ -85,11 +85,11 @@ func (w WebhookAction) Execute() string {
 
 // NotificationRule contains a polymorphic action field
 type NotificationRule struct {
-	Name      string
-	Trigger   string
-	Enabled   bool
-	Action    df.Dynamic    // polymorphic field
-	Fallback  df.Dynamic    // optional polymorphic field
+	Name     string
+	Trigger  string
+	Enabled  bool
+	Action   dd.Dynamic // polymorphic field
+	Fallback dd.Dynamic // optional polymorphic field
 }
 
 // Executor interface for demonstration
@@ -104,16 +104,16 @@ func main() {
 
 	// step 1: register type mappings for dynamic binding
 	fmt.Println("\n=== step 1: registering dynamic type binders ===")
-	opts := &df.Options{
-		DynamicBinders: map[string]func(map[string]any) (df.Dynamic, error){
-			"email": func(m map[string]any) (df.Dynamic, error) {
-				return df.New[EmailAction](m)
+	opts := &dd.Options{
+		DynamicBinders: map[string]func(map[string]any) (dd.Dynamic, error){
+			"email": func(m map[string]any) (dd.Dynamic, error) {
+				return dd.New[EmailAction](m)
 			},
-			"slack": func(m map[string]any) (df.Dynamic, error) {
-				return df.New[SlackAction](m)
+			"slack": func(m map[string]any) (dd.Dynamic, error) {
+				return dd.New[SlackAction](m)
 			},
-			"webhook": func(m map[string]any) (df.Dynamic, error) {
-				return df.New[WebhookAction](m)
+			"webhook": func(m map[string]any) (dd.Dynamic, error) {
+				return dd.New[WebhookAction](m)
 			},
 		},
 	}
@@ -171,7 +171,7 @@ func main() {
 	}
 
 	var container RulesContainer
-	if err := df.Bind(&container, rulesData, opts); err != nil {
+	if err := dd.Bind(&container, rulesData, opts); err != nil {
 		log.Fatalf("failed to bind rules: %v", err)
 	}
 
@@ -182,7 +182,7 @@ func main() {
 	for i, rule := range container.Rules {
 		fmt.Printf("\nrule %d: %s (trigger: %s, enabled: %t)\n", i+1, rule.Name, rule.Trigger, rule.Enabled)
 		fmt.Printf("  action type: %s\n", rule.Action.Type())
-		
+
 		// type-safe access to concrete implementation
 		if executor, ok := rule.Action.(Executor); ok {
 			if rule.Enabled {
@@ -203,7 +203,7 @@ func main() {
 
 	// step 4: demonstrate unbinding with type information preserved
 	fmt.Println("\n=== step 4: unbinding preserves dynamic type information ===")
-	unboundData, err := df.Unbind(container)
+	unboundData, err := dd.Unbind(container)
 	if err != nil {
 		log.Fatalf("failed to unbind: %v", err)
 	}

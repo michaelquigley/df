@@ -1,4 +1,4 @@
-package df
+package dd
 
 import (
 	"testing"
@@ -76,10 +76,14 @@ type nestedType struct {
 // test helpers for Dynamic
 type dynA struct{ Name string }
 
-func (d *dynA) Type() string          { return "a" }
-func (d *dynA) ToMap() (map[string]any, error) { return map[string]any{"type": "a", "name": d.Name}, nil }
+func (d *dynA) Type() string { return "a" }
+func (d *dynA) ToMap() (map[string]any, error) {
+	return map[string]any{"type": "a", "name": d.Name}, nil
+}
 
 type dynB struct{ Count int }
 
-func (d *dynB) Type() string          { return "b" }
-func (d *dynB) ToMap() (map[string]any, error) { return map[string]any{"type": "b", "count": d.Count}, nil }
+func (d *dynB) Type() string { return "b" }
+func (d *dynB) ToMap() (map[string]any, error) {
+	return map[string]any{"type": "b", "count": d.Count}, nil
+}

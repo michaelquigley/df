@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/michaelquigley/df"
+	"github.com/michaelquigley/df/dd"
 )
 
 // CustomTime handles multiple time formats and timezone normalization
@@ -402,7 +402,7 @@ func main() {
 	}
 
 	var profile UserProfile
-	if err := df.Bind(&profile, profileData); err != nil {
+	if err := dd.Bind(&profile, profileData); err != nil {
 		log.Fatalf("failed to bind profile: %v", err)
 	}
 
@@ -412,7 +412,7 @@ func main() {
 	fmt.Printf("  modified: %s\n", profile.LastModified.Time.Format("2006-01-02 15:04:05"))
 
 	// unbind to show the marshaled result
-	unboundData, err := df.Unbind(profile)
+	unboundData, err := dd.Unbind(profile)
 	if err != nil {
 		log.Fatalf("failed to unbind profile: %v", err)
 	}

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/michaelquigley/df"
+	"github.com/michaelquigley/df/dd"
 )
 
 // User represents a simple user profile for demonstration
@@ -44,7 +44,7 @@ func main() {
 	fmt.Printf("input data: %+v\n", userData)
 	fmt.Printf("struct tags define field mapping and requirements\n")
 
-	user, err := df.New[User](userData)
+	user, err := dd.New[User](userData)
 	if err != nil {
 		log.Fatalf("bind failed: %v", err)
 	}
@@ -55,7 +55,7 @@ func main() {
 
 	fmt.Println("\n2. unbinding struct back to map (for persistence/serialization):")
 
-	unboundData, err := df.Unbind(user)
+	unboundData, err := dd.Unbind(user)
 	if err != nil {
 		log.Fatalf("unbind failed: %v", err)
 	}
@@ -65,7 +65,7 @@ func main() {
 
 	fmt.Println("\n3. round-trip verification (using New[T]):")
 
-	user2, err := df.New[User](unboundData)
+	user2, err := dd.New[User](unboundData)
 	if err != nil {
 		log.Fatalf("round-trip bind failed: %v", err)
 	}
@@ -81,7 +81,7 @@ func main() {
 		// missing required "name" field
 	}
 
-	_, err = df.New[User](invalidData)
+	_, err = dd.New[User](invalidData)
 	if err != nil {
 		fmt.Printf("expected error: %v\n", err)
 	}
@@ -89,7 +89,7 @@ func main() {
 	fmt.Println("\n5. Bind approach (still available):")
 
 	var user4 User
-	if err := df.Bind(&user4, userData); err != nil {
+	if err := dd.Bind(&user4, userData); err != nil {
 		log.Fatalf("bind failed: %v", err)
 	}
 	fmt.Printf("bind result: %+v\n", user4)

@@ -1,4 +1,4 @@
-package df
+package dd
 
 import (
 	"fmt"
@@ -130,7 +130,7 @@ func bindStruct(structValue reflect.Value, data map[string]any, path string, opt
 		}
 
 		fieldVal := structValue.Field(i)
-		
+
 		// handle embedded structs by recursively binding their fields
 		if field.Anonymous {
 			if field.Type.Kind() == reflect.Ptr {
@@ -159,7 +159,7 @@ func bindStruct(structValue reflect.Value, data map[string]any, path string, opt
 							}
 						}
 					}
-					
+
 					if hasEmbeddedFields {
 						// allocate new instance for pointer embedded struct
 						fieldVal.Set(reflect.New(field.Type.Elem()))
@@ -168,7 +168,7 @@ func bindStruct(structValue reflect.Value, data map[string]any, path string, opt
 						continue
 					}
 				}
-				
+
 				if !fieldVal.IsNil() {
 					embeddedVal := fieldVal.Elem()
 					if embeddedVal.Kind() == reflect.Struct {
@@ -188,7 +188,7 @@ func bindStruct(structValue reflect.Value, data map[string]any, path string, opt
 			}
 			continue
 		}
-		
+
 		tag := parseDfTag(field)
 		if tag.Skip {
 			continue
@@ -409,12 +409,12 @@ func setNonPtrValue(fieldVal reflect.Value, raw interface{}, path string, opt *O
 		if elemType.Kind() != reflect.Interface {
 			return fmt.Errorf("%s: only map[string]any and map[string]interface{} are supported, got %v", path, fieldVal.Type())
 		}
-		
+
 		rawMap, ok := raw.(map[string]any)
 		if !ok {
 			return fmt.Errorf("%s: expected object for map field, got %T", path, raw)
 		}
-		
+
 		// create new map and populate it
 		newMap := reflect.MakeMap(fieldVal.Type())
 		for key, value := range rawMap {

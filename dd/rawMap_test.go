@@ -1,4 +1,4 @@
-package df
+package dd
 
 import (
 	"fmt"
@@ -101,11 +101,11 @@ func TestMapSupport(t *testing.T) {
 		assert.Equal(t, 42, result["count"])
 
 		dataMap := result["data"].(map[string]any)
-		
+
 		// test nested map
 		nestedMap := dataMap["nested"].(map[string]any)
 		assert.Equal(t, "value", nestedMap["deep"])
-		
+
 		// test array
 		arraySlice := dataMap["array"].([]interface{})
 		assert.Len(t, arraySlice, 3)
@@ -299,11 +299,11 @@ func TestMapMerge(t *testing.T) {
 
 		assert.Equal(t, "test", target.Name)
 		assert.Equal(t, 1, target.Count)
-		
+
 		assert.NotNil(t, target.Data)
 		assert.Equal(t, "value1", target.Data["key1"])
 		assert.Equal(t, 42, target.Data["key2"])
-		
+
 		assert.NotNil(t, target.Metadata)
 		assert.Equal(t, true, target.Metadata["enabled"])
 	})
@@ -394,12 +394,12 @@ func TestMapMerge(t *testing.T) {
 
 		// Should have original's data but replaced name/count from merge
 		assert.Equal(t, "roundtrip", target.Name) // replaced by merge
-		assert.Equal(t, 42, target.Count)        // replaced by merge
-		
+		assert.Equal(t, 42, target.Count)         // replaced by merge
+
 		dataMap := target.Data
 		nestedMap := dataMap["complex"].(map[string]any)
 		assert.Equal(t, "value", nestedMap["nested"])
-		
+
 		arraySlice := dataMap["array"].([]interface{})
 		assert.Len(t, arraySlice, 3)
 		assert.Equal(t, 1, arraySlice[0])

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/michaelquigley/df/dd"
 	"gopkg.in/yaml.v3"
 )
 
@@ -312,7 +313,7 @@ func (c *Container) gatherInspectData() InspectData {
 }
 
 func (c *Container) formatHuman(data InspectData) (string, error) {
-	return Inspect(data)
+	return dd.Inspect(data)
 }
 
 // formatJSON creates JSON output.

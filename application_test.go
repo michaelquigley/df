@@ -3,9 +3,32 @@ package df
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
+
+type testConfig struct {
+	Name     string `df:"app_name"`
+	Port     int
+	Secret   string `df:"api_key,+secret"`
+	Timeout  time.Duration
+	Enabled  bool
+	Database *testDB
+	Services []testService
+}
+
+type testDB struct {
+	Host     string
+	Username string
+	Password string `df:"+secret"`
+	Port     int
+}
+
+type testService struct {
+	Name string
+	URL  string `df:"url"`
+}
 
 type testApplicationDatabase struct {
 	connected bool

@@ -1,4 +1,4 @@
-package df
+package dd
 
 import (
 	"fmt"
@@ -51,7 +51,7 @@ func structToMap(structVal reflect.Value, opt *Options) (map[string]any, error) 
 		}
 
 		fieldVal := structVal.Field(i)
-		
+
 		// handle embedded structs by flattening their fields into the parent map
 		if field.Anonymous {
 			var embeddedVal reflect.Value
@@ -63,7 +63,7 @@ func structToMap(structVal reflect.Value, opt *Options) (map[string]any, error) 
 			} else {
 				embeddedVal = fieldVal
 			}
-			
+
 			if embeddedVal.Kind() == reflect.Struct {
 				embeddedMap, err := structToMap(embeddedVal, opt)
 				if err != nil {
@@ -241,19 +241,19 @@ func valueToInterface(v reflect.Value, opt *Options) (interface{}, bool, error) 
 		if elemType.Kind() != reflect.Interface {
 			return nil, false, &UnsupportedError{Operation: fmt.Sprintf("map with %v values", elemType)}
 		}
-		
+
 		// convert map to map[string]any
 		result := make(map[string]any)
 		for _, key := range v.MapKeys() {
 			keyStr := key.String()
 			mapVal := v.MapIndex(key)
-			
+
 			// handle nil interface values
 			if !mapVal.IsValid() || (mapVal.Kind() == reflect.Interface && mapVal.IsNil()) {
 				result[keyStr] = nil
 				continue
 			}
-			
+
 			converted, present, err := valueToInterface(mapVal, opt)
 			if err != nil {
 				return nil, false, err

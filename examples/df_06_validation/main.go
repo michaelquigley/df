@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/michaelquigley/df"
+	"github.com/michaelquigley/df/dd"
 )
 
 // ValidationError represents a custom validation error
@@ -36,12 +36,12 @@ func (e ValidationErrors) Error() string {
 
 // UserRegistration demonstrates comprehensive user input validation
 type UserRegistration struct {
-	Username    string    `df:",+required"`
-	Email       string    `df:",+required"`
-	Password    string    `df:",+required,+secret"`
-	Age         int       `df:",+required"`
-	Country     string    `df:",+required"`
-	PhoneNumber string    `df:"phone"`
+	Username    string `df:",+required"`
+	Email       string `df:",+required"`
+	Password    string `df:",+required,+secret"`
+	Age         int    `df:",+required"`
+	Country     string `df:",+required"`
+	PhoneNumber string `df:"phone"`
 	Website     string
 	BirthDate   time.Time `df:"birth_date"`
 	Terms       bool      `df:"accept_terms,+required"`
@@ -53,7 +53,7 @@ func (ur *UserRegistration) UnmarshalDf(data map[string]any) error {
 	// basic field binding first
 	type tempUser UserRegistration
 	temp := (*tempUser)(ur)
-	if err := df.Bind(temp, data); err != nil {
+	if err := dd.Bind(temp, data); err != nil {
 		// if basic binding fails, return immediately
 		return fmt.Errorf("basic binding failed: %v", err)
 	}
@@ -400,7 +400,7 @@ func (dr *DataRecord) UnmarshalDf(data map[string]any) error {
 	// basic binding
 	type tempRecord DataRecord
 	temp := (*tempRecord)(dr)
-	if err := df.Bind(temp, data); err != nil {
+	if err := dd.Bind(temp, data); err != nil {
 		return err
 	}
 
@@ -508,7 +508,7 @@ func main() {
 	}
 
 	var config ConfigurationFile
-	if err := df.Bind(&config, invalidConfig); err != nil {
+	if err := dd.Bind(&config, invalidConfig); err != nil {
 		fmt.Printf("✓ expected type conversion error: %v\n", err)
 	}
 
@@ -519,7 +519,7 @@ func main() {
 	}
 
 	var incompleteConfigFile ConfigurationFile
-	if err := df.Bind(&incompleteConfigFile, incompleteConfig); err != nil {
+	if err := dd.Bind(&incompleteConfigFile, incompleteConfig); err != nil {
 		fmt.Printf("✓ expected required field error: %v\n", err)
 	}
 

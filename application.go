@@ -3,6 +3,8 @@ package df
 import (
 	"fmt"
 	"path/filepath"
+
+	"github.com/michaelquigley/df/dd"
 )
 
 // Factory creates and registers objects in the application container.
@@ -76,7 +78,7 @@ func (a *Application[C]) Initialize(configPaths ...string) error {
 
 // InitializeWithOptions executes Configure, Build, and Link phases in sequence with custom options.
 // Returns on first error without proceeding to subsequent phases.
-func (a *Application[C]) InitializeWithOptions(opts *Options, configPaths ...string) error {
+func (a *Application[C]) InitializeWithOptions(opts *dd.Options, configPaths ...string) error {
 	for _, path := range configPaths {
 		if err := a.Configure(path, opts); err != nil {
 			return err
@@ -92,14 +94,14 @@ func (a *Application[C]) InitializeWithOptions(opts *Options, configPaths ...str
 
 // Configure loads additional configuration from a file and merges it with the existing configuration.
 // Supports JSON and YAML file formats based on file extension.
-func (a *Application[C]) Configure(path string, opts ...*Options) error {
+func (a *Application[C]) Configure(path string, opts ...*dd.Options) error {
 	pathExt := filepath.Ext(path)
 	if pathExt == ".yaml" || pathExt == ".yml" {
-		if err := MergeFromYAML(a.Cfg, path, opts...); err != nil {
+		if err := dd.MergeFromYAML(a.Cfg, path, opts...); err != nil {
 			return err
 		}
 	} else if pathExt == ".json" {
-		if err := MergeFromJSON(a.Cfg, path, opts...); err != nil {
+		if err := dd.MergeFromJSON(a.Cfg, path, opts...); err != nil {
 			return err
 		}
 	} else {
