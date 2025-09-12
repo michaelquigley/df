@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/michaelquigley/df"
+	"github.com/michaelquigley/df/da"
 	"github.com/michaelquigley/df/dl"
 )
 
@@ -186,7 +186,7 @@ func demonstrateApplicationIntegration() {
 		AppName: "logging-demo",
 		Debug:   true,
 	}
-	app := df.NewApplication(cfg)
+	app := da.NewApplication(cfg)
 
 	// add logging factory
 	app.Factories = append(app.Factories, &LoggingFactory{})
@@ -206,7 +206,7 @@ func demonstrateApplicationIntegration() {
 	dl.Log().With("app", cfg.AppName).Info("application initialized successfully")
 
 	// demonstrate that logger is available in container
-	logger, found := df.Get[*slog.Logger](app.C)
+	logger, found := da.Get[*slog.Logger](app.C)
 	if found && logger != nil {
 		logger.Info("logger retrieved from container")
 	}
@@ -215,7 +215,7 @@ func demonstrateApplicationIntegration() {
 // LoggingFactory demonstrates how to integrate logging with df application framework
 type LoggingFactory struct{}
 
-func (f *LoggingFactory) Build(a *df.Application[Config]) error {
+func (f *LoggingFactory) Build(a *da.Application[Config]) error {
 	// get configuration from application
 	cfg := a.Cfg
 
@@ -232,7 +232,7 @@ func (f *LoggingFactory) Build(a *df.Application[Config]) error {
 	// for demonstration, create a new logger instance with the same options
 	handler := dl.NewDfHandler(opts)
 	logger := slog.New(handler)
-	df.SetAs[*slog.Logger](a.C, logger)
+	da.SetAs[*slog.Logger](a.C, logger)
 
 	return nil
 }

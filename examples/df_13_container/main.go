@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/michaelquigley/df"
+	"github.com/michaelquigley/df/da"
 )
 
 // configuration for our application
@@ -60,28 +60,28 @@ func (l *Logger) Stop() error {
 // factory that creates our database
 type DatabaseFactory struct{}
 
-func (f *DatabaseFactory) Build(a *df.Application[Config]) error {
-	cfg, _ := df.Get[Config](a.C)
+func (f *DatabaseFactory) Build(a *da.Application[Config]) error {
+	cfg, _ := da.Get[Config](a.C)
 
 	db := &Database{
 		URL: cfg.DatabaseURL,
 	}
 
-	df.SetAs[*Database](a.C, db)
+	da.SetAs[*Database](a.C, db)
 	return nil
 }
 
 // factory that creates our logger
 type LoggerFactory struct{}
 
-func (f *LoggerFactory) Build(a *df.Application[Config]) error {
-	cfg, _ := df.Get[Config](a.C)
+func (f *LoggerFactory) Build(a *da.Application[Config]) error {
+	cfg, _ := da.Get[Config](a.C)
 
 	logger := &Logger{
 		Level: cfg.LogLevel,
 	}
 
-	df.SetAs[*Logger](a.C, logger)
+	da.SetAs[*Logger](a.C, logger)
 	return nil
 }
 
@@ -94,9 +94,9 @@ func main() {
 	}
 
 	// create application with factories
-	app := df.NewApplication(cfg)
-	df.WithFactory(app, &DatabaseFactory{})
-	df.WithFactory(app, &LoggerFactory{})
+	app := da.NewApplication(cfg)
+	da.WithFactory(app, &DatabaseFactory{})
+	da.WithFactory(app, &LoggerFactory{})
 
 	// initialize: build objects and link dependencies
 	if err := app.Initialize(); err != nil {
@@ -110,29 +110,29 @@ func main() {
 
 	// show what's in our container
 	fmt.Println("\n=== container contents ===")
-	output, _ := app.C.Inspect(df.InspectHuman)
+	output, _ := app.C.Inspect(da.InspectHuman)
 	fmt.Println(output)
 
 	// use our services
-	logger, _ := df.Get[*Logger](app.C)
+	logger, _ := da.Get[*Logger](app.C)
 	logger.Info("application started successfully")
 
-	db, _ := df.Get[*Database](app.C)
+	db, _ := da.Get[*Database](app.C)
 	fmt.Printf("database connected: %v\n", db.Connected)
 
 	// demonstrate named objects
-	df.SetNamed(app.C, "audit", &Logger{Level: "debug"})
-	df.SetNamed(app.C, "cache", &Database{URL: "redis://localhost:6379"})
+	da.SetNamed(app.C, "audit", &Logger{Level: "debug"})
+	da.SetNamed(app.C, "cache", &Database{URL: "redis://localhost:6379"})
 
 	// show all loggers
-	loggers := df.OfType[*Logger](app.C)
+	loggers := da.OfType[*Logger](app.C)
 	fmt.Printf("\nfound %d loggers:\n", len(loggers))
 	for i, l := range loggers {
 		fmt.Printf("  [%d] level: %s\n", i, l.Level)
 	}
 
 	// find all startable services
-	startables := df.AsType[df.Startable](app.C)
+	startables := da.AsType[da.Startable](app.C)
 	fmt.Printf("\nfound %d startable services\n", len(startables))
 
 	// clean shutdown
