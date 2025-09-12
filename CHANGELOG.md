@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## v0.2.9
+
+CHANGE: `df.Application` now includes an `InitializeWithOptions` method to allow for passing `df.Options` into the configuration step (https://github.com/michaelquigley/df/issues/29)
+
 ## v0.2.8
 
 CHANGE: The `required`, `secret` and `match` flags in the `df` struct tag have been renamed to `+required`, `+secret`, and `+match` to better differentiate them as options (https://github.com/michaelquigley/df/issues/27)
