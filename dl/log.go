@@ -1,57 +1,57 @@
-package df
+package dl
 
 import (
 	"log/slog"
 )
 
-var defaultChannelManager *LogChannelManager
+var defaultChannelManager *ChannelManager
 
-// InitLogging initializes the logging system with the provided options.
+// Init initializes the logging system with the provided options.
 // if no options are provided, uses default options.
-func InitLogging(opts ...*LogOptions) {
-	var options *LogOptions
+func Init(opts ...*Options) {
+	var options *Options
 	if len(opts) > 0 {
 		options = opts[0]
 	} else {
-		options = DefaultLogOptions()
+		options = DefaultOptions()
 	}
 
 	// initialize channel manager (which creates the default logger internally)
-	defaultChannelManager = NewLogChannelManager(options)
+	defaultChannelManager = NewChannelManager(options)
 }
 
 // Log returns a general logger builder for adding contextual attributes
-func Log() *LogBuilder {
+func Log() *Builder {
 	ensureInit()
-	return &LogBuilder{logger: defaultChannelManager.GetDefaultLogger()}
+	return &Builder{logger: defaultChannelManager.GetDefaultLogger()}
 }
 
 // ChannelLog creates a logger with a specific channel attribute for categorizing log entries
-func ChannelLog(name string) *LogBuilder {
+func ChannelLog(name string) *Builder {
 	ensureInit()
 
 	logger := defaultChannelManager.GetChannelLogger(name)
 
 	// if this channel is not configured (using default logger), add channel attribute for backward compatibility
 	if !defaultChannelManager.IsChannelConfigured(name) {
-		return &LogBuilder{
+		return &Builder{
 			logger: logger,
 			attrs:  []slog.Attr{slog.String(ChannelKey, name)},
 		}
 	}
 
 	// configured channels have their own loggers with built-in channel names
-	return &LogBuilder{logger: logger}
+	return &Builder{logger: logger}
 }
 
 // ConfigureChannel sets a specific logger configuration for a channel
-func ConfigureChannel(name string, opts *LogOptions) {
+func ConfigureChannel(name string, opts *Options) {
 	ensureInit()
 	defaultChannelManager.ConfigureChannel(name, opts)
 }
 
 // ReconfigureChannel reconfigures an existing channel (alias for ConfigureChannel)
-func ReconfigureChannel(name string, opts *LogOptions) {
+func ReconfigureChannel(name string, opts *Options) {
 	ensureInit()
 	ConfigureChannel(name, opts)
 }
@@ -64,6 +64,6 @@ func RemoveChannel(name string) {
 
 func ensureInit() {
 	if defaultChannelManager == nil {
-		InitLogging()
+		Init()
 	}
 }

@@ -1,4 +1,4 @@
-package df
+package dl
 
 import (
 	"context"
@@ -16,9 +16,9 @@ import (
 const ChannelKey = "channel"
 
 // NewDfHandler creates a handler that supports both pretty and JSON modes
-func NewDfHandler(opts *LogOptions) slog.Handler {
+func NewDfHandler(opts *Options) slog.Handler {
 	if opts == nil {
-		opts = DefaultLogOptions()
+		opts = DefaultOptions()
 	}
 
 	output := opts.Output
@@ -39,7 +39,7 @@ func NewDfHandler(opts *LogOptions) slog.Handler {
 // PrettyHandler is a direct port of pfxlog's PrettyHandler for df
 type PrettyHandler struct {
 	level       slog.Level
-	options     *LogOptions
+	options     *Options
 	output      io.Writer
 	channelName string // optional channel name to display
 	lock        sync.Mutex
@@ -47,12 +47,12 @@ type PrettyHandler struct {
 }
 
 // NewPrettyHandler creates a new pretty handler - direct port from pfxlog
-func NewPrettyHandler(level slog.Level, options *LogOptions) slog.Handler {
+func NewPrettyHandler(level slog.Level, options *Options) slog.Handler {
 	return NewPrettyHandlerWithChannel(level, options, "")
 }
 
 // NewPrettyHandlerWithChannel creates a pretty handler with an optional channel name
-func NewPrettyHandlerWithChannel(level slog.Level, options *LogOptions, channelName string) slog.Handler {
+func NewPrettyHandlerWithChannel(level slog.Level, options *Options, channelName string) slog.Handler {
 	output := options.Output
 	if output == nil {
 		output = os.Stdout

@@ -1,4 +1,4 @@
-# df_14_logging
+# dlf_1_basics
 
 this example demonstrates the structured logging capabilities of df, which are based on the pfxlog library semantics. the logging system provides a builder pattern for contextual logging, all built on go's standard `slog` package.
 
@@ -23,7 +23,7 @@ the logging system supports two output modes:
 ## run the example
 
 ```bash
-cd examples/df_14_logging
+cd examples/dl_1_basics
 go run main.go
 ```
 

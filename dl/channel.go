@@ -1,4 +1,4 @@
-package df
+package dl
 
 import (
 	"log/slog"
@@ -6,23 +6,23 @@ import (
 	"sync"
 )
 
-// LogChannel represents a configured logging channel with its options and logger
-type LogChannel struct {
+// Channel represents a configured logging channel with its options and logger
+type Channel struct {
 	Logger  *slog.Logger
-	Options *LogOptions
+	Options *Options
 }
 
-// LogChannelManager manages per-channel logging with independent destinations
-type LogChannelManager struct {
-	channels       map[string]*LogChannel
-	defaultChannel *LogChannel
+// ChannelManager manages per-channel logging with independent destinations
+type ChannelManager struct {
+	channels       map[string]*Channel
+	defaultChannel *Channel
 	mu             sync.RWMutex
 }
 
-// NewLogChannelManager creates a new channel log manager
-func NewLogChannelManager(defaultOpts *LogOptions) *LogChannelManager {
+// NewChannelManager creates a new channel log manager
+func NewChannelManager(defaultOpts *Options) *ChannelManager {
 	if defaultOpts == nil {
-		defaultOpts = DefaultLogOptions()
+		defaultOpts = DefaultOptions()
 	}
 
 	// create the default logger
@@ -33,9 +33,9 @@ func NewLogChannelManager(defaultOpts *LogOptions) *LogChannelManager {
 		defaultLogger = slog.New(NewDfHandler(defaultOpts))
 	}
 
-	return &LogChannelManager{
-		channels: make(map[string]*LogChannel),
-		defaultChannel: &LogChannel{
+	return &ChannelManager{
+		channels: make(map[string]*Channel),
+		defaultChannel: &Channel{
 			Logger:  defaultLogger,
 			Options: defaultOpts,
 		},
@@ -43,36 +43,36 @@ func NewLogChannelManager(defaultOpts *LogOptions) *LogChannelManager {
 }
 
 // GetDefaultLogger returns the default logger
-func (cm *LogChannelManager) GetDefaultLogger() *slog.Logger {
+func (cm *ChannelManager) GetDefaultLogger() *slog.Logger {
 	cm.mu.RLock()
 	defer cm.mu.RUnlock()
 	return cm.defaultChannel.Logger
 }
 
 // GetDefaultOptions returns a copy of the default log options
-func (cm *LogChannelManager) GetDefaultOptions() *LogOptions {
+func (cm *ChannelManager) GetDefaultOptions() *Options {
 	cm.mu.RLock()
 	defer cm.mu.RUnlock()
-	return cm.copyLogOptions(cm.defaultChannel.Options)
+	return cm.copyOptions(cm.defaultChannel.Options)
 }
 
 // GetDefaultChannel returns a copy of the default log channel
-func (cm *LogChannelManager) GetDefaultChannel() *LogChannel {
+func (cm *ChannelManager) GetDefaultChannel() *Channel {
 	cm.mu.RLock()
 	defer cm.mu.RUnlock()
-	return &LogChannel{
+	return &Channel{
 		Logger:  cm.defaultChannel.Logger,
-		Options: cm.copyLogOptions(cm.defaultChannel.Options),
+		Options: cm.copyOptions(cm.defaultChannel.Options),
 	}
 }
 
 // ConfigureDefaultChannel updates the default options and recreates the default logger
-func (cm *LogChannelManager) ConfigureDefaultChannel(opts *LogOptions) {
+func (cm *ChannelManager) ConfigureDefaultChannel(opts *Options) {
 	cm.mu.Lock()
 	defer cm.mu.Unlock()
 
 	if opts == nil {
-		opts = DefaultLogOptions()
+		opts = DefaultOptions()
 	}
 
 	// recreate default logger
@@ -83,14 +83,14 @@ func (cm *LogChannelManager) ConfigureDefaultChannel(opts *LogOptions) {
 		defaultLogger = slog.New(NewDfHandler(opts))
 	}
 
-	cm.defaultChannel = &LogChannel{
+	cm.defaultChannel = &Channel{
 		Logger:  defaultLogger,
-		Options: cm.copyLogOptions(opts),
+		Options: cm.copyOptions(opts),
 	}
 }
 
 // IsChannelConfigured returns true if the channel has been explicitly configured
-func (cm *LogChannelManager) IsChannelConfigured(name string) bool {
+func (cm *ChannelManager) IsChannelConfigured(name string) bool {
 	cm.mu.RLock()
 	defer cm.mu.RUnlock()
 	_, exists := cm.channels[name]
@@ -98,7 +98,7 @@ func (cm *LogChannelManager) IsChannelConfigured(name string) bool {
 }
 
 // GetChannelLogger returns a logger for the specified channel
-func (cm *LogChannelManager) GetChannelLogger(name string) *slog.Logger {
+func (cm *ChannelManager) GetChannelLogger(name string) *slog.Logger {
 	cm.mu.RLock()
 	defer cm.mu.RUnlock()
 
@@ -111,56 +111,56 @@ func (cm *LogChannelManager) GetChannelLogger(name string) *slog.Logger {
 
 // GetChannelOptions returns a copy of the options for a specific channel
 // Returns nil if the channel is not configured
-func (cm *LogChannelManager) GetChannelOptions(name string) *LogOptions {
+func (cm *ChannelManager) GetChannelOptions(name string) *Options {
 	cm.mu.RLock()
 	defer cm.mu.RUnlock()
 
 	if channel, exists := cm.channels[name]; exists {
-		return cm.copyLogOptions(channel.Options)
+		return cm.copyOptions(channel.Options)
 	}
 	return nil
 }
 
-// GetChannel returns the full LogChannel for a specific channel
+// GetChannel returns the full Channel for a specific channel
 // Returns nil if the channel is not configured
-func (cm *LogChannelManager) GetChannel(name string) *LogChannel {
+func (cm *ChannelManager) GetChannel(name string) *Channel {
 	cm.mu.RLock()
 	defer cm.mu.RUnlock()
 
 	if channel, exists := cm.channels[name]; exists {
-		return &LogChannel{
+		return &Channel{
 			Logger:  channel.Logger,
-			Options: cm.copyLogOptions(channel.Options),
+			Options: cm.copyOptions(channel.Options),
 		}
 	}
 	return nil
 }
 
 // ConfigureChannel sets a specific logger configuration for a channel
-func (cm *LogChannelManager) ConfigureChannel(name string, opts *LogOptions) {
+func (cm *ChannelManager) ConfigureChannel(name string, opts *Options) {
 	cm.mu.Lock()
 	defer cm.mu.Unlock()
 
 	if opts == nil {
-		opts = DefaultLogOptions()
+		opts = DefaultOptions()
 	}
 
 	handler := cm.createHandlerForChannel(name, opts)
-	cm.channels[name] = &LogChannel{
+	cm.channels[name] = &Channel{
 		Logger:  slog.New(handler),
-		Options: cm.copyLogOptions(opts),
+		Options: cm.copyOptions(opts),
 	}
 }
 
 // RemoveChannel removes a channel configuration, causing it to revert to defaults
-func (cm *LogChannelManager) RemoveChannel(name string) {
+func (cm *ChannelManager) RemoveChannel(name string) {
 	cm.mu.Lock()
 	defer cm.mu.Unlock()
 	delete(cm.channels, name)
 }
 
 // ListConfiguredChannels returns the names of all configured channels
-func (cm *LogChannelManager) ListConfiguredChannels() []string {
+func (cm *ChannelManager) ListConfiguredChannels() []string {
 	cm.mu.RLock()
 	defer cm.mu.RUnlock()
 
@@ -172,7 +172,7 @@ func (cm *LogChannelManager) ListConfiguredChannels() []string {
 }
 
 // createHandlerForChannel creates a handler for a specific channel
-func (cm *LogChannelManager) createHandlerForChannel(channelName string, opts *LogOptions) slog.Handler {
+func (cm *ChannelManager) createHandlerForChannel(channelName string, opts *Options) slog.Handler {
 	if opts.CustomHandler != nil {
 		return opts.CustomHandler
 	}
@@ -192,15 +192,15 @@ func (cm *LogChannelManager) createHandlerForChannel(channelName string, opts *L
 	return NewPrettyHandlerWithChannel(opts.Level, opts, channelName)
 }
 
-// copyLogOptions creates a deep copy of LogOptions
-func (cm *LogChannelManager) copyLogOptions(opts *LogOptions) *LogOptions {
+// copyOptions creates a deep copy of Options
+func (cm *ChannelManager) copyOptions(opts *Options) *Options {
 	if opts == nil {
 		return nil
 	}
 
 	out := *opts
-	// note: this assumes LogOptions fields are either value types or
-	// interfaces that don't need deep copying. if LogOptions contains
+	// note: this assumes Options fields are either value types or
+	// interfaces that don't need deep copying. if Options contains
 	// pointer fields that should be deep copied, add that logic here.
 	return &out
 }

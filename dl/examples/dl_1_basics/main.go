@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/michaelquigley/df"
+	"github.com/michaelquigley/df/dl"
 )
 
 // Config defines the application configuration structure
@@ -38,22 +39,22 @@ func demonstrateBasicLogging() {
 	println("=== basic logging demonstration ===")
 
 	// initialize logging with default options
-	df.InitLogging()
+	dl.Init()
 
 	// global logging functions
-	df.Log().Debug("this is a debug message")
-	df.Log().Info("application starting up")
-	df.Log().Warn("this is a warning message")
-	df.Log().Error("this is an error message")
+	dl.Log().Debug("this is a debug message")
+	dl.Log().Info("application starting up")
+	dl.Log().Warn("this is a warning message")
+	dl.Log().Error("this is an error message")
 
 	// formatted logging
 	username := "alice"
 	sessionId := "abc-123"
-	df.Log().Infof("user %s logged in with session %s", username, sessionId)
-	df.Log().Debugf("processing %d items", 42)
+	dl.Log().Infof("user %s logged in with session %s", username, sessionId)
+	dl.Log().Debugf("processing %d items", 42)
 
 	// structured logging with key-value pairs
-	df.Log().
+	dl.Log().
 		With("user", username).
 		With("action", "login").
 		With("duration", 150*time.Millisecond).
@@ -67,9 +68,9 @@ func demonstrateChannelLogging() {
 	println("=== channel-based logging demonstration ===")
 
 	// create loggers for different channels
-	authLogger := df.ChannelLog("auth")
-	dbLogger := df.ChannelLog("database")
-	httpLogger := df.ChannelLog("http")
+	authLogger := dl.ChannelLog("auth")
+	dbLogger := dl.ChannelLog("database")
+	httpLogger := dl.ChannelLog("http")
 
 	// log messages with different channels
 	authLogger.With("user", "bob").Info("user authentication successful")
@@ -87,35 +88,35 @@ func demonstratePerChannelConfiguration() {
 	println("=== per-channel configuration demonstration ===")
 
 	// configure different destinations for different channels
-	
+
 	// create a temporary file for database logs
 	dbFile, err := os.CreateTemp("", "database-*.log")
 	if err != nil {
-		df.Log().With("error", err).Error("failed to create temp file")
+		dl.Log().With("error", err).Error("failed to create temp file")
 		return
 	}
 	defer os.Remove(dbFile.Name())
 	defer dbFile.Close()
 
 	// configure database channel to log to file
-	df.ConfigureChannel("database", df.DefaultLogOptions().SetOutput(dbFile))
+	dl.ConfigureChannel("database", dl.DefaultOptions().SetOutput(dbFile))
 
 	// configure http channel for JSON format to stderr
-	df.ConfigureChannel("http", df.DefaultLogOptions().JSON().SetOutput(os.Stderr))
+	dl.ConfigureChannel("http", dl.DefaultOptions().JSON().SetOutput(os.Stderr))
 
 	// configure error channel with different colors
-	df.ConfigureChannel("errors", df.DefaultLogOptions().Color())
+	dl.ConfigureChannel("errors", dl.DefaultOptions().Color())
 
 	// now log to different channels
-	df.ChannelLog("database").Info("database connection established")
-	df.ChannelLog("database").With("query", "SELECT * FROM users").Debug("executing query")
+	dl.ChannelLog("database").Info("database connection established")
+	dl.ChannelLog("database").With("query", "SELECT * FROM users").Debug("executing query")
 
-	df.ChannelLog("http").With("method", "GET").With("path", "/api/users").Info("http request received")
+	dl.ChannelLog("http").With("method", "GET").With("path", "/api/users").Info("http request received")
 
-	df.ChannelLog("errors").With("code", 500).Error("internal server error")
+	dl.ChannelLog("errors").With("code", 500).Error("internal server error")
 
 	// normal channel logging still goes to console
-	df.ChannelLog("auth").Info("user authenticated successfully")
+	dl.ChannelLog("auth").Info("user authenticated successfully")
 
 	// show what was written to the database log file
 	dbFile.Seek(0, 0)
@@ -133,7 +134,7 @@ func demonstrateContextualLogging() {
 	println("=== contextual logging demonstration ===")
 
 	// create a logger with persistent context
-	requestLogger := df.Log().
+	requestLogger := dl.Log().
 		With("request_id", "req-456").
 		With("user_id", "user-789")
 
@@ -154,21 +155,21 @@ func demonstrateJSONLogging() {
 	println("=== json logging demonstration ===")
 
 	// configure logging for json output
-	jsonOpts := df.DefaultLogOptions().JSON().NoColor()
+	jsonOpts := dl.DefaultOptions().JSON().NoColor()
 	jsonOpts.Level = slog.LevelDebug
-	df.InitLogging(jsonOpts)
+	dl.Init(jsonOpts)
 
 	// log some messages in json format
-	df.Log().Info("json logging enabled")
+	dl.Log().Info("json logging enabled")
 
-	df.ChannelLog("api").
+	dl.ChannelLog("api").
 		With("method", "POST").
 		With("path", "/api/orders").
 		With("status", 400).
 		With("error", "invalid payload").
 		Error("request processing failed")
 
-	df.Log().
+	dl.Log().
 		With("component", "payment").
 		With("transaction_id", "txn-999").
 		With("delay", 5*time.Second).
@@ -192,17 +193,17 @@ func demonstrateApplicationIntegration() {
 
 	// initialize the application
 	if err := app.Build(); err != nil {
-		df.Log().With("error", err).Error("failed to build application")
+		dl.Log().With("error", err).Error("failed to build application")
 		return
 	}
 
 	if err := app.Link(); err != nil {
-		df.Log().With("error", err).Error("failed to link application")
+		dl.Log().With("error", err).Error("failed to link application")
 		return
 	}
 
 	// logging is now configured via the application container
-	df.Log().With("app", cfg.AppName).Info("application initialized successfully")
+	dl.Log().With("app", cfg.AppName).Info("application initialized successfully")
 
 	// demonstrate that logger is available in container
 	logger, found := df.Get[*slog.Logger](app.C)
@@ -219,17 +220,17 @@ func (f *LoggingFactory) Build(a *df.Application[Config]) error {
 	cfg := a.Cfg
 
 	// create logging options based on configuration
-	opts := df.DefaultLogOptions()
+	opts := dl.DefaultOptions()
 	if cfg.Debug {
 		opts.Level = slog.LevelDebug
 	}
 
 	// initialize logging
-	df.InitLogging(opts)
+	dl.Init(opts)
 
 	// register logger in container for dependency injection
 	// for demonstration, create a new logger instance with the same options
-	handler := df.NewDfHandler(opts)
+	handler := dl.NewDfHandler(opts)
 	logger := slog.New(handler)
 	df.SetAs[*slog.Logger](a.C, logger)
 

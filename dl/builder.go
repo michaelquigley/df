@@ -1,4 +1,4 @@
-package df
+package dl
 
 import (
 	"context"
@@ -9,24 +9,24 @@ import (
 	"time"
 )
 
-// LogBuilder provides a fluent API for contextual logging, allowing attributes to be added
+// Builder provides a fluent API for contextual logging, allowing attributes to be added
 // before logging messages. preserves pfxlog's builder pattern semantics.
-type LogBuilder struct {
+type Builder struct {
 	logger *slog.Logger
 	attrs  []slog.Attr
 }
 
 // With adds a key-value pair to the log context and returns a new builder.
 // this allows for fluent chaining of contextual information.
-func (b *LogBuilder) With(key string, value any) *LogBuilder {
-	return &LogBuilder{
+func (b *Builder) With(key string, value any) *Builder {
+	return &Builder{
 		logger: b.logger,
 		attrs:  append(b.attrs, slog.Any(key, value)),
 	}
 }
 
 // Debug logs a debug message with the accumulated attributes
-func (b *LogBuilder) Debug(msg string) {
+func (b *Builder) Debug(msg string) {
 	if !b.logger.Enabled(context.Background(), slog.LevelDebug) {
 		return
 	}
@@ -40,7 +40,7 @@ func (b *LogBuilder) Debug(msg string) {
 }
 
 // Debugf logs a formatted debug message with the accumulated attributes
-func (b *LogBuilder) Debugf(format string, args ...any) {
+func (b *Builder) Debugf(format string, args ...any) {
 	if !b.logger.Enabled(context.Background(), slog.LevelDebug) {
 		return
 	}
@@ -54,7 +54,7 @@ func (b *LogBuilder) Debugf(format string, args ...any) {
 }
 
 // Info logs an info message with the accumulated attributes
-func (b *LogBuilder) Info(msg string) {
+func (b *Builder) Info(msg string) {
 	if !b.logger.Enabled(context.Background(), slog.LevelInfo) {
 		return
 	}
@@ -68,7 +68,7 @@ func (b *LogBuilder) Info(msg string) {
 }
 
 // Infof logs a formatted info message with the accumulated attributes
-func (b *LogBuilder) Infof(format string, args ...any) {
+func (b *Builder) Infof(format string, args ...any) {
 	if !b.logger.Enabled(context.Background(), slog.LevelInfo) {
 		return
 	}
@@ -82,7 +82,7 @@ func (b *LogBuilder) Infof(format string, args ...any) {
 }
 
 // Warn logs a warning message with the accumulated attributes
-func (b *LogBuilder) Warn(msg string) {
+func (b *Builder) Warn(msg string) {
 	if !b.logger.Enabled(context.Background(), slog.LevelWarn) {
 		return
 	}
@@ -96,7 +96,7 @@ func (b *LogBuilder) Warn(msg string) {
 }
 
 // Warnf logs a formatted warning message with the accumulated attributes
-func (b *LogBuilder) Warnf(format string, args ...any) {
+func (b *Builder) Warnf(format string, args ...any) {
 	if !b.logger.Enabled(context.Background(), slog.LevelWarn) {
 		return
 	}
@@ -110,7 +110,7 @@ func (b *LogBuilder) Warnf(format string, args ...any) {
 }
 
 // Error logs an error message with the accumulated attributes
-func (b *LogBuilder) Error(msg string) {
+func (b *Builder) Error(msg string) {
 	if !b.logger.Enabled(context.Background(), slog.LevelError) {
 		return
 	}
@@ -124,7 +124,7 @@ func (b *LogBuilder) Error(msg string) {
 }
 
 // Errorf logs a formatted error message with the accumulated attributes
-func (b *LogBuilder) Errorf(format string, args ...any) {
+func (b *Builder) Errorf(format string, args ...any) {
 	if !b.logger.Enabled(context.Background(), slog.LevelError) {
 		return
 	}
@@ -138,7 +138,7 @@ func (b *LogBuilder) Errorf(format string, args ...any) {
 }
 
 // Fatal logs a fatal error message with the accumulated attributes and exits the program
-func (b *LogBuilder) Fatal(msg string) {
+func (b *Builder) Fatal(msg string) {
 	if !b.logger.Enabled(context.Background(), slog.LevelError) {
 		return
 	}
@@ -153,7 +153,7 @@ func (b *LogBuilder) Fatal(msg string) {
 }
 
 // Fatalf logs a formatted fatal error message with the accumulated attributes and exits the program
-func (b *LogBuilder) Fatalf(format string, args ...any) {
+func (b *Builder) Fatalf(format string, args ...any) {
 	if !b.logger.Enabled(context.Background(), slog.LevelError) {
 		return
 	}

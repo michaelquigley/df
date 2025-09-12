@@ -1,4 +1,4 @@
-package df
+package dl
 
 import (
 	"io"
@@ -8,8 +8,8 @@ import (
 	"time"
 )
 
-// LogOptions configures the df logging system, compatible with pfxlog.Options
-type LogOptions struct {
+// Options configures the df logging system, compatible with pfxlog.Options
+type Options struct {
 	Level           slog.Level
 	UseJSON         bool
 	UseColor        bool
@@ -38,9 +38,9 @@ type LogOptions struct {
 	DebugColor     string
 }
 
-// DefaultLogOptions creates a default configuration with sensible defaults
-func DefaultLogOptions() *LogOptions {
-	out := &LogOptions{
+// DefaultOptions creates a default configuration with sensible defaults
+func DefaultOptions() *Options {
+	out := &Options{
 		Level:           slog.LevelInfo,
 		UseColor:        isTerminal() && shouldUseColor(),
 		TimestampFormat: "2006-01-02 15:04:05.000",
@@ -70,43 +70,43 @@ func DefaultLogOptions() *LogOptions {
 }
 
 // SetTrimPrefix sets the function trim prefix
-func (o *LogOptions) SetTrimPrefix(prefix string) *LogOptions {
+func (o *Options) SetTrimPrefix(prefix string) *Options {
 	o.TrimPrefix = prefix
 	return o
 }
 
 // SetLevel allows setting the level threshold
-func (o *LogOptions) SetLevel(level slog.Level) *LogOptions {
+func (o *Options) SetLevel(level slog.Level) *Options {
 	o.Level = level
 	return o
 }
 
 // Color enables colored output with default color scheme
-func (o *LogOptions) Color() *LogOptions {
+func (o *Options) Color() *Options {
 	o.UseColor = true
 	return o
 }
 
 // NoColor disables colored output
-func (o *LogOptions) NoColor() *LogOptions {
+func (o *Options) NoColor() *Options {
 	o.UseColor = false
 	return o
 }
 
 // JSON enables JSON output format
-func (o *LogOptions) JSON() *LogOptions {
+func (o *Options) JSON() *Options {
 	o.UseJSON = true
 	return o
 }
 
 // Pretty enables pretty-printed output format (default)
-func (o *LogOptions) Pretty() *LogOptions {
+func (o *Options) Pretty() *Options {
 	o.UseJSON = false
 	return o
 }
 
 // SetOutput sets the output destination
-func (o *LogOptions) SetOutput(w io.Writer) *LogOptions {
+func (o *Options) SetOutput(w io.Writer) *Options {
 	o.Output = w
 	return o
 }
@@ -131,7 +131,7 @@ func shouldUseColor() bool {
 }
 
 // getDefaultFgColor returns the default foreground color (reset sequence)
-func (o *LogOptions) getDefaultFgColor() string {
+func (o *Options) getDefaultFgColor() string {
 	if o.UseColor {
 		return o.DefaultFgColor
 	}
