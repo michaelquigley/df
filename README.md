@@ -8,7 +8,7 @@ The `df` (dynamic foundation) framework enables applications that can reconfigur
 
 The `df` framework consists of three complementary packages:
 
-### [`dd`](dd/) - Dynamic Data
+### [`dd`](dd/) - dynamic foundation for data
 **Convert between Go structs and maps with ease**
 
 Bidirectional data binding between Go structs and `map[string]any`. Since maps are foundational to all data systems, this enables seamless integration with any network protocol, database, object store, or file format.
@@ -23,7 +23,7 @@ userData := map[string]any{"name": "Alice", "age": 25}
 user, _ := dd.New[User](userData)
 ```
 
-### [`dl`](dl/) - Dynamic Logging  
+### [`dl`](dl/) - dynamic foundation for logging
 **Intelligent channel-based logging built on Go's slog**
 
 Route different log categories to independent destinations with per-channel configuration. Database logs can go to files, HTTP logs to JSON format, errors to colored console output.
@@ -35,7 +35,7 @@ dl.ChannelLog("http").With("status", 200).Info("request processed")
 dl.ChannelLog("errors").With("code", 500).Error("internal error")
 ```
 
-### [`da`](da/) - Dynamic Application
+### [`da`](da/) - dynamic foundation for applications
 **Easily manage massive monoliths in code**
 
 Dependency injection and lifecycle management for complex applications. Factory pattern for configuration-driven object creation, automatic dependency resolution, and container introspection.
