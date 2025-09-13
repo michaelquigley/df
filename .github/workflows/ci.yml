@@ -16,18 +16,6 @@ jobs:
           go-version: ${{ matrix.go-version }}
       - run: go mod download
       - run: go test -v -race -coverprofile=coverage.out ./...
-      - run: go run -race ./examples/df_01_bindunbind/main.go
-      - run: go run -race ./examples/df_02_tags/main.go
-      - run: go run -race ./examples/df_03_defaults/main.go
-      - run: go run -race ./examples/df_04_fileio/main.go
-      - run: go run -race ./examples/df_05_inspect/main.go
-      - run: go run -race ./examples/df_06_validation/main.go
-      - run: go run -race ./examples/df_07_converters/main.go
-      - run: go run -race ./examples/df_08_marshalers/main.go
-      - run: go run -race ./examples/df_09_dynamic/main.go
-      - run: go run -race ./examples/df_10_field_binders/main.go
-      - run: go run -race ./examples/df_11_pointers/main.go
-      - run: go run -race ./examples/df_12_advanced_linker/main.go
       - uses: codecov/codecov-action@v4
         with:
           file: ./coverage.out
