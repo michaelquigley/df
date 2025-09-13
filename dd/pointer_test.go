@@ -8,27 +8,27 @@ import (
 
 // test types that implement identifiable
 type Node struct {
-	Id       string            `df:"id"`
-	Name     string            `df:"name"`
-	Parent   *Pointer[*Node]   `df:"parent,omitempty"`
-	Children []*Pointer[*Node] `df:"children,omitempty"`
+	Id       string            `dd:"id"`
+	Name     string            `dd:"name"`
+	Parent   *Pointer[*Node]   `dd:"parent,omitempty"`
+	Children []*Pointer[*Node] `dd:"children,omitempty"`
 }
 
 func (n *Node) GetId() string { return n.Id }
 
 type User struct {
-	Id   string `df:"id"`
-	Name string `df:"name"`
-	Age  int    `df:"age"`
+	Id   string `dd:"id"`
+	Name string `dd:"name"`
+	Age  int    `dd:"age"`
 }
 
 func (u *User) GetId() string { return u.Id }
 
 type Document struct {
-	Id     string          `df:"id"`
-	Title  string          `df:"title"`
-	Author *Pointer[*User] `df:"author"`
-	Editor *Pointer[*User] `df:"editor,omitempty"`
+	Id     string          `dd:"id"`
+	Title  string          `dd:"title"`
+	Author *Pointer[*User] `dd:"author"`
+	Editor *Pointer[*User] `dd:"editor,omitempty"`
 }
 
 func (d *Document) GetId() string { return d.Id }
@@ -98,7 +98,7 @@ func TestPointerLinkingWithCycles(t *testing.T) {
 	}
 
 	type TestContainer struct {
-		Nodes []*Node `df:"nodes"`
+		Nodes []*Node `dd:"nodes"`
 	}
 
 	var container TestContainer
@@ -161,8 +161,8 @@ func TestMultipleTypesWithSameIDs(t *testing.T) {
 	}
 
 	type TestContainer struct {
-		Users     []*User     `df:"users"`
-		Documents []*Document `df:"documents"`
+		Users     []*User     `dd:"users"`
+		Documents []*Document `dd:"documents"`
 	}
 
 	var container TestContainer
@@ -380,8 +380,8 @@ func TestUnbindPointerSlices(t *testing.T) {
 func TestCompleteUnbindRoundTrip(t *testing.T) {
 	// start with objects, bind, link, unbind, and verify the result
 	type TestContainer struct {
-		Users     []*User     `df:"users"`
-		Documents []*Document `df:"documents"`
+		Users     []*User     `dd:"users"`
+		Documents []*Document `dd:"documents"`
 	}
 
 	container := TestContainer{
@@ -481,7 +481,7 @@ func TestRoundTripWithPointers(t *testing.T) {
 	}
 
 	type TestContainer struct {
-		Nodes []*Node `df:"nodes"`
+		Nodes []*Node `dd:"nodes"`
 	}
 
 	// bind and link
@@ -597,7 +597,7 @@ func TestLinkerBasicFunctionality(t *testing.T) {
 	}
 
 	type TestContainer struct {
-		Nodes []*Node `df:"nodes"`
+		Nodes []*Node `dd:"nodes"`
 	}
 
 	var container TestContainer
@@ -632,7 +632,7 @@ func TestLinkerBasicFunctionality(t *testing.T) {
 
 func TestLinkerCaching(t *testing.T) {
 	type TestContainer struct {
-		Nodes []*Node `df:"nodes"`
+		Nodes []*Node `dd:"nodes"`
 	}
 
 	// create test data that we'll use twice
@@ -732,11 +732,11 @@ func TestLinkerMultiStage(t *testing.T) {
 	}
 
 	type Source1 struct {
-		Users []*User `df:"users"`
+		Users []*User `dd:"users"`
 	}
 
 	type Source2 struct {
-		Documents []*Document `df:"documents"`
+		Documents []*Document `dd:"documents"`
 	}
 
 	var s1 Source1
@@ -850,11 +850,11 @@ func TestVariadicLink(t *testing.T) {
 	}
 
 	type Source1 struct {
-		Users []*User `df:"users"`
+		Users []*User `dd:"users"`
 	}
 
 	type Source2 struct {
-		Documents []*Document `df:"documents"`
+		Documents []*Document `dd:"documents"`
 	}
 
 	var s1 Source1
@@ -912,7 +912,7 @@ func TestVariadicLinkerLink(t *testing.T) {
 	}
 
 	type TestContainer struct {
-		Nodes []*Node `df:"nodes"`
+		Nodes []*Node `dd:"nodes"`
 	}
 
 	var container1, container2 TestContainer
@@ -975,11 +975,11 @@ func TestVariadicRegister(t *testing.T) {
 	}
 
 	type Source1 struct {
-		Users []*User `df:"users"`
+		Users []*User `dd:"users"`
 	}
 
 	type Source2 struct {
-		Documents []*Document `df:"documents"`
+		Documents []*Document `dd:"documents"`
 	}
 
 	var s1 Source1

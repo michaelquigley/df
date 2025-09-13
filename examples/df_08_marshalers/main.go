@@ -16,7 +16,7 @@ type CustomTime struct {
 	OriginalFormat string
 }
 
-func (ct *CustomTime) UnmarshalDf(data map[string]any) error {
+func (ct *CustomTime) UnmarshalDd(data map[string]any) error {
 	timeValue, ok := data["time"]
 	if !ok {
 		return fmt.Errorf("missing required 'time' field")
@@ -58,7 +58,7 @@ func (ct *CustomTime) UnmarshalDf(data map[string]any) error {
 	return nil
 }
 
-func (ct CustomTime) MarshalDf() (map[string]any, error) {
+func (ct CustomTime) MarshalDd() (map[string]any, error) {
 	return map[string]any{
 		"time":            ct.Time.Format(time.RFC3339),
 		"original_format": ct.OriginalFormat,
@@ -73,7 +73,7 @@ type ContactInfo struct {
 	Name  string
 }
 
-func (ci *ContactInfo) UnmarshalDf(data map[string]any) error {
+func (ci *ContactInfo) UnmarshalDd(data map[string]any) error {
 	// extract and validate email
 	if emailValue, exists := data["email"]; exists {
 		email, ok := emailValue.(string)
@@ -128,7 +128,7 @@ func (ci *ContactInfo) UnmarshalDf(data map[string]any) error {
 	return nil
 }
 
-func (ci ContactInfo) MarshalDf() (map[string]any, error) {
+func (ci ContactInfo) MarshalDd() (map[string]any, error) {
 	result := map[string]any{
 		"name": ci.Name,
 	}
@@ -158,7 +158,7 @@ type LegacyUser struct {
 	Settings map[string]string
 }
 
-func (lu *LegacyUser) UnmarshalDf(data map[string]any) error {
+func (lu *LegacyUser) UnmarshalDd(data map[string]any) error {
 	// handle legacy ID formats
 	if idValue, exists := data["id"]; exists {
 		switch v := idValue.(type) {
@@ -211,7 +211,7 @@ func (lu *LegacyUser) UnmarshalDf(data map[string]any) error {
 
 	// bind contact using its unmarshaler
 	if len(contactData) > 0 {
-		if err := lu.Contact.UnmarshalDf(contactData); err != nil {
+		if err := lu.Contact.UnmarshalDd(contactData); err != nil {
 			return fmt.Errorf("failed to bind contact: %v", err)
 		}
 	}
@@ -236,9 +236,9 @@ func (lu *LegacyUser) UnmarshalDf(data map[string]any) error {
 	return nil
 }
 
-func (lu LegacyUser) MarshalDf() (map[string]any, error) {
+func (lu LegacyUser) MarshalDd() (map[string]any, error) {
 	// marshal contact using its marshaler
-	contactData, err := lu.Contact.MarshalDf()
+	contactData, err := lu.Contact.MarshalDd()
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal contact: %v", err)
 	}
@@ -280,7 +280,7 @@ func main() {
 
 	for i, data := range timeData {
 		var ct CustomTime
-		if err := ct.UnmarshalDf(data); err != nil {
+		if err := ct.UnmarshalDd(data); err != nil {
 			fmt.Printf("failed to parse time %d: %v\n", i+1, err)
 			continue
 		}
@@ -312,7 +312,7 @@ func main() {
 		fmt.Printf("\ncontact test %d:\n", i+1)
 		fmt.Printf("  input: %+v\n", data)
 
-		if err := contact.UnmarshalDf(data); err != nil {
+		if err := contact.UnmarshalDd(data); err != nil {
 			fmt.Printf("  error: %v\n", err)
 			continue
 		}
@@ -321,7 +321,7 @@ func main() {
 			contact.Name, contact.Email, contact.Phone)
 
 		// demonstrate marshaling
-		marshaled, err := contact.MarshalDf()
+		marshaled, err := contact.MarshalDd()
 		if err != nil {
 			fmt.Printf("  marshal error: %v\n", err)
 			continue
@@ -364,7 +364,7 @@ func main() {
 		fmt.Printf("\nlegacy user %d:\n", i+1)
 		fmt.Printf("  input format: %+v\n", data)
 
-		if err := user.UnmarshalDf(data); err != nil {
+		if err := user.UnmarshalDd(data); err != nil {
 			fmt.Printf("  error: %v\n", err)
 			continue
 		}
@@ -373,7 +373,7 @@ func main() {
 		fmt.Printf("  contact: %s (%s)\n", user.Contact.Name, user.Contact.Email)
 
 		// demonstrate marshaling to modern format
-		marshaled, err := user.MarshalDf()
+		marshaled, err := user.MarshalDd()
 		if err != nil {
 			fmt.Printf("  marshal error: %v\n", err)
 			continue

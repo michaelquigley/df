@@ -10,9 +10,9 @@ import (
 )
 
 type testConfig struct {
-	Name     string `df:"app_name"`
+	Name     string `dd:"app_name"`
 	Port     int
-	Secret   string `df:"api_key,+secret"`
+	Secret   string `dd:"api_key,+secret"`
 	Timeout  time.Duration
 	Enabled  bool
 	Database *testDB
@@ -22,13 +22,13 @@ type testConfig struct {
 type testDB struct {
 	Host     string
 	Username string
-	Password string `df:"+secret"`
+	Password string `dd:"+secret"`
 	Port     int
 }
 
 type testService struct {
 	Name string
-	URL  string `df:"url"`
+	URL  string `dd:"url"`
 }
 
 func TestInspect_BasicStruct(t *testing.T) {
@@ -226,9 +226,9 @@ func TestInspect_MaxDepth(t *testing.T) {
 }
 
 type skippedFieldStruct struct {
-	Public   string `df:"public_field"`
-	Hidden   string `df:"-"`
-	Internal string `df:"internal"`
+	Public   string `dd:"public_field"`
+	Hidden   string `dd:"-"`
+	Internal string `dd:"internal"`
 }
 
 func TestInspect_SkippedFields(t *testing.T) {
@@ -249,12 +249,12 @@ func TestInspect_SkippedFields(t *testing.T) {
 }
 
 type primitiveStruct struct {
-	Str     string  `df:"string_field"`
-	Bool    bool    `df:"bool_field"`
-	Int     int     `df:"int_field"`
-	Float   float64 `df:"float_field"`
-	PtrStr  *string `df:"ptr_string_field"`
-	PtrBool *bool   `df:"ptr_bool_field"`
+	Str     string  `dd:"string_field"`
+	Bool    bool    `dd:"bool_field"`
+	Int     int     `dd:"int_field"`
+	Float   float64 `dd:"float_field"`
+	PtrStr  *string `dd:"ptr_string_field"`
+	PtrBool *bool   `dd:"ptr_bool_field"`
 }
 
 func TestInspect_PrimitiveTypes(t *testing.T) {
@@ -323,7 +323,7 @@ func TestInspect_EmptyStruct(t *testing.T) {
 }
 
 type durationStruct struct {
-	Timeout time.Duration `df:"timeout"`
+	Timeout time.Duration `dd:"timeout"`
 }
 
 func TestInspect_Duration(t *testing.T) {

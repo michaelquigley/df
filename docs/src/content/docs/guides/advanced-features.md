@@ -25,9 +25,9 @@ Define concrete types that implement the Dynamic interface:
 ```go
 // Email notification action
 type EmailAction struct {
-    Recipient string `df:"recipient"`
-    Subject   string `df:"subject"`
-    Body      string `df:"body"`
+    Recipient string `dd:"recipient"`
+    Subject   string `dd:"subject"`
+    Body      string `dd:"body"`
 }
 
 func (e EmailAction) Type() string { return "email" }
@@ -41,8 +41,8 @@ func (e EmailAction) ToMap() (map[string]any, error) {
 
 // SMS notification action
 type SMSAction struct {
-    PhoneNumber string `df:"phone_number"`
-    Message     string `df:"message"`
+    PhoneNumber string `dd:"phone_number"`
+    Message     string `dd:"message"`
 }
 
 func (s SMSAction) Type() string { return "sms" }
@@ -55,9 +55,9 @@ func (s SMSAction) ToMap() (map[string]any, error) {
 
 // Webhook action
 type WebhookAction struct {
-    URL     string            `df:"url"`
-    Method  string            `df:"method"`
-    Headers map[string]string `df:"headers"`
+    URL     string            `dd:"url"`
+    Method  string            `dd:"method"`
+    Headers map[string]string `dd:"headers"`
 }
 
 func (w WebhookAction) Type() string { return "webhook" }
@@ -76,11 +76,11 @@ Define structs with Dynamic fields:
 
 ```go
 type Notification struct {
-    ID       string    `df:"id"`
-    Name     string    `df:"name"`
-    Enabled  bool      `df:"enabled"`
-    Action   Dynamic   `df:"action"`  // Polymorphic field
-    Triggers []Dynamic `df:"triggers"` // Slice of polymorphic types
+    ID       string    `dd:"id"`
+    Name     string    `dd:"name"`
+    Enabled  bool      `dd:"enabled"`
+    Action   Dynamic   `dd:"action"`  // Polymorphic field
+    Triggers []Dynamic `dd:"triggers"` // Slice of polymorphic types
 }
 ```
 
@@ -165,10 +165,10 @@ Configure different binders for different fields:
 
 ```go
 type WorkflowStep struct {
-    ID       string  `df:"id"`
-    Name     string  `df:"name"`
-    Action   Dynamic `df:"action"`
-    Condition Dynamic `df:"condition"`
+    ID       string  `dd:"id"`
+    Name     string  `dd:"name"`
+    Action   Dynamic `dd:"action"`
+    Condition Dynamic `dd:"condition"`
 }
 
 opts := &df.Options{
@@ -201,19 +201,19 @@ type Identifiable interface {
 }
 
 type User struct {
-    ID    string `df:"id"`
-    Name  string `df:"name"`
-    Email string `df:"email"`
+    ID    string `dd:"id"`
+    Name  string `dd:"name"`
+    Email string `dd:"email"`
 }
 
 func (u *User) GetId() string { return u.ID }
 
 type Document struct {
-    ID       string             `df:"id"`
-    Title    string             `df:"title"`
-    Content  string             `df:"content"`
-    Author   *df.Pointer[*User] `df:"author"`   // Reference to User
-    Reviewers []df.Pointer[*User] `df:"reviewers"` // Multiple references
+    ID       string             `dd:"id"`
+    Title    string             `dd:"title"`
+    Content  string             `dd:"content"`
+    Author   *df.Pointer[*User] `dd:"author"`   // Reference to User
+    Reviewers []df.Pointer[*User] `dd:"reviewers"` // Multiple references
 }
 
 func (d *Document) GetId() string { return d.ID }
@@ -225,8 +225,8 @@ Object references require a two-phase process: bind then link.
 
 ```go
 type DataContainer struct {
-    Users     []User     `df:"users"`
-    Documents []Document `df:"documents"`
+    Users     []User     `dd:"users"`
+    Documents []Document `dd:"documents"`
 }
 
 func main() {
@@ -292,10 +292,10 @@ df.Pointer handles circular references automatically:
 
 ```go
 type Category struct {
-    ID       string                  `df:"id"`
-    Name     string                  `df:"name"`
-    Parent   *df.Pointer[*Category]  `df:"parent"`
-    Children []df.Pointer[*Category] `df:"children"`
+    ID       string                  `dd:"id"`
+    Name     string                  `dd:"name"`
+    Parent   *df.Pointer[*Category]  `dd:"parent"`
+    Children []df.Pointer[*Category] `dd:"children"`
 }
 
 func (c *Category) GetId() string { return c.ID }
@@ -375,8 +375,8 @@ opts := &df.Options{
 }
 
 type User struct {
-    ID   uuid.UUID `df:"id"`
-    Name string    `df:"name"`
+    ID   uuid.UUID `dd:"id"`
+    Name string    `dd:"name"`
 }
 
 data := map[string]any{
@@ -471,8 +471,8 @@ func (ip IPAddress) MarshalDF() (map[string]any, error) {
 
 // Usage
 type ServerConfig struct {
-    Name string    `df:"name"`
-    IP   IPAddress `df:"ip"`
+    Name string    `dd:"name"`
+    IP   IPAddress `dd:"ip"`
 }
 ```
 
@@ -487,9 +487,9 @@ type Plugin interface {
 }
 
 type FilterPlugin struct {
-    Field     string `df:"field"`
-    Operation string `df:"operation"`
-    Value     any    `df:"value"`
+    Field     string `dd:"field"`
+    Operation string `dd:"operation"`
+    Value     any    `dd:"value"`
 }
 
 func (f FilterPlugin) Type() string { return "filter" }
@@ -507,8 +507,8 @@ func (f FilterPlugin) Execute(context map[string]any) (map[string]any, error) {
 }
 
 type Pipeline struct {
-    Name    string   `df:"name"`
-    Plugins []Plugin `df:"plugins"`
+    Name    string   `dd:"name"`
+    Plugins []Plugin `dd:"plugins"`
 }
 ```
 
@@ -516,9 +516,9 @@ type Pipeline struct {
 
 ```go
 type Template struct {
-    Name      string         `df:"name"`
-    Variables map[string]any `df:"variables"`
-    Template  string         `df:"template"`
+    Name      string         `dd:"name"`
+    Variables map[string]any `dd:"variables"`
+    Template  string         `dd:"template"`
 }
 
 func (t *Template) UnmarshalDF(data map[string]any) error {
@@ -547,13 +547,13 @@ func (t *Template) UnmarshalDF(data map[string]any) error {
 
 ```go
 type ConditionalConfig struct {
-    Environment string `df:"environment"`
+    Environment string `dd:"environment"`
     
     // Only bind these if environment is "production"
-    Production *ProductionConfig `df:"production,condition=environment==production"`
+    Production *ProductionConfig `dd:"production,condition=environment==production"`
     
     // Only bind these if environment is "development"  
-    Development *DevelopmentConfig `df:"development,condition=environment==development"`
+    Development *DevelopmentConfig `dd:"development,condition=environment==development"`
 }
 
 // Custom binding logic

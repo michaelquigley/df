@@ -12,7 +12,7 @@ type EmailAction struct {
 	To      string
 	Subject string
 	Body    string
-	IsHTML  bool `df:"html"`
+	IsHTML  bool `dd:"html"`
 }
 
 func (e EmailAction) Type() string { return "email" }

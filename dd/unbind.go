@@ -8,8 +8,8 @@ import (
 
 // Unbind converts a struct (or pointer to struct) into a map[string]any
 // honoring the same `df` tags used by Bind:
-// - `df:"name"` overrides the key name
-// - `df:"-"` skips the field
+// - `dd:"name"` overrides the key name
+// - `dd:"-"` skips the field
 // - when no tag is provided, the key defaults to snake_case of the field name
 //
 // pointers to values: if nil, the key is omitted; otherwise the pointed value is emitted.
@@ -77,7 +77,7 @@ func structToMap(structVal reflect.Value, opt *Options) (map[string]any, error) 
 			continue
 		}
 
-		tag := parseDfTag(field)
+		tag := parseDdTag(field)
 		if tag.Skip {
 			continue
 		}
@@ -123,13 +123,13 @@ func valueToInterface(v reflect.Value, opt *Options) (interface{}, bool, error) 
 		if v.Kind() == reflect.Ptr && v.IsNil() {
 			return nil, false, nil
 		}
-		m, err := v.Interface().(Marshaler).MarshalDf()
+		m, err := v.Interface().(Marshaler).MarshalDd()
 		return m, true, err
 	}
 	if v.CanAddr() {
 		ptr := v.Addr()
 		if ptr.Type().Implements(marshalerInterfaceType) {
-			m, err := ptr.Interface().(Marshaler).MarshalDf()
+			m, err := ptr.Interface().(Marshaler).MarshalDd()
 			return m, true, err
 		}
 	}

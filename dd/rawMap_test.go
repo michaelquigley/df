@@ -155,7 +155,7 @@ func TestMapSupport(t *testing.T) {
 
 	t.Run("unsupported map types", func(t *testing.T) {
 		type UnsupportedMap struct {
-			IntMap map[int]string `df:"int_map"`
+			IntMap map[int]string `dd:"int_map"`
 		}
 
 		data := map[string]any{
@@ -171,8 +171,8 @@ func TestMapSupport(t *testing.T) {
 
 func TestMapInspect(t *testing.T) {
 	type StructWithMap struct {
-		Name string         `df:"name"`
-		Data map[string]any `df:"data"`
+		Name string         `dd:"name"`
+		Data map[string]any `dd:"data"`
 	}
 
 	t.Run("inspect map fields", func(t *testing.T) {

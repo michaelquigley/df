@@ -9,7 +9,7 @@ import (
 
 // User represents a simple user profile for demonstration
 type User struct {
-	Name    string `df:"+required"`
+	Name    string `dd:"+required"`
 	Email   string
 	Age     int
 	Active  bool

@@ -196,7 +196,7 @@ func TestMergeEmptySlice(t *testing.T) {
 
 func TestMergeRequiredField(t *testing.T) {
 	config := &struct {
-		Host string `df:",+required"`
+		Host string `dd:",+required"`
 		Port int
 	}{
 		Host: "localhost",
@@ -214,8 +214,8 @@ func TestMergeRequiredField(t *testing.T) {
 
 func TestMergeWithStructTags(t *testing.T) {
 	config := &struct {
-		Host string `df:"server_host"`
-		Port int    `df:"server_port"`
+		Host string `dd:"server_host"`
+		Port int    `dd:"server_port"`
 	}{
 		Host: "localhost",
 		Port: 8080,
@@ -234,7 +234,7 @@ func TestMergeWithStructTags(t *testing.T) {
 func TestMergeSkippedField(t *testing.T) {
 	config := &struct {
 		Host   string
-		Secret string `df:"-"`
+		Secret string `dd:"-"`
 	}{
 		Host:   "localhost",
 		Secret: "default-secret",

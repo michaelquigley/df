@@ -25,7 +25,7 @@ func TestBasicNew(t *testing.T) {
 
 func TestNewWithOptions(t *testing.T) {
 	type StructWithTag struct {
-		SomeInt int `df:"some_int_,+required"`
+		SomeInt int `dd:"some_int_,+required"`
 	}
 
 	data := map[string]any{
@@ -69,7 +69,7 @@ func TestBasicBind(t *testing.T) {
 
 func TestRenaming(t *testing.T) {
 	renamed := &struct {
-		SomeInt int `df:"some_int_,+required"`
+		SomeInt int `dd:"some_int_,+required"`
 	}{}
 
 	data := map[string]any{
@@ -111,7 +111,7 @@ func TestIntArray(t *testing.T) {
 
 func TestRequired(t *testing.T) {
 	required := &struct {
-		Required int `df:",+required"`
+		Required int `dd:",+required"`
 	}{}
 
 	data := make(map[string]any)
@@ -497,8 +497,8 @@ type customBindType struct {
 	Value string
 }
 
-// UnmarshalDf implements the Unmarshaler interface for *customBindType
-func (c *customBindType) UnmarshalDf(data map[string]any) error {
+// UnmarshalDd implements the Unmarshaler interface for *customBindType
+func (c *customBindType) UnmarshalDd(data map[string]any) error {
 	if val, ok := data["value"].(string); ok {
 		c.Value = "custom-" + val
 		return nil
@@ -541,13 +541,13 @@ func TestBindCustomUnmarshaler(t *testing.T) {
 }
 
 // dependentUnmarshaler is a test type that checks if another field in the parent struct has been bound before its
-// UnmarshalDf method is called.
+// UnmarshalDd method is called.
 type dependentUnmarshaler struct {
 	Value          string
 	CheckOtherFunc func()
 }
 
-func (d *dependentUnmarshaler) UnmarshalDf(data map[string]any) error {
+func (d *dependentUnmarshaler) UnmarshalDd(data map[string]any) error {
 	// when this is called, the check function should be able to verify that the other field is already bound.
 	if d.CheckOtherFunc != nil {
 		d.CheckOtherFunc()
@@ -560,11 +560,11 @@ func (d *dependentUnmarshaler) UnmarshalDf(data map[string]any) error {
 
 func TestBindDeferredUnmarshaler(t *testing.T) {
 	target := &struct {
-		OtherField string               `df:"other_field"`
-		Dep        dependentUnmarshaler `df:"dep"`
+		OtherField string               `dd:"other_field"`
+		Dep        dependentUnmarshaler `dd:"dep"`
 	}{}
 
-	// check function that will be called from within UnmarshalDf
+	// check function that will be called from within UnmarshalDd
 	target.Dep.CheckOtherFunc = func() {
 		// this assertion runs during the Bind process. it verifies that the OtherField has already been populated.
 		assert.Equal(t, "was bound", target.OtherField)

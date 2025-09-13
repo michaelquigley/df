@@ -345,9 +345,9 @@ Register services based on configuration:
 
 ```go
 type Config struct {
-    DatabaseType string `df:"database_type"`
-    CacheEnabled bool   `df:"cache_enabled"`
-    LogLevel     string `df:"log_level"`
+    DatabaseType string `dd:"database_type"`
+    CacheEnabled bool   `dd:"cache_enabled"`
+    LogLevel     string `dd:"log_level"`
 }
 
 func RegisterServices(container *df.Container, config Config) error {

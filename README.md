@@ -60,9 +60,9 @@ import (
 
 // Configuration struct
 type Config struct {
-    AppName     string `df:"app_name"`
-    DatabaseURL string `df:"database_url"`
-    LogLevel    string `df:"log_level"`
+    AppName     string `dd:"app_name"`
+    DatabaseURL string `dd:"database_url"`
+    LogLevel    string `dd:"log_level"`
 }
 
 // Service implementations
@@ -163,11 +163,11 @@ For simple data binding without the application framework:
 
 ```go
 type User struct {
-    Name     string `df:"+required"`
+    Name     string `dd:"+required"`
     Email    string
     Age      int    
-    Active   bool   `df:"is_active"`
-    Password string `df:"+secret"`
+    Active   bool   `dd:"is_active"`
+    Password string `dd:"+secret"`
 }
 
 // Input data
@@ -308,11 +308,11 @@ Control field binding behavior with `df` struct tags:
 
 ```go
 type Example struct {
-    Name     string `df:"custom_name,+required"` // Custom field name, required
-    Email    string `df:"email"`                // Custom field name
-    Age      int    `df:",+required"`            // Default name (snake_case), required  
-    Password string `df:",+secret"`              // Secret field (hidden in Inspect)
-    Internal string `df:"-"`                    // Skip this field
+    Name     string `dd:"custom_name,+required"` // Custom field name, required
+    Email    string `dd:"email"`                // Custom field name
+    Age      int    `dd:",+required"`            // Default name (snake_case), required  
+    Password string `dd:",+secret"`              // Secret field (hidden in Inspect)
+    Internal string `dd:"-"`                    // Skip this field
     Default  string                             // Uses snake_case: "default"
 }
 ```
@@ -323,14 +323,14 @@ df fully supports Go's embedded struct feature, automatically flattening embedde
 
 ```go
 type Person struct {
-    Name string `df:"name"`
-    Age  int    `df:"age"`
+    Name string `dd:"name"`
+    Age  int    `dd:"age"`
 }
 
 type Employee struct {
     Person // embedded struct - fields are promoted to parent level
-    Title  string `df:"title"`
-    Salary int    `df:"salary"`
+    Title  string `dd:"title"`
+    Salary int    `dd:"salary"`
 }
 
 // Input data - embedded fields appear at the top level
@@ -366,8 +366,8 @@ The `New[T]` function provides a modern, type-safe approach using Go generics. I
 
 ```go
 type Config struct {
-    Host string `df:"host"`
-    Port int    `df:"port"`
+    Host string `dd:"host"`
+    Port int    `dd:"port"`
 }
 
 data := map[string]any{
@@ -422,10 +422,10 @@ The `Merge` function provides a powerful way to build configuration systems with
 
 ```go
 type ServerConfig struct {
-    Host    string `df:"host"`
-    Port    int    `df:"port"`
-    Timeout int    `df:"timeout"`
-    Debug   bool   `df:"debug"`
+    Host    string `dd:"host"`
+    Port    int    `dd:"port"`
+    Timeout int    `dd:"timeout"`
+    Debug   bool   `dd:"debug"`
 }
 
 // Start with a struct containing sensible defaults
@@ -455,9 +455,9 @@ err := df.Merge(config, userConfig)
 
 ```go
 type AppConfig struct {
-    Server   ServerConfig   `df:"server"`
-    Database DatabaseConfig `df:"database"`
-    Features []string       `df:"features"`
+    Server   ServerConfig   `dd:"server"`
+    Database DatabaseConfig `dd:"database"`
+    Features []string       `dd:"features"`
 }
 
 // Layer 1: Application defaults
@@ -543,16 +543,16 @@ err = df.Merge(config, cliFlags)
 
 ```go
 type DatabaseConfig struct {
-    Host     string        `df:"host"`
-    Port     int          `df:"port"`
-    Pool     PoolConfig   `df:"pool"`
-    Features []string     `df:"features"`
+    Host     string        `dd:"host"`
+    Port     int          `dd:"port"`
+    Pool     PoolConfig   `dd:"pool"`
+    Features []string     `dd:"features"`
 }
 
 type PoolConfig struct {
-    MinSize int `df:"min_size"`
-    MaxSize int `df:"max_size"`
-    Timeout int `df:"timeout"`
+    MinSize int `dd:"min_size"`
+    MaxSize int `dd:"max_size"`
+    Timeout int `dd:"timeout"`
 }
 
 // Defaults with nested configuration
@@ -720,8 +720,8 @@ opts := &df.Options{
 }
 
 type User struct {
-    Email Email `df:"email"`
-    Name  string `df:"name"`
+    Email Email `dd:"email"`
+    Name  string `dd:"name"`
 }
 
 var user User
@@ -744,15 +744,15 @@ The `Inspect` function provides human-readable output for debugging bound config
 
 ```go
 type Config struct {
-    Host     string `df:"host"`
-    Port     int    `df:"port"`
-    APIKey   string `df:"api_key,+secret"`
-    Database *DBConfig `df:"database"`
+    Host     string `dd:"host"`
+    Port     int    `dd:"port"`
+    APIKey   string `dd:"api_key,+secret"`
+    Database *DBConfig `dd:"database"`
 }
 
 type DBConfig struct {
-    Host     string `df:"host"`
-    Password string `df:"password,+secret"`
+    Host     string `dd:"host"`
+    Password string `dd:"password,+secret"`
 }
 
 // Inspect with secrets hidden (default)
@@ -817,8 +817,8 @@ type Dynamic interface {
 ```go
 // Define concrete types that implement Dynamic
 type EmailAction struct {
-    Recipient string `df:"recipient"`
-    Subject   string `df:"subject"`
+    Recipient string `dd:"recipient"`
+    Subject   string `dd:"subject"`
 }
 
 func (e EmailAction) Type() string { return "email" }
@@ -830,8 +830,8 @@ func (e EmailAction) ToMap() (map[string]any, error) {
 }
 
 type SlackAction struct {
-    Channel string `df:"channel"`
-    Message string `df:"message"`
+    Channel string `dd:"channel"`
+    Message string `dd:"message"`
 }
 
 func (s SlackAction) Type() string { return "slack" }
@@ -844,8 +844,8 @@ func (s SlackAction) ToMap() (map[string]any, error) {
 
 // Use Dynamic fields in structs
 type Notification struct {
-    Name   string  `df:"name"`
-    Action Dynamic `df:"action"`  // Polymorphic field
+    Name   string  `dd:"name"`
+    Action Dynamic `dd:"action"`  // Polymorphic field
 }
 ```
 
@@ -922,8 +922,8 @@ Dynamic fields work seamlessly with slices:
 
 ```go
 type Workflow struct {
-    Name  string    `df:"name"`
-    Steps []Dynamic `df:"steps"`  // Slice of polymorphic types
+    Name  string    `dd:"name"`
+    Steps []Dynamic `dd:"steps"`  // Slice of polymorphic types
 }
 
 // Input data
@@ -956,16 +956,16 @@ Support object references with cycle handling using `df.Pointer[T]` and the `df.
 
 ```go
 type User struct {
-    ID   string `df:"id"`
-    Name string `df:"name"`
+    ID   string `dd:"id"`
+    Name string `dd:"name"`
 }
 
 func (u *User) GetId() string { return u.ID }
 
 type Document struct {
-    ID     string             `df:"id"`
-    Title  string             `df:"title"`
-    Author *df.Pointer[*User] `df:"author"`
+    ID     string             `dd:"id"`
+    Title  string             `dd:"title"`
+    Author *df.Pointer[*User] `dd:"author"`
 }
 
 func (d *Document) GetId() string { return d.ID }
@@ -1038,8 +1038,8 @@ df enables a range of application architectures from simple data binding to comp
 ```go
 // Load application settings
 type Config struct {
-    Database DatabaseConfig `df:"database"`
-    Server   ServerConfig   `df:"server"`
+    Database DatabaseConfig `dd:"database"`
+    Server   ServerConfig   `dd:"server"`
 }
 
 config, err := df.NewFromYAML[Config]("config.yaml")

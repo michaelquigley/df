@@ -170,7 +170,7 @@ type User struct {
 	ID          int
 	Email       Email
 	Name        string
-	Temperature Temperature `df:"preferred_temp"`
+	Temperature Temperature `dd:"preferred_temp"`
 	CreatedAt   time.Time
 }
 

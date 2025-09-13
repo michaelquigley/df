@@ -21,12 +21,12 @@ type Identifiable interface {
 
 // Marshaler allows a type to define its own marshalling logic to a map[string]any.
 type Marshaler interface {
-	MarshalDf() (map[string]any, error)
+	MarshalDd() (map[string]any, error)
 }
 
 // Unmarshaler allows a type to define its own unmarshalling logic from a map[string]any.
 type Unmarshaler interface {
-	UnmarshalDf(data map[string]any) error
+	UnmarshalDd(data map[string]any) error
 }
 
 // Converter defines a bidirectional type conversion interface for custom field types.
@@ -41,8 +41,8 @@ type Converter interface {
 	ToRaw(value interface{}) (interface{}, error)
 }
 
-// DfTag holds the parsed values from a `df` struct tag.
-type DfTag struct {
+// DdTag holds the parsed values from a `df` struct tag.
+type DdTag struct {
 	Name       string // external field name override, empty means use default
 	Required   bool   // true if field is required during binding
 	Secret     bool   // true if field contains sensitive data
@@ -51,7 +51,7 @@ type DfTag struct {
 	HasMatch   bool   // true if a match constraint is specified
 }
 
-// parseDfTag parses the `df` struct tag on a field.
+// parseDdTag parses the `df` struct tag on a field.
 //
 // tag format: df:"[name][,+required][,+secret][,+match=\"expected_value\"|+match=expected_value]"
 //
@@ -66,16 +66,16 @@ type DfTag struct {
 // - the presence of a "+secret" token (any position) sets secret=true.
 // - a "+match=\"value\"" or "+match=value" token sets a value constraint that must be satisfied during binding.
 // - unrecognized tokens are ignored.
-func parseDfTag(sf reflect.StructField) DfTag {
-	tag := sf.Tag.Get("df")
+func parseDdTag(sf reflect.StructField) DdTag {
+	tag := sf.Tag.Get("dd")
 	if tag == "-" {
-		return DfTag{Skip: true}
+		return DdTag{Skip: true}
 	}
 	if tag == "" {
-		return DfTag{}
+		return DdTag{}
 	}
 
-	var result DfTag
+	var result DdTag
 	parts := strings.Split(tag, ",")
 	for i, p := range parts {
 		p = strings.TrimSpace(p)

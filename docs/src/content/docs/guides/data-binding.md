@@ -14,7 +14,7 @@ Creates and populates a new struct instance:
 
 ```go
 type User struct {
-    Name  string `df:"+required"`
+    Name  string `dd:"+required"`
     Email string
     Age   int
 }
@@ -83,11 +83,11 @@ Control binding behavior with `df` struct tags:
 
 ```go
 type Example struct {
-    Name     string `df:"custom_name"`       // Custom field name
-    Email    string `df:"zmail,+required"`    // Custom name + required
-    Age      int    `df:",+required"`         // Default name + required  
-    Password string `df:",+secret"`           // Default name + secret
-    Internal string `df:"-"`                 // Skip this field
+    Name     string `dd:"custom_name"`       // Custom field name
+    Email    string `dd:"zmail,+required"`    // Custom name + required
+    Age      int    `dd:",+required"`         // Default name + required  
+    Password string `dd:",+secret"`           // Default name + secret
+    Internal string `dd:"-"`                 // Skip this field
     Default  string                          // Uses snake_case: "default"
 }
 ```
@@ -99,9 +99,9 @@ Map struct fields to different data keys:
 
 ```go
 type User struct {
-    FirstName string `df:"First"`
-    LastName  string `df:"Last"`
-    EmailAddr string `df:"Email"`
+    FirstName string `dd:"First"`
+    LastName  string `dd:"Last"`
+    EmailAddr string `dd:"Email"`
 }
 
 data := map[string]any{
@@ -116,9 +116,9 @@ Mark fields as mandatory:
 
 ```go
 type Config struct {
-    APIKey   string `df:"api_key,+required"`
-    Database string `df:"db_url,+required"`
-    LogLevel string `df:"log_level"` // Optional
+    APIKey   string `dd:"api_key,+required"`
+    Database string `dd:"db_url,+required"`
+    LogLevel string `dd:"log_level"` // Optional
 }
 
 // Binding will fail if api_key or db_url are missing
@@ -129,9 +129,9 @@ Hide sensitive data from inspection:
 
 ```go
 type Credentials struct {
-    Username string `df:"username"`
-    Password string `df:"password,+secret"`
-    APIToken string `df:"api_token,+secret"`
+    Username string `dd:"username"`
+    Password string `dd:"password,+secret"`
+    APIToken string `dd:"api_token,+secret"`
 }
 
 creds, _ := df.New[Credentials](data)
@@ -144,10 +144,10 @@ Skip fields entirely:
 
 ```go
 type User struct {
-    Name     string `df:"name"`
-    Email    string `df:"email"`
-    internal string `df:"-"`        // Never bound
-    computed int    `df:"-"`        // Never bound
+    Name     string `dd:"name"`
+    Email    string `dd:"email"`
+    internal string `dd:"-"`        // Never bound
+    computed int    `dd:"-"`        // Never bound
 }
 ```
 
@@ -159,10 +159,10 @@ df automatically handles type conversion between compatible types:
 
 ```go
 type Config struct {
-    Port    int     `df:"port"`
-    Timeout float64 `df:"timeout"`
-    Enabled bool    `df:"enabled"`
-    Name    string  `df:"name"`
+    Port    int     `dd:"port"`
+    Timeout float64 `dd:"timeout"`
+    Enabled bool    `dd:"enabled"`
+    Name    string  `dd:"name"`
 }
 
 // All of these work:
@@ -178,8 +178,8 @@ data := map[string]any{
 
 ```go
 type Config struct {
-    Timeout   time.Duration `df:"timeout"`
-    KeepAlive time.Duration `df:"keep_alive"`
+    Timeout   time.Duration `dd:"timeout"`
+    KeepAlive time.Duration `dd:"keep_alive"`
 }
 
 data := map[string]any{
@@ -193,9 +193,9 @@ Automatic pointer handling with nil safety:
 
 ```go
 type User struct {
-    Name  string  `df:"name"`
-    Age   *int    `df:"age"`    // Optional field
-    Email *string `df:"email"`  // Optional field
+    Name  string  `dd:"name"`
+    Age   *int    `dd:"age"`    // Optional field
+    Email *string `dd:"email"`  // Optional field
 }
 
 data := map[string]any{
@@ -209,9 +209,9 @@ data := map[string]any{
 
 ```go
 type Config struct {
-    Hosts    []string `df:"hosts"`
-    Ports    []int    `df:"ports"`
-    Features []bool   `df:"features"`
+    Hosts    []string `dd:"hosts"`
+    Ports    []int    `dd:"ports"`
+    Features []bool   `dd:"features"`
 }
 
 data := map[string]any{
@@ -225,14 +225,14 @@ data := map[string]any{
 
 ```go
 type Address struct {
-    Street  string `df:"street"`
-    City    string `df:"city"`
-    Country string `df:"country"`
+    Street  string `dd:"street"`
+    City    string `dd:"city"`
+    Country string `dd:"country"`
 }
 
 type User struct {
-    Name    string  `df:"name"`
-    Address Address `df:"address"`
+    Name    string  `dd:"name"`
+    Address Address `dd:"address"`
 }
 
 data := map[string]any{
@@ -253,8 +253,8 @@ df provides convenient functions for file-based binding:
 
 ```go
 type Config struct {
-    Database DatabaseConfig `df:"database"`
-    Server   ServerConfig   `df:"server"`
+    Database DatabaseConfig `dd:"database"`
+    Server   ServerConfig   `dd:"server"`
 }
 
 // Read from JSON file
@@ -290,10 +290,10 @@ Use `df.Merge()` to build sophisticated configuration hierarchies:
 
 ```go
 type ServerConfig struct {
-    Host    string `df:"host"`
-    Port    int    `df:"port"`
-    Debug   bool   `df:"debug"`
-    Timeout int    `df:"timeout"`
+    Host    string `dd:"host"`
+    Port    int    `dd:"port"`
+    Debug   bool   `dd:"debug"`
+    Timeout int    `dd:"timeout"`
 }
 
 // Layer 1: Sensible defaults
@@ -332,9 +332,9 @@ df provides detailed error information for binding failures:
 
 ```go
 type User struct {
-    Name  string `df:"+required"`
-    Email string `df:"email,+required"`
-    Age   int    `df:"age"`
+    Name  string `dd:"+required"`
+    Email string `dd:"email,+required"`
+    Age   int    `dd:"age"`
 }
 
 data := map[string]any{
@@ -366,7 +366,7 @@ type Config struct {
 
 // Only when you need custom mapping
 type Config struct {
-    DatabaseURL string `df:"db_connection_string"`
+    DatabaseURL string `dd:"db_connection_string"`
 }
 ```
 
@@ -377,9 +377,9 @@ type Config struct {
 
 ```go
 type Config struct {
-    APIKey   string  `df:"api_key,+required"`     // Must be provided
-    LogLevel string  `df:"log_level"`            // Has default
-    Debug    *bool   `df:"debug"`                // Truly optional
+    APIKey   string  `dd:"api_key,+required"`     // Must be provided
+    LogLevel string  `dd:"log_level"`            // Has default
+    Debug    *bool   `dd:"debug"`                // Truly optional
 }
 ```
 
@@ -390,11 +390,11 @@ type Config struct {
 
 ```go
 type DatabaseConfig struct {
-    Host     string `df:"host"`
-    Port     int    `df:"port"`
-    Database string `df:"database"`
-    Username string `df:"username"`
-    Password string `df:"password,+secret"`
+    Host     string `dd:"host"`
+    Port     int    `dd:"port"`
+    Database string `dd:"database"`
+    Username string `dd:"username"`
+    Password string `dd:"password,+secret"`
 }
 ```
 

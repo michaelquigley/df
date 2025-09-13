@@ -11,9 +11,9 @@ An `Application` orchestrates your entire application lifecycle:
 
 ```go
 type Config struct {
-    AppName     string `df:"app_name"`
-    DatabaseURL string `df:"database_url"`
-    LogLevel    string `df:"log_level"`
+    AppName     string `dd:"app_name"`
+    DatabaseURL string `dd:"database_url"`
+    LogLevel    string `dd:"log_level"`
 }
 
 // Create application with configuration
@@ -221,22 +221,22 @@ Build applications that reconfigure themselves based on configuration:
 
 ```go
 type Config struct {
-    Environment string         `df:"environment"`
-    Database    DatabaseConfig `df:"database"`
-    Cache       CacheConfig    `df:"cache"`
-    Features    FeatureFlags   `df:"features"`
+    Environment string         `dd:"environment"`
+    Database    DatabaseConfig `dd:"database"`
+    Cache       CacheConfig    `dd:"cache"`
+    Features    FeatureFlags   `dd:"features"`
 }
 
 type DatabaseConfig struct {
-    Type     string `df:"type"`
-    URL      string `df:"url"`
-    PoolSize int    `df:"pool_size"`
+    Type     string `dd:"type"`
+    URL      string `dd:"url"`
+    PoolSize int    `dd:"pool_size"`
 }
 
 type CacheConfig struct {
-    Enabled bool   `df:"enabled"`
-    Type    string `df:"type"`
-    TTL     int    `df:"ttl"`
+    Enabled bool   `dd:"enabled"`
+    Type    string `dd:"type"`
+    TTL     int    `dd:"ttl"`
 }
 
 // Factory adapts based on configuration
@@ -320,20 +320,20 @@ import (
 
 // Configuration
 type Config struct {
-    AppName     string         `df:"app_name"`
-    Environment string         `df:"environment"`
-    Database    DatabaseConfig `df:"database"`
-    Server      ServerConfig   `df:"server"`
+    AppName     string         `dd:"app_name"`
+    Environment string         `dd:"environment"`
+    Database    DatabaseConfig `dd:"database"`
+    Server      ServerConfig   `dd:"server"`
 }
 
 type DatabaseConfig struct {
-    URL      string `df:"url"`
-    PoolSize int    `df:"pool_size"`
+    URL      string `dd:"url"`
+    PoolSize int    `dd:"pool_size"`
 }
 
 type ServerConfig struct {
-    Host string `df:"host"`
-    Port int    `df:"port"`
+    Host string `dd:"host"`
+    Port int    `dd:"port"`
 }
 
 // Services

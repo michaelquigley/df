@@ -9,14 +9,14 @@ import (
 // Test basic embedded struct functionality
 func TestEmbeddedStructBasics(t *testing.T) {
 	type Person struct {
-		Name string `df:"name"`
-		Age  int    `df:"age"`
+		Name string `dd:"name"`
+		Age  int    `dd:"age"`
 	}
 
 	type Employee struct {
 		Person        // embedded struct
-		Title  string `df:"title"`
-		Salary int    `df:"salary"`
+		Title  string `dd:"title"`
+		Salary int    `dd:"salary"`
 	}
 
 	t.Run("bind with embedded struct", func(t *testing.T) {
@@ -105,19 +105,19 @@ func TestEmbeddedStructBasics(t *testing.T) {
 // Test multiple level embedding
 func TestMultiLevelEmbedding(t *testing.T) {
 	type Contact struct {
-		Email string `df:"email"`
-		Phone string `df:"phone"`
+		Email string `dd:"email"`
+		Phone string `dd:"phone"`
 	}
 
 	type Person struct {
-		Name string `df:"name"`
-		Age  int    `df:"age"`
+		Name string `dd:"name"`
+		Age  int    `dd:"age"`
 	}
 
 	type Employee struct {
 		Person
 		Contact
-		Title string `df:"title"`
+		Title string `dd:"title"`
 	}
 
 	t.Run("bind with multiple embedded structs", func(t *testing.T) {
@@ -170,13 +170,13 @@ func TestMultiLevelEmbedding(t *testing.T) {
 // Test pointer embedded structs
 func TestPointerEmbeddedStruct(t *testing.T) {
 	type Address struct {
-		Street string `df:"street"`
-		City   string `df:"city"`
+		Street string `dd:"street"`
+		City   string `dd:"city"`
 	}
 
 	type Person struct {
 		*Address
-		Name string `df:"name"`
+		Name string `dd:"name"`
 	}
 
 	t.Run("bind with pointer embedded struct", func(t *testing.T) {
@@ -248,15 +248,15 @@ func TestPointerEmbeddedStruct(t *testing.T) {
 // Test embedded struct tags
 func TestEmbeddedStructTags(t *testing.T) {
 	type Base struct {
-		ID       string `df:"id"`
-		Name     string `df:"custom_name"`
-		Internal string `df:"-"`
-		Secret   string `df:",+secret"`
+		ID       string `dd:"id"`
+		Name     string `dd:"custom_name"`
+		Internal string `dd:"-"`
+		Secret   string `dd:",+secret"`
 	}
 
 	type Extended struct {
 		Base
-		Value string `df:"value"`
+		Value string `dd:"value"`
 	}
 
 	t.Run("bind respects embedded struct tags", func(t *testing.T) {
@@ -307,17 +307,17 @@ func TestEmbeddedStructTags(t *testing.T) {
 // Test nested embedded structs
 func TestNestedEmbeddedStructs(t *testing.T) {
 	type Core struct {
-		ID string `df:"id"`
+		ID string `dd:"id"`
 	}
 
 	type Base struct {
 		Core
-		Name string `df:"name"`
+		Name string `dd:"name"`
 	}
 
 	type Extended struct {
 		Base
-		Value string `df:"value"`
+		Value string `dd:"value"`
 	}
 
 	t.Run("bind with nested embedded structs", func(t *testing.T) {
@@ -360,13 +360,13 @@ func TestNestedEmbeddedStructs(t *testing.T) {
 // Test embedded struct with required fields
 func TestEmbeddedStructRequired(t *testing.T) {
 	type Base struct {
-		Required string `df:"+required"`
-		Optional string `df:"optional"`
+		Required string `dd:"+required"`
+		Optional string `dd:"optional"`
 	}
 
 	type Extended struct {
 		Base
-		Value string `df:"value"`
+		Value string `dd:"value"`
 	}
 
 	t.Run("bind fails when embedded required field missing", func(t *testing.T) {
@@ -402,14 +402,14 @@ func TestEmbeddedStructRequired(t *testing.T) {
 // Test embedded struct inspect
 func TestEmbeddedStructInspect(t *testing.T) {
 	type Person struct {
-		Name string `df:"name"`
-		Age  int    `df:"age"`
+		Name string `dd:"name"`
+		Age  int    `dd:"age"`
 	}
 
 	type Employee struct {
 		Person
-		Title  string `df:"title"`
-		Salary int    `df:"salary"`
+		Title  string `dd:"title"`
+		Salary int    `dd:"salary"`
 	}
 
 	emp := Employee{
@@ -438,17 +438,17 @@ func TestEmbeddedStructInspect(t *testing.T) {
 // Test field name conflicts in embedded structs
 func TestEmbeddedStructFieldConflicts(t *testing.T) {
 	type Base1 struct {
-		Name string `df:"name"`
+		Name string `dd:"name"`
 	}
 
 	type Base2 struct {
-		Name string `df:"name"`
+		Name string `dd:"name"`
 	}
 
 	type Conflicted struct {
 		Base1
 		Base2
-		Value string `df:"value"`
+		Value string `dd:"value"`
 	}
 
 	t.Run("bind with field name conflicts", func(t *testing.T) {
@@ -488,7 +488,7 @@ func TestEmbeddedStructEdgeCases(t *testing.T) {
 		type Empty struct{}
 		type WithEmpty struct {
 			Empty
-			Value string `df:"value"`
+			Value string `dd:"value"`
 		}
 
 		data := map[string]any{"value": "test"}
@@ -505,12 +505,12 @@ func TestEmbeddedStructEdgeCases(t *testing.T) {
 
 	t.Run("embedded struct with unexported fields", func(t *testing.T) {
 		type Base struct {
-			Name     string `df:"name"`
+			Name     string `dd:"name"`
 			internal string
 		}
 		type Extended struct {
 			Base
-			Value string `df:"value"`
+			Value string `dd:"value"`
 		}
 
 		data := map[string]any{"name": "test", "value": "extended", "internal": "ignored"}
@@ -525,12 +525,12 @@ func TestEmbeddedStructEdgeCases(t *testing.T) {
 
 	t.Run("embedded struct with complex nested types", func(t *testing.T) {
 		type Address struct {
-			Street string   `df:"street"`
-			Cities []string `df:"cities"`
+			Street string   `dd:"street"`
+			Cities []string `dd:"cities"`
 		}
 		type Person struct {
 			Address
-			Name string `df:"name"`
+			Name string `dd:"name"`
 		}
 
 		data := map[string]any{
@@ -559,15 +559,15 @@ func TestEmbeddedStructEdgeCases(t *testing.T) {
 
 	t.Run("deeply nested pointer embedded structs", func(t *testing.T) {
 		type Level3 struct {
-			Deep string `df:"deep"`
+			Deep string `dd:"deep"`
 		}
 		type Level2 struct {
 			*Level3
-			Mid string `df:"mid"`
+			Mid string `dd:"mid"`
 		}
 		type Level1 struct {
 			*Level2
-			Top string `df:"top"`
+			Top string `dd:"top"`
 		}
 
 		data := map[string]any{
@@ -598,12 +598,12 @@ func TestEmbeddedStructEdgeCases(t *testing.T) {
 
 	t.Run("embedded struct with nil pointer partial data", func(t *testing.T) {
 		type Address struct {
-			Street string `df:"street"`
-			City   string `df:"city"`
+			Street string `dd:"street"`
+			City   string `dd:"city"`
 		}
 		type Person struct {
 			*Address
-			Name string `df:"name"`
+			Name string `dd:"name"`
 		}
 
 		// Only bind name, no address fields

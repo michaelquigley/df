@@ -9,7 +9,7 @@ import (
 // Pointer represents a reference to an object of type T that implements Identifiable.
 // During binding, the reference is stored as a string. During linking, it's resolved to the actual object.
 type Pointer[T Identifiable] struct {
-	Ref      string `df:"$ref"`
+	Ref      string `dd:"$ref"`
 	Resolved T      // internal resolved reference (exported for reflection)
 }
 
@@ -209,7 +209,7 @@ func (l *Linker) collectIdentifiableObjects(value reflect.Value, registry map[st
 			if field.PkgPath != "" { // skip unexported fields
 				continue
 			}
-			tag := parseDfTag(field)
+			tag := parseDdTag(field)
 			if tag.Skip {
 				continue
 			}
@@ -237,7 +237,7 @@ func (l *Linker) resolvePointers(value reflect.Value, registry map[string]reflec
 			if field.PkgPath != "" { // skip unexported fields
 				continue
 			}
-			tag := parseDfTag(field)
+			tag := parseDdTag(field)
 			if tag.Skip {
 				continue
 			}
@@ -321,7 +321,7 @@ func isPointerType(t reflect.Type) bool {
 	}
 
 	// verify the df struct tag matches our RefKey
-	if dfTag := field0.Tag.Get("df"); dfTag != RefKey {
+	if dfTag := field0.Tag.Get("dd"); dfTag != RefKey {
 		return false
 	}
 

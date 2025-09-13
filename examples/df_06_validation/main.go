@@ -36,18 +36,18 @@ func (e ValidationErrors) Error() string {
 
 // UserRegistration demonstrates comprehensive user input validation
 type UserRegistration struct {
-	Username    string `df:",+required"`
-	Email       string `df:",+required"`
-	Password    string `df:",+required,+secret"`
-	Age         int    `df:",+required"`
-	Country     string `df:",+required"`
-	PhoneNumber string `df:"phone"`
+	Username    string `dd:",+required"`
+	Email       string `dd:",+required"`
+	Password    string `dd:",+required,+secret"`
+	Age         int    `dd:",+required"`
+	Country     string `dd:",+required"`
+	PhoneNumber string `dd:"phone"`
 	Website     string
-	BirthDate   time.Time `df:"birth_date"`
-	Terms       bool      `df:"accept_terms,+required"`
+	BirthDate   time.Time `dd:"birth_date"`
+	Terms       bool      `dd:"accept_terms,+required"`
 }
 
-func (ur *UserRegistration) UnmarshalDf(data map[string]any) error {
+func (ur *UserRegistration) UnmarshalDd(data map[string]any) error {
 	var errors ValidationErrors
 
 	// basic field binding first
@@ -373,20 +373,20 @@ func abs(x int) int {
 
 // ConfigurationFile demonstrates file error handling
 type ConfigurationFile struct {
-	DatabaseURL string `df:"database_url,+required"`
-	Port        int    `df:",+required"`
+	DatabaseURL string `dd:"database_url,+required"`
+	Port        int    `dd:",+required"`
 	Debug       bool
 	Features    []string
 }
 
 // DataRecord demonstrates bulk import error handling
 type DataRecord struct {
-	ID    string `df:",+required"`
-	Name  string `df:",+required"`
+	ID    string `dd:",+required"`
+	Name  string `dd:",+required"`
 	Value string
 }
 
-func (dr *DataRecord) UnmarshalDf(data map[string]any) error {
+func (dr *DataRecord) UnmarshalDd(data map[string]any) error {
 	// attempt to fix common data issues
 	if idValue, exists := data["id"]; exists {
 		switch v := idValue.(type) {
@@ -452,7 +452,7 @@ func main() {
 	for i, testData := range basicTests {
 		fmt.Printf("\nvalidation test %d:\n", i+1)
 		var user UserRegistration
-		if err := user.UnmarshalDf(testData); err != nil {
+		if err := user.UnmarshalDd(testData); err != nil {
 			if validationErrs, ok := err.(ValidationErrors); ok {
 				fmt.Printf("  validation failed with %d errors:\n", len(validationErrs))
 				for j, validationErr := range validationErrs {
@@ -481,7 +481,7 @@ func main() {
 	}
 
 	var validUser UserRegistration
-	if err := validUser.UnmarshalDf(validData); err != nil {
+	if err := validUser.UnmarshalDd(validData); err != nil {
 		fmt.Printf("unexpected validation failure: %v\n", err)
 	} else {
 		fmt.Printf("✓ comprehensive validation passed\n")
@@ -542,7 +542,7 @@ func main() {
 
 	for i, recordData := range bulkData {
 		var record DataRecord
-		if err := record.UnmarshalDf(recordData); err != nil {
+		if err := record.UnmarshalDd(recordData); err != nil {
 			errorCount++
 			processingErrors = append(processingErrors, fmt.Errorf("record %d: %v", i+1, err))
 		} else {
@@ -576,7 +576,7 @@ func main() {
 	}
 
 	var testUser UserRegistration
-	if err := testUser.UnmarshalDf(testUserData); err != nil {
+	if err := testUser.UnmarshalDd(testUserData); err != nil {
 		if validationErrs, ok := err.(ValidationErrors); ok {
 			fmt.Printf("  technical errors (%d):\n", len(validationErrs))
 			for _, validationErr := range validationErrs {

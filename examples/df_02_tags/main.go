@@ -10,27 +10,27 @@ import (
 
 // APIConfiguration demonstrates field naming and requirements
 type APIConfiguration struct {
-	ServiceName string        `df:"+required"` // default name + required
-	Version     string        `df:"+required"` // default name + required
+	ServiceName string        `dd:"+required"` // default name + required
+	Version     string        `dd:"+required"` // default name + required
 	Host        string        // default snake_case: "host"
 	Port        int           // default snake_case: "port"
-	BasePath    string        `df:"base_path"` // custom name only
-	APIKey      string        `df:"+secret"`   // secret
-	DebugMode   bool          `df:"debug"`     // custom name only
+	BasePath    string        `dd:"base_path"` // custom name only
+	APIKey      string        `dd:"+secret"`   // secret
+	DebugMode   bool          `dd:"debug"`     // custom name only
 	Timeout     time.Duration // default snake_case: "timeout"
-	Internal    string        `df:"-"` // excluded from binding/unbinding
+	Internal    string        `dd:"-"` // excluded from binding/unbinding
 }
 
 // UserProfile demonstrates privacy controls and field naming
 type UserProfile struct {
-	Username    string           `df:",+required"`   // required with default name
-	Email       string           `df:",+required"`   // required email
-	DisplayName string           `df:"display_name"` // custom field name
-	FirstName   string           `df:"first_name"`   // custom field name
-	LastName    string           `df:"last_name"`    // custom field name
+	Username    string           `dd:",+required"`   // required with default name
+	Email       string           `dd:",+required"`   // required email
+	DisplayName string           `dd:"display_name"` // custom field name
+	FirstName   string           `dd:"first_name"`   // custom field name
+	LastName    string           `dd:"last_name"`    // custom field name
 	Phone       string           // default name: "phone"
-	Password    string           `df:",+secret"`    // secret field
-	SSN         string           `df:"ssn,+secret"` // custom name + secret
+	Password    string           `dd:",+secret"`    // secret field
+	SSN         string           `dd:"ssn,+secret"` // custom name + secret
 	Preferences *UserPreferences // nested struct
 }
 
@@ -38,16 +38,16 @@ type UserProfile struct {
 type UserPreferences struct {
 	Theme           string // default: "theme"
 	Language        string // default: "language"
-	Notifications   bool   `df:"enable_notifications"` // custom name
+	Notifications   bool   `dd:"enable_notifications"` // custom name
 	Newsletter      bool   // default: "newsletter"
-	PrivateProfile  bool   `df:"private_profile"` // custom name
-	SessionToken    string `df:",+secret"`        // secret in nested struct
-	InternalSetting string `df:"-"`               // excluded
+	PrivateProfile  bool   `dd:"private_profile"` // custom name
+	SessionToken    string `dd:",+secret"`        // secret in nested struct
+	InternalSetting string `dd:"-"`               // excluded
 }
 
 // SystemSettings demonstrates hierarchical configuration
 type SystemSettings struct {
-	Environment string          `df:"env,+required"` // required environment
+	Environment string          `dd:"env,+required"` // required environment
 	Database    *DatabaseConfig // nested config
 	Cache       *CacheConfig    // optional nested struct
 	Features    *FeatureFlags   // feature toggles
@@ -55,51 +55,51 @@ type SystemSettings struct {
 
 // DatabaseConfig with security and naming
 type DatabaseConfig struct {
-	Host     string `df:",+required"` // required host
+	Host     string `dd:",+required"` // required host
 	Port     int    // default: "port"
-	Name     string `df:"database_name,+required"` // custom name + required
-	SSL      bool   `df:"enable_ssl"`              // custom name
-	Username string `df:",+required"`              // required username
-	Password string `df:",+secret"`                // secret password
+	Name     string `dd:"database_name,+required"` // custom name + required
+	SSL      bool   `dd:"enable_ssl"`              // custom name
+	Username string `dd:",+required"`              // required username
+	Password string `dd:",+secret"`                // secret password
 }
 
 // CacheConfig with provider flexibility
 type CacheConfig struct {
-	Provider  string        `df:",+required"` // required provider
+	Provider  string        `dd:",+required"` // required provider
 	Host      string        // default: "host"
 	Port      int           // default: "port"
-	Password  string        `df:",+secret"`    // secret password
-	TTL       time.Duration `df:"default_ttl"` // custom name
-	MaxMemory int64         `df:"max_memory"`  // custom name
+	Password  string        `dd:",+secret"`    // secret password
+	TTL       time.Duration `dd:"default_ttl"` // custom name
+	MaxMemory int64         `dd:"max_memory"`  // custom name
 }
 
 // LoggingConfig demonstrates complex naming patterns
 type LoggingConfig struct {
-	Level     string `df:",+required"` // required log level
+	Level     string `dd:",+required"` // required log level
 	Output    string // default: "output"
 	Format    string // default: "format"
-	Filename  string `df:"log_file"`            // custom name
-	MaxSize   int    `df:"max_size_mb"`         // custom name
-	Rotate    bool   `df:"enable_rotation"`     // custom name
-	Sensitive string `df:"debug_token,+secret"` // secret + custom name
+	Filename  string `dd:"log_file"`            // custom name
+	MaxSize   int    `dd:"max_size_mb"`         // custom name
+	Rotate    bool   `dd:"enable_rotation"`     // custom name
+	Sensitive string `dd:"debug_token,+secret"` // secret + custom name
 }
 
 // FeatureFlags for system capabilities
 type FeatureFlags struct {
-	EnableBeta     bool `df:"beta_features"`       // custom name
-	EnableMetrics  bool `df:"metrics_collection"`  // custom name
-	EnableTracing  bool `df:"distributed_tracing"` // custom name
+	EnableBeta     bool `dd:"beta_features"`       // custom name
+	EnableMetrics  bool `dd:"metrics_collection"`  // custom name
+	EnableTracing  bool `dd:"distributed_tracing"` // custom name
 	EnableDebug    bool // default: "enable_debug"
-	EnableAPI      bool `df:"api_enabled"`     // custom name
-	ExperimentalUI bool `df:"experimental_ui"` // custom name
+	EnableAPI      bool `dd:"api_enabled"`     // custom name
+	ExperimentalUI bool `dd:"experimental_ui"` // custom name
 }
 
 // DemoContainer for testing all configurations
 type DemoContainer struct {
-	API     APIConfiguration `df:"api_config"`
-	User    UserProfile      `df:"user_profile"`
-	System  SystemSettings   `df:"system_settings"`
-	Logging LoggingConfig    `df:"logging"`
+	API     APIConfiguration `dd:"api_config"`
+	User    UserProfile      `dd:"user_profile"`
+	System  SystemSettings   `dd:"system_settings"`
+	Logging LoggingConfig    `dd:"logging"`
 }
 
 func main() {
@@ -240,15 +240,15 @@ func main() {
 	// step 6: demonstrate flag combination examples
 	fmt.Println("\n=== step 6: flag combination examples ===")
 	type FlagDemo struct {
-		Field1 string `df:"custom_name"`              // custom name only
-		Field2 string `df:",+secret"`                 // secret only
-		Field3 string `df:",+required"`               // required only
-		Field4 string `df:",+required"`               // required only
-		Field5 string `df:"field5,+secret"`           // custom name + secret
-		Field6 string `df:"field6,+required"`         // custom name + required
-		Field7 string `df:"field7,+required,+secret"` // custom name + required + secret
-		Field8 string `df:",+required,+secret"`       // default name + required + secret
-		Field9 string `df:"-"`                        // excluded
+		Field1 string `dd:"custom_name"`              // custom name only
+		Field2 string `dd:",+secret"`                 // secret only
+		Field3 string `dd:",+required"`               // required only
+		Field4 string `dd:",+required"`               // required only
+		Field5 string `dd:"field5,+secret"`           // custom name + secret
+		Field6 string `dd:"field6,+required"`         // custom name + required
+		Field7 string `dd:"field7,+required,+secret"` // custom name + required + secret
+		Field8 string `dd:",+required,+secret"`       // default name + required + secret
+		Field9 string `dd:"-"`                        // excluded
 	}
 
 	flagData := map[string]any{
@@ -279,11 +279,11 @@ func main() {
 	}
 
 	fmt.Println("\n=== struct tag features summary ===")
-	fmt.Println("✓ custom field names: `df:\"custom_name\"`")
-	fmt.Println("✓ required fields: `df:\",+required\"`")
-	fmt.Println("✓ secret fields: `df:\",+secret\"` (hidden in inspect)")
-	fmt.Println("✓ field exclusion: `df:\"-\"` (not bound/unbound)")
-	fmt.Println("✓ multiple flags: `df:\"name,+required,+secret\"`")
+	fmt.Println("✓ custom field names: `dd:\"custom_name\"`")
+	fmt.Println("✓ required fields: `dd:\",+required\"`")
+	fmt.Println("✓ secret fields: `dd:\",+secret\"` (hidden in inspect)")
+	fmt.Println("✓ field exclusion: `dd:\"-\"` (not bound/unbound)")
+	fmt.Println("✓ multiple flags: `dd:\"name,+required,+secret\"`")
 	fmt.Println("✓ nested struct support: tags apply recursively")
 
 	fmt.Println("\n=== struct tag features example completed successfully! ===")

@@ -11,8 +11,8 @@ import (
 
 // Config defines the application configuration structure
 type Config struct {
-	AppName string `df:"app_name"`
-	Debug   bool   `df:"debug"`
+	AppName string `dd:"app_name"`
+	Debug   bool   `dd:"debug"`
 }
 
 func main() {

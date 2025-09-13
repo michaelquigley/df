@@ -25,8 +25,8 @@ type Options struct {
 }
 
 // Bind populates the exported fields of target (a pointer to a struct) from the given data map. Keys are matched using
-// either a struct tag `df:"name,+required"` (where name overrides the key and the optional "+required" flag enforces
-// presence), `df:"-"` to skip a field, or, when no tag is provided, a best-effort snake_case conversion of the
+// either a struct tag `dd:"name,+required"` (where name overrides the key and the optional "+required" flag enforces
+// presence), `dd:"-"` to skip a field, or, when no tag is provided, a best-effort snake_case conversion of the
 // field name.
 //
 // Use Bind when you need to control how the prototype object is allocated. Use New when you just want to allocate a new
@@ -145,7 +145,7 @@ func bindStruct(structValue reflect.Value, data map[string]any, path string, opt
 							if embeddedField.PkgPath != "" { // unexported
 								continue
 							}
-							embeddedTag := parseDfTag(embeddedField)
+							embeddedTag := parseDdTag(embeddedField)
 							if embeddedTag.Skip {
 								continue
 							}
@@ -189,7 +189,7 @@ func bindStruct(structValue reflect.Value, data map[string]any, path string, opt
 			continue
 		}
 
-		tag := parseDfTag(field)
+		tag := parseDdTag(field)
 		if tag.Skip {
 			continue
 		}
@@ -245,7 +245,7 @@ func bindStruct(structValue reflect.Value, data map[string]any, path string, opt
 	return nil
 }
 
-// unmarshalFromMap handles calling the UnmarshalDf method on a field.
+// unmarshalFromMap handles calling the UnmarshalDd method on a field.
 func unmarshalFromMap(fieldVal reflect.Value, raw interface{}, path string) error {
 	subMap, ok := raw.(map[string]any)
 	if !ok {
@@ -260,7 +260,7 @@ func unmarshalFromMap(fieldVal reflect.Value, raw interface{}, path string) erro
 			if fieldVal.Kind() == reflect.Ptr && fieldVal.IsNil() {
 				fieldVal.Set(reflect.New(fieldVal.Type().Elem()))
 			}
-			return ptr.Interface().(Unmarshaler).UnmarshalDf(subMap)
+			return ptr.Interface().(Unmarshaler).UnmarshalDd(subMap)
 		}
 	}
 
@@ -269,7 +269,7 @@ func unmarshalFromMap(fieldVal reflect.Value, raw interface{}, path string) erro
 		if fieldVal.Kind() == reflect.Ptr && fieldVal.IsNil() {
 			fieldVal.Set(reflect.New(fieldVal.Type().Elem()))
 		}
-		return fieldVal.Interface().(Unmarshaler).UnmarshalDf(subMap)
+		return fieldVal.Interface().(Unmarshaler).UnmarshalDd(subMap)
 	}
 
 	return &ValidationError{Field: path, Message: "internal error: field does not implement unmarshaler"} // should be unreachable

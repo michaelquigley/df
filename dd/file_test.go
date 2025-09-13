@@ -8,9 +8,9 @@ import (
 )
 
 type TestStruct struct {
-	Name  string `df:"name"`
-	Age   int    `df:"age"`
-	Email string `df:"email"`
+	Name  string `dd:"name"`
+	Age   int    `dd:"age"`
+	Email string `dd:"email"`
 }
 
 func TestBindFromJSON(t *testing.T) {

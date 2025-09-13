@@ -21,15 +21,15 @@ type DatabaseConfig struct {
 	Port     int
 	Database string
 	Username string
-	Password string `df:"password,+secret"`
+	Password string `dd:"password,+secret"`
 }
 
 type AppConfig struct {
-	Name     string `df:"app_name"`
+	Name     string `dd:"app_name"`
 	Version  string
 	Server   ServerConfig
 	Database DatabaseConfig
-	Features []string `df:"enabled_features"`
+	Features []string `dd:"enabled_features"`
 }
 
 func main() {

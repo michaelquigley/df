@@ -20,7 +20,7 @@ type InspectOptions struct {
 
 // Inspect returns a human-readable representation of a struct's resolved state.
 // designed for configuration debugging and validation. secret fields marked with
-// `df:",+secret"` are hidden unless ShowSecrets is true.
+// `dd:",+secret"` are hidden unless ShowSecrets is true.
 //
 // the output format is a clean, indented pseudo-data structure optimized for
 // readability rather than parseability.
@@ -160,7 +160,7 @@ func calculateMaxDepthFromStruct(structVal reflect.Value, depth int, opt *Inspec
 			continue
 		}
 
-		tag := parseDfTag(field)
+		tag := parseDdTag(field)
 		if tag.Skip {
 			continue
 		}
@@ -236,7 +236,7 @@ func calculateMaxFieldNameLengthFromStruct(structVal reflect.Value, depth int, o
 			continue
 		}
 
-		tag := parseDfTag(field)
+		tag := parseDdTag(field)
 		if tag.Skip {
 			continue
 		}
@@ -279,7 +279,7 @@ func inspectStructWithAlignment(structVal reflect.Value, builder *strings.Builde
 	// collect field info
 	type fieldInfo struct {
 		name        string
-		tag         DfTag
+		tag         DdTag
 		fieldVal    reflect.Value
 		displayName string
 	}
@@ -315,7 +315,7 @@ func inspectStructWithAlignment(structVal reflect.Value, builder *strings.Builde
 						continue
 					}
 
-					embeddedTag := parseDfTag(embeddedField)
+					embeddedTag := parseDdTag(embeddedField)
 					if embeddedTag.Skip {
 						continue
 					}
@@ -344,7 +344,7 @@ func inspectStructWithAlignment(structVal reflect.Value, builder *strings.Builde
 			continue
 		}
 
-		tag := parseDfTag(field)
+		tag := parseDdTag(field)
 		if tag.Skip {
 			continue
 		}

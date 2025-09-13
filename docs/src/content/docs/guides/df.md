@@ -84,11 +84,11 @@ Explore sophisticated patterns:
 ### Simple Data Binding
 ```go
 type User struct {
-    Name     string `df:"+required"`
+    Name     string `dd:"+required"`
     Email    string
     Age      int    
-    Active   bool   `df:"is_active"`
-    Password string `df:"+secret"`
+    Active   bool   `dd:"is_active"`
+    Password string `dd:"+secret"`
 }
 
 data := map[string]any{
@@ -105,8 +105,8 @@ user, err := df.New[User](data)
 ### Configuration Loading
 ```go
 type Config struct {
-    Database DatabaseConfig `df:"database"`
-    Server   ServerConfig   `df:"server"`
+    Database DatabaseConfig `dd:"database"`
+    Server   ServerConfig   `dd:"server"`
 }
 
 config, err := df.NewFromYAML[Config]("config.yaml")

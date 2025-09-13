@@ -46,7 +46,7 @@ type Department struct {
 	Name     string
 	Head     *dd.Pointer[*Author]
 	Parent   *dd.Pointer[*Department]
-	SubDepts []*dd.Pointer[*Department] `df:"sub_departments"`
+	SubDepts []*dd.Pointer[*Department] `dd:"sub_departments"`
 }
 
 func (d *Department) GetId() string { return d.ID }

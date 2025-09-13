@@ -75,9 +75,9 @@ func (c *UserIDConverter) ToRaw(value interface{}) (interface{}, error) {
 
 // Test struct for binding
 type TestUser struct {
-	ID    UserID `df:"user_id"`
-	Email Email  `df:"email"`
-	Name  string `df:"name"`
+	ID    UserID `dd:"user_id"`
+	Email Email  `dd:"email"`
+	Name  string `dd:"name"`
 }
 
 func TestConverterBind(t *testing.T) {
@@ -190,8 +190,8 @@ type ComplexType struct {
 }
 
 type TestComplexUser struct {
-	Complex ComplexType `df:"complex"`
-	Name    string      `df:"name"`
+	Complex ComplexType `dd:"complex"`
+	Name    string      `dd:"name"`
 }
 
 func TestConverterWithoutOptions(t *testing.T) {
@@ -242,8 +242,8 @@ func TestConverterIncompatibleReturn(t *testing.T) {
 
 // Test with pointer fields
 type TestUserWithPtrEmail struct {
-	Email *Email `df:"email"`
-	Name  string `df:"name"`
+	Email *Email `dd:"email"`
+	Name  string `dd:"name"`
 }
 
 func TestConverterWithPointers(t *testing.T) {
@@ -274,8 +274,8 @@ func TestConverterWithPointers(t *testing.T) {
 
 // Test with slices
 type TestUserWithEmails struct {
-	Emails []Email `df:"emails"`
-	Name   string  `df:"name"`
+	Emails []Email `dd:"emails"`
+	Name   string  `dd:"name"`
 }
 
 func TestConverterWithSlices(t *testing.T) {

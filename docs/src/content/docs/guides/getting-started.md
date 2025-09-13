@@ -34,11 +34,11 @@ import (
 )
 
 type User struct {
-    Name     string `df:"+required"`
+    Name     string `dd:"+required"`
     Email    string
     Age      int    
-    Active   bool   `df:"is_active"`
-    Password string `df:"+secret"`
+    Active   bool   `dd:"is_active"`
+    Password string `dd:"+secret"`
 }
 
 func main() {
@@ -69,9 +69,9 @@ func main() {
 
 This example shows:
 - **Type-safe binding** with `df.New[T]()`
-- **Struct tags** for field mapping (`df:"is_active"`)
-- **Required fields** validation (`df:"+required"`)
-- **Secret handling** (`df:"+secret"` fields hidden in output)
+- **Struct tags** for field mapping (`dd:"is_active"`)
+- **Required fields** validation (`dd:"+required"`)
+- **Secret handling** (`dd:"+secret"` fields hidden in output)
 - **Bidirectional conversion** with `df.Unbind()`
 
 ## Working with Files
@@ -80,9 +80,9 @@ df makes it easy to load configuration from files:
 
 ```go
 type Config struct {
-    AppName     string `df:"app_name"`
-    DatabaseURL string `df:"database_url"`
-    LogLevel    string `df:"log_level"`
+    AppName     string `dd:"app_name"`
+    DatabaseURL string `dd:"database_url"`
+    LogLevel    string `dd:"log_level"`
 }
 
 func main() {
@@ -120,9 +120,9 @@ import (
 
 // Application configuration
 type Config struct {
-    AppName     string `df:"app_name"`
-    DatabaseURL string `df:"database_url"`
-    LogLevel    string `df:"log_level"`
+    AppName     string `dd:"app_name"`
+    DatabaseURL string `dd:"database_url"`
+    LogLevel    string `dd:"log_level"`
 }
 
 // A simple service

@@ -16,7 +16,7 @@ func TestUnbindBasic(t *testing.T) {
 
 func TestUnbindRenaming(t *testing.T) {
 	s := &struct {
-		SomeInt int `df:"some_int_,+required"`
+		SomeInt int `dd:"some_int_,+required"`
 	}{SomeInt: 46}
 	m, err := Unbind(s)
 	assert.Nil(t, err)
@@ -124,7 +124,7 @@ func TestUnbindSnakeCaseDefault(t *testing.T) {
 
 func TestUnbindSkipTag(t *testing.T) {
 	s := &struct {
-		A int `df:"-"`
+		A int `dd:"-"`
 		B int
 	}{A: 1, B: 2}
 	m, err := Unbind(s)
@@ -169,8 +169,8 @@ type customMarshalType struct {
 	Value string
 }
 
-// MarshalDf implements the Marshaler interface for *customMarshalType
-func (c *customMarshalType) MarshalDf() (map[string]any, error) {
+// MarshalDd implements the Marshaler interface for *customMarshalType
+func (c *customMarshalType) MarshalDd() (map[string]any, error) {
 	return map[string]any{
 		"value": "custom-" + c.Value,
 	}, nil
