@@ -14,17 +14,11 @@ export default defineConfig({
 					label: 'Guides',
 					items: [
 						// Each item here is one entry in the navigation menu.
-						{ label: 'How to Learn df', slug: 'guides/df' },
-						{ label: 'Getting Started', slug: 'guides/getting-started' },
-						{ label: 'Data Binding', slug: 'guides/data-binding' },
-						{ label: 'Dependency Injection', slug: 'guides/dependency-injection' },
-						{ label: 'Application Lifecycle', slug: 'guides/application-lifecycle' },
-						{ label: 'Advanced Features', slug: 'guides/advanced-features' },
+						{ label: 'dynamic foundation', slug: 'guides/df-framework' },
+						{ label: 'dynamic foundation for data', slug: 'guides/dd' },
+						{ label: 'dynamic foundation for logging', slug: 'guides/dl' },
+						{ label: 'dynamic foundation for applications', slug: 'guides/da' }
 					],
-				},
-				{
-					label: 'Reference',
-					autogenerate: { directory: 'reference' },
 				},
 			],
 		}),

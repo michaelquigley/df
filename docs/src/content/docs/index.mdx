@@ -1,12 +1,12 @@
 ---
-title: Welcome to df
+title: dynamic foundation
 description: Get started building your application with the df Framework.
 template: splash
 hero:
-  tagline: A powerful framework for dynamic golang applications.
+  tagline: a powerful framework for managing dynamic monoliths.
   actions:
-    - text: How to Learn df
-      link: /guides/df/
+    - text: start learning the framework
+      link: /df/guides/df-framework
       icon: right-arrow
 ---
 
@@ -16,22 +16,22 @@ import { Card, CardGrid } from '@astrojs/starlight/components';
 ## Key Features
 
 <CardGrid stagger>
-  <Card title="Data Binding Foundation" icon="puzzle">
-    Bidirectional binding between Go structs and structured data (JSON, YAML, maps) with type-safe conversion and support for primitives, pointers, slices, and nested structures.
+  <Card title="dynamic foundation for data" icon="puzzle">
+    Convert between Go structs and maps with ease. Since maps are foundational to all data systems, this enables seamless integration with any network protocol, database, object store, or file format.
   </Card>
-  <Card title="Dependency Injection Container" icon="setting">
-    Object management with singleton and named registration patterns, type queries for exact matching and interface compatibility, plus container introspection.
+  <Card title="dynamic foundation for logging" icon="stream">
+    Intelligent channel-based logging built on Go's slog. Route different log categories to independent destinations with per-channel configuration for optimal observability.
   </Card>
-  <Card title="Application Orchestration" icon="rocket">
-    Lifecycle management with configurable phases (build → link → start → stop), factory pattern for configuration-driven object creation, and automatic dependency injection.
+  <Card title="dynamic foundation for applications" icon="rocket">
+    Easily manage massive monoliths in code. Dependency injection and lifecycle management for complex applications with factory pattern and container introspection.
   </Card>
-  <Card title="Polymorphic Data Support" icon="random">
-    Dynamic interface for runtime type discrimination, enabling flexible data structures that can adapt based on configuration.
+  <Card title="Configuration-Driven Architecture" icon="setting">
+    Build applications that can reconfigure their internal architecture based on runtime configuration. Load settings, merge layers, and adapt behavior dynamically.
   </Card>
-  <Card title="Object References" icon="link">
-    Cycle-safe pointer resolution with generic `Pointer[T]` type, supporting complex object relationships and circular references.
+  <Card title="Progressive Integration" icon="merge">
+    Use packages independently or together. Start with dd for data binding, add dl for intelligent logging, use da for complex application management.
   </Card>
-  <Card title="Configuration Merging" icon="merge">
-    Layer multiple configuration sources with intelligent defaults preservation using the `Merge` function for sophisticated configuration hierarchies.
+  <Card title="Production Ready" icon="approve-check">
+    Battle-tested framework with comprehensive examples, progressive documentation, and real-world patterns for building scalable, maintainable applications.
   </Card>
 </CardGrid>
