@@ -62,7 +62,6 @@ data := map[string]any{
     "port":     "8080",        // string → int
     "timeout":  30.5,          // float → int
     "enabled":  "true",        // string → bool
-    "tags":     "web,api",     // string → []string
     "duration": "5m",          // string → time.Duration
 }
 
