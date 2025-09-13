@@ -1,6 +1,6 @@
-# df_13_container - dependency injection and application management
+# da_01_hello_world - basic container and application management
 
-this example demonstrates the `Container` and `Application` types for building scalable application containers with dependency injection, lifecycle management, and application discovery.
+this example demonstrates the fundamental `da` (dynamic application) concepts: using `Container` and `Application` types for dependency injection, lifecycle management, and application organization. this is the "hello world" introduction to the da package.
 
 ## what you'll learn
 

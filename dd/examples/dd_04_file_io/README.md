@@ -1,6 +1,6 @@
-# file i/o example
+# dd_04_file_io - JSON and YAML persistence
 
-this example demonstrates direct JSON and YAML file binding/unbinding using `df.BindFromJSON()`, `df.BindFromYAML()`, `df.UnbindToJSON()`, and `df.UnbindToYAML()` functions.
+this example demonstrates `dd` file I/O operations: direct JSON and YAML file binding/unbinding using `dd.BindFromJSON()`, `dd.BindFromYAML()`, `dd.UnbindToJSON()`, and `dd.UnbindToYAML()` functions.
 
 ## key concepts demonstrated
 

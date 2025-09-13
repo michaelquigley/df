@@ -1,6 +1,6 @@
-# basic bind/unbind example
+# dd_01_hello_world - basic bind/unbind
 
-this example demonstrates both the modern `df.New[T]()` and traditional `df.Bind()` functions along with `df.Unbind()` for converting between structured data and go structs.
+this example demonstrates the fundamental `dd` (dynamic data) operations: converting between structured data (`map[string]any`) and go structs using `dd.New[T]()`, `dd.Bind()`, and `dd.Unbind()`. this is the "hello world" introduction to the dd package.
 
 ## key concepts
 
@@ -54,10 +54,10 @@ type Profile struct {
 
 ## workflow demonstrated
 
-1. **allocate and bind**: use `df.New[T]()` for type-safe allocation and binding
+1. **allocate and bind**: use `dd.New[T]()` for type-safe allocation and binding
 2. **unbinding**: convert go structs back to `map[string]any`
 3. **round-trip**: verify data integrity through the complete cycle
 4. **error handling**: show validation behavior for missing required fields
-5. **manual binding**: show `df.Bind()` for cases requiring manual allocation control
+5. **manual binding**: show `dd.Bind()` for cases requiring manual allocation control
 
 this example showcases both struct binding patterns, providing the foundation for data persistence, API marshaling, and configuration management patterns.

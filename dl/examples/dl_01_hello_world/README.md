@@ -1,6 +1,6 @@
-# dlf_1_basics
+# dl_01_hello_world - basic structured logging
 
-this example demonstrates the structured logging capabilities of df, which are based on the pfxlog library semantics. the logging system provides a builder pattern for contextual logging, all built on go's standard `slog` package.
+this example demonstrates the fundamental `dl` (dynamic logging) capabilities: structured logging with channel-based routing built on go's standard `slog` package. this is the "hello world" introduction to the dl package.
 
 ## key features demonstrated
 

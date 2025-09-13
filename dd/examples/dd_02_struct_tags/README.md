@@ -1,6 +1,6 @@
-# struct tag features example
+# dd_02_struct_tags - field mapping and validation
 
-this example demonstrates all supported struct tag features for customizing field behavior during data binding and unbinding operations.
+this example demonstrates the `dd` struct tag system for customizing field behavior: custom field names, validation rules, and field exclusion during data binding operations.
 
 ## key concepts demonstrated
 
