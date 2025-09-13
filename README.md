@@ -60,6 +60,8 @@ app.Start()       // start all services
 
 ## Getting Started
 
+Start with the [documentation](https://michaelquigley.github.io/df/).
+
 Each package works independently:
 
 - **Start with `dd`** for struct ↔ map conversion and configuration loading
