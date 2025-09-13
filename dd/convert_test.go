@@ -66,3 +66,25 @@ func TestSliceTypeCompatibility(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, []string{"a", "b", "c"}, withArray.Items)
 }
+
+func TestCoercion(t *testing.T) {
+	data := map[string]any{
+		"port":     "8080", // string → int
+		"timeout":  30.5,   // float → int
+		"enabled":  "true", // string → bool
+		"duration": "5m",   // string → time.Duration
+	}
+
+	type coercion struct {
+		Port     int           `dd:"port"`
+		Timeout  int           `dd:"timeout"`
+		Enabled  bool          `dd:"enabled"`
+		Duration time.Duration `dd:"duration"`
+	}
+
+	config, err := New[coercion](data)
+	assert.NoError(t, err)
+	assert.Equal(t, 8080, config.Port)
+	assert.Equal(t, 30, config.Timeout)
+	assert.Equal(t, true, config.Enabled)
+}
