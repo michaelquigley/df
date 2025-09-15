@@ -196,12 +196,6 @@ func ConfigureChannel(name string, opts *Options) {
 	defaultChannelManager.ConfigureChannel(name, opts)
 }
 
-// ReconfigureChannel reconfigures an existing channel (alias for ConfigureChannel)
-func ReconfigureChannel(name string, opts *Options) {
-	ensureInit()
-	ConfigureChannel(name, opts)
-}
-
 // RemoveChannel removes a channel configuration, causing it to revert to defaults
 func RemoveChannel(name string) {
 	ensureInit()
