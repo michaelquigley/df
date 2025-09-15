@@ -347,3 +347,207 @@ func TestBuilderNonFatalMethods(t *testing.T) {
 // Note: Testing Fatal methods would require special setup to avoid actually exiting,
 // so we're skipping those in this test suite. In a real-world scenario, you might
 // want to test them with process isolation or by mocking os.Exit.
+
+func TestBareLoggingFunctions(t *testing.T) {
+	// create a buffer to capture log output
+	var buf bytes.Buffer
+	
+	// configure logging to use our test buffer
+	opts := &Options{
+		Output:  &buf,
+		UseJSON: false,
+		Level:   slog.LevelDebug,
+	}
+	Init(opts)
+	
+	testError := errors.New("bare function test error")
+
+	tests := []struct {
+		name      string
+		logFunc   func(any)
+		input     any
+		expectMsg string
+	}{
+		{
+			name:      "bare Debug with string",
+			logFunc:   Debug,
+			input:     "bare debug message",
+			expectMsg: "bare debug message",
+		},
+		{
+			name:      "bare Debug with error",
+			logFunc:   Debug,
+			input:     testError,
+			expectMsg: "bare function test error",
+		},
+		{
+			name:      "bare Info with string",
+			logFunc:   Info,
+			input:     "bare info message",
+			expectMsg: "bare info message",
+		},
+		{
+			name:      "bare Info with error",
+			logFunc:   Info,
+			input:     testError,
+			expectMsg: "bare function test error",
+		},
+		{
+			name:      "bare Warn with string",
+			logFunc:   Warn,
+			input:     "bare warn message",
+			expectMsg: "bare warn message",
+		},
+		{
+			name:      "bare Warn with error",
+			logFunc:   Warn,
+			input:     testError,
+			expectMsg: "bare function test error",
+		},
+		{
+			name:      "bare Error with string",
+			logFunc:   Error,
+			input:     "bare error message",
+			expectMsg: "bare error message",
+		},
+		{
+			name:      "bare Error with error",
+			logFunc:   Error,
+			input:     testError,
+			expectMsg: "bare function test error",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			buf.Reset()
+			tt.logFunc(tt.input)
+			
+			output := buf.String()
+			assert.Contains(t, output, tt.expectMsg)
+		})
+	}
+}
+
+func TestBareFormattedLoggingFunctions(t *testing.T) {
+	// create a buffer to capture log output
+	var buf bytes.Buffer
+	
+	// configure logging to use our test buffer
+	opts := &Options{
+		Output:  &buf,
+		UseJSON: false,
+		Level:   slog.LevelDebug,
+	}
+	Init(opts)
+	
+	testError := errors.New("bare formatted test error")
+
+	tests := []struct {
+		name      string
+		logFunc   func(any, ...any)
+		format    any
+		args      []any
+		expectMsg string
+	}{
+		{
+			name:      "bare Debugf with string format",
+			logFunc:   Debugf,
+			format:    "bare debug %s %d",
+			args:      []any{"test", 42},
+			expectMsg: "bare debug test 42",
+		},
+		{
+			name:      "bare Debugf with error format",
+			logFunc:   Debugf,
+			format:    testError,
+			args:      []any{"ignored"},
+			expectMsg: "bare formatted test error",
+		},
+		{
+			name:      "bare Infof with string format",
+			logFunc:   Infof,
+			format:    "bare info %s",
+			args:      []any{"message"},
+			expectMsg: "bare info message",
+		},
+		{
+			name:      "bare Infof with error format",
+			logFunc:   Infof,
+			format:    testError,
+			args:      []any{"ignored"},
+			expectMsg: "bare formatted test error",
+		},
+		{
+			name:      "bare Warnf with string format",
+			logFunc:   Warnf,
+			format:    "bare warn %v",
+			args:      []any{123},
+			expectMsg: "bare warn 123",
+		},
+		{
+			name:      "bare Warnf with error format",
+			logFunc:   Warnf,
+			format:    testError,
+			args:      []any{"ignored"},
+			expectMsg: "bare formatted test error",
+		},
+		{
+			name:      "bare Errorf with string format",
+			logFunc:   Errorf,
+			format:    "bare error %s occurred",
+			args:      []any{"critical"},
+			expectMsg: "bare error critical occurred",
+		},
+		{
+			name:      "bare Errorf with error format",
+			logFunc:   Errorf,
+			format:    testError,
+			args:      []any{"ignored"},
+			expectMsg: "bare formatted test error",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			buf.Reset()
+			tt.logFunc(tt.format, tt.args...)
+			
+			output := buf.String()
+			assert.Contains(t, output, tt.expectMsg)
+		})
+	}
+}
+
+func TestBareLoggingCallStack(t *testing.T) {
+	// create a buffer to capture log output  
+	var buf bytes.Buffer
+	
+	// configure logging to use our test buffer with pretty formatting
+	opts := &Options{
+		Output:          &buf,
+		UseJSON:         false,
+		Level:           slog.LevelDebug,
+		TrimPrefix:      "",
+		AbsoluteTime:    false,
+		TimestampFormat: "15:04:05.000",
+	}
+	Init(opts)
+	
+	// create a test function that calls the bare logging functions
+	testFunction := func() {
+		Info("call stack test message")
+	}
+	
+	buf.Reset()
+	testFunction()
+	
+	output := buf.String()
+	
+	// verify the output contains the test function name, not the bare Info function
+	assert.Contains(t, output, "call stack test message")
+	// the output should show "testFunction" in the call stack, not "Info"
+	assert.Contains(t, output, "TestBareLoggingCallStack")
+	// it should NOT contain the bare function name "dl.Info"
+	assert.NotContains(t, output, "dl.Info")
+}
