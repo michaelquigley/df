@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## v0.3.1
+
+FEATURE: Make logging methods (`LogBuilder.[Info|Error|Infof|Errorf|...]`) more accepting of other data types; we need to be able to call `dl.Log().Error(err)` without having to call `err.Error()` first. (https://github.com/michaelquigley/df/issues/31)
+
 ## v0.3.0
 
 FEATURE: Completely new layered, modular package structure to better match the overall architecture. The `df.Bind` and `df.Unbind` "data" layer has been moved into the new `dd` (dynamic data) package. The `df.Log()` and all of the logging infrastructure has moved into the `dl` (dynamic logging) package. `df.Application` and all of the container bits have been moved into the `da` (dynamic application) package. (https://github.com/michaelquigley/df/issues/28)
