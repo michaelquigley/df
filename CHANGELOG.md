@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v0.3.2
+
+FEATURE: `DL_USE_JSON` environment variable overrides terminal detection to control whether or not logging output should use JSON format or be pretty-printed. (https://github.com/michaelquigley/df/issues/35)
+
+CHANGE: `DFLOG_USE_COLOR` environment variable renamed to `DL_USE_COLOR`. (https://github.com/michaelquigley/df/issues/35)
+
 ## v0.3.1
 
 FEATURE: Make logging methods (`LogBuilder.[Info|Error|Infof|Errorf|...]`) more accepting of other data types; we need to be able to call `dl.Log().Error(err)` without having to call `err.Error()` first. (https://github.com/michaelquigley/df/issues/31)

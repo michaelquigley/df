@@ -43,6 +43,7 @@ func DefaultOptions() *Options {
 	out := &Options{
 		Level:           slog.LevelInfo,
 		UseColor:        isTerminal() && shouldUseColor(),
+		UseJSON:         !isTerminal(),
 		TimestampFormat: "2006-01-02 15:04:05.000",
 		StartTimestamp:  time.Now(),
 		Output:          os.Stdout,
@@ -113,6 +114,11 @@ func (o *Options) SetOutput(w io.Writer) *Options {
 
 // isTerminal checks if stdout is a terminal
 func isTerminal() bool {
+	if env := os.Getenv("DL_USE_JSON"); env != "" {
+		if v, err := strconv.ParseBool(env); err == nil {
+			return !v
+		}
+	}
 	fileInfo, err := os.Stdout.Stat()
 	if err != nil {
 		return false
@@ -122,7 +128,7 @@ func isTerminal() bool {
 
 // shouldUseColor checks environment variables to determine if color should be used
 func shouldUseColor() bool {
-	if env := os.Getenv("DFLOG_USE_COLOR"); env != "" {
+	if env := os.Getenv("DL_USE_COLOR"); env != "" {
 		if val, err := strconv.ParseBool(env); err == nil {
 			return val
 		}
