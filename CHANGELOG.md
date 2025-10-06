@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## v0.3.3
+
+FEATURE: comprehensive support for typed maps in `dd`. bind and unbind now support `map[K]V` where K is any comparable type (string, int, uint, float, bool and their variants) and V is any supported dd type (primitives, structs, pointers, slices, nested maps). map keys from JSON/YAML are automatically coerced from strings to the target key type. includes full test coverage and example `dd_13_typed_maps`. (https://github.com/michaelquigley/df/issues/36)
+
 ## v0.3.2
 
 FEATURE: `DL_USE_JSON` environment variable overrides terminal detection to control whether or not logging output should use JSON format or be pretty-printed. (https://github.com/michaelquigley/df/issues/35)

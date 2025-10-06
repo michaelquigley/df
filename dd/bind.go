@@ -37,8 +37,9 @@ type Options struct {
 // - pointers to the above
 // - structs and pointers to structs (recursively bound from map[string]any)
 // - slices of the above (slice items are bound from []interface{})
+// - maps with comparable key types and any supported value type (map keys from JSON/YAML are coerced from strings)
 //
-// interface types and maps are not supported and will return an error if encountered,
+// interface types are not supported and will return an error if encountered,
 // except for fields of type Dynamic which are resolved using Options.DynamicBinders.
 //
 // opts are optional; pass nil or omit to use defaults.
@@ -401,24 +402,106 @@ func setNonPtrValue(fieldVal reflect.Value, raw interface{}, path string, opt *O
 		return nil
 
 	case reflect.Map:
-		// support map[string]any and map[string]interface{}
-		if fieldVal.Type().Key().Kind() != reflect.String {
-			return fmt.Errorf("%s: only map[string]any and map[string]interface{} are supported, got %v", path, fieldVal.Type())
-		}
-		elemType := fieldVal.Type().Elem()
-		if elemType.Kind() != reflect.Interface {
-			return fmt.Errorf("%s: only map[string]any and map[string]interface{} are supported, got %v", path, fieldVal.Type())
-		}
-
 		rawMap, ok := raw.(map[string]any)
 		if !ok {
 			return fmt.Errorf("%s: expected object for map field, got %T", path, raw)
 		}
 
-		// create new map and populate it
+		keyType := fieldVal.Type().Key()
+		elemType := fieldVal.Type().Elem()
+
+		// create new map
 		newMap := reflect.MakeMap(fieldVal.Type())
-		for key, value := range rawMap {
-			newMap.SetMapIndex(reflect.ValueOf(key), reflect.ValueOf(value))
+
+		// populate map with converted keys and values
+		for keyStr, value := range rawMap {
+			itemPath := fmt.Sprintf("%s[%q]", path, keyStr)
+
+			// convert string key to target key type
+			keyVal, err := stringToKey(keyStr, keyType)
+			if err != nil {
+				return fmt.Errorf("%s: %w", path, err)
+			}
+
+			// handle different value types similar to slice element handling
+			if elemType.Kind() == reflect.Interface && elemType == dynamicInterfaceType {
+				// handle Dynamic interface values
+				subMap, ok := value.(map[string]any)
+				if !ok {
+					return fmt.Errorf("%s: expected object for Dynamic element, got %T", itemPath, value)
+				}
+				dynVal, err := bindDynamic(subMap, itemPath, opt)
+				if err != nil {
+					return err
+				}
+				newMap.SetMapIndex(keyVal, reflect.ValueOf(dynVal))
+				continue
+			}
+
+			if elemType.Kind() == reflect.Ptr {
+				// pointer to value
+				elemPtr := reflect.New(elemType.Elem())
+				if elemType.Elem().Kind() == reflect.Struct {
+					// pointer to struct
+					subMap, ok := value.(map[string]any)
+					if !ok {
+						return fmt.Errorf("%s: expected object for struct map value, got %T", itemPath, value)
+					}
+					if err := bindStruct(elemPtr.Elem(), subMap, itemPath, opt, preserveExisting); err != nil {
+						return err
+					}
+					newMap.SetMapIndex(keyVal, elemPtr)
+					continue
+				}
+				// pointer to primitive
+				if err := setNonPtrValue(elemPtr.Elem(), value, itemPath, opt, preserveExisting); err != nil {
+					return err
+				}
+				newMap.SetMapIndex(keyVal, elemPtr)
+				continue
+			}
+
+			// non-pointer value
+			elemVal := reflect.New(elemType).Elem()
+			if elemType.Kind() == reflect.Struct {
+				// struct value
+				subMap, ok := value.(map[string]any)
+				if !ok {
+					return fmt.Errorf("%s: expected object for struct map value, got %T", itemPath, value)
+				}
+				if err := bindStruct(elemVal, subMap, itemPath, opt, preserveExisting); err != nil {
+					return err
+				}
+				newMap.SetMapIndex(keyVal, elemVal)
+				continue
+			}
+			if elemType.Kind() == reflect.Map {
+				// nested map
+				if err := setField(elemVal, value, itemPath, opt, preserveExisting); err != nil {
+					return err
+				}
+				newMap.SetMapIndex(keyVal, elemVal)
+				continue
+			}
+			if elemType.Kind() == reflect.Slice {
+				// slice value
+				if err := setNonPtrValue(elemVal, value, itemPath, opt, preserveExisting); err != nil {
+					return err
+				}
+				newMap.SetMapIndex(keyVal, elemVal)
+				continue
+			}
+			// primitive or interface value
+			if elemType.Kind() == reflect.Interface {
+				// interface{} or any type - store raw value
+				newMap.SetMapIndex(keyVal, reflect.ValueOf(value))
+				continue
+			}
+			// primitive value
+			if err := convertAndSet(elemVal, value, itemPath, opt); err != nil {
+				return err
+			}
+			newMap.SetMapIndex(keyVal, elemVal)
 		}
 		fieldVal.Set(newMap)
 		return nil

@@ -131,6 +131,168 @@ data := map[string]any{
 user, err := dd.New[User](data)
 ```
 
+### 5.5. Typed Maps - Structured Collections
+
+**maps with typed keys and values**
+
+```go
+// define struct with typed maps
+type ServerCluster struct {
+    Name    string                  `dd:"name"`
+    Servers map[int]ServerConfig    `dd:"servers"`      // int keys
+    Cache   map[string]CachePolicy  `dd:"cache"`        // string keys
+    Flags   map[bool]string         `dd:"flags"`        // bool keys
+}
+
+type ServerConfig struct {
+    Host string `dd:"host"`
+    Port int    `dd:"port"`
+}
+
+type CachePolicy struct {
+    TTL     int  `dd:"ttl"`
+    Enabled bool `dd:"enabled"`
+}
+
+// JSON data (map keys are always strings in JSON/YAML)
+data := map[string]any{
+    "name": "production",
+    "servers": map[string]any{
+        "1": map[string]any{"host": "server1.example.com", "port": 8080},
+        "2": map[string]any{"host": "server2.example.com", "port": 8080},
+        "10": map[string]any{"host": "server10.example.com", "port": 8081},
+    },
+    "cache": map[string]any{
+        "users":    map[string]any{"ttl": 300, "enabled": true},
+        "sessions": map[string]any{"ttl": 600, "enabled": true},
+    },
+    "flags": map[string]any{
+        "true":  "active",
+        "false": "inactive",
+    },
+}
+
+// bind with automatic key type conversion
+cluster, err := dd.New[ServerCluster](data)
+
+// access with typed keys (strings "1", "2", "10" → int 1, 2, 10)
+server1 := cluster.Servers[1]        // directly use int key
+fmt.Println(server1.Host)            // "server1.example.com"
+
+userCache := cluster.Cache["users"]  // string key
+fmt.Println(userCache.TTL)           // 300
+
+active := cluster.Flags[true]        // bool key
+fmt.Println(active)                  // "active"
+```
+
+**key type coercion**
+
+since JSON/YAML always use string keys, dd automatically converts them to the target key type:
+- `map[int]T`: `{"1": ...}` → key becomes `1` (int)
+- `map[int64]T`: `{"42": ...}` → key becomes `42` (int64)
+- `map[uint]T`: `{"10": ...}` → key becomes `10` (uint)
+- `map[bool]T`: `{"true": ...}` → key becomes `true` (bool)
+- `map[string]T`: no conversion needed
+
+**nested maps**
+
+```go
+type NestedConfig struct {
+    Environments map[string]map[string]string `dd:"envs"`
+}
+
+data := map[string]any{
+    "envs": map[string]any{
+        "dev": map[string]any{
+            "db_host": "localhost",
+            "api_url": "http://localhost:8080",
+        },
+        "prod": map[string]any{
+            "db_host": "db.prod.example.com",
+            "api_url": "https://api.example.com",
+        },
+    },
+}
+
+config, _ := dd.New[NestedConfig](data)
+dbHost := config.Environments["prod"]["db_host"]  // "db.prod.example.com"
+```
+
+**maps with pointer values**
+
+```go
+type UserRegistry struct {
+    Users map[int]*User `dd:"users"`
+}
+
+type User struct {
+    Name  string `dd:"name"`
+    Email string `dd:"email"`
+}
+
+data := map[string]any{
+    "users": map[string]any{
+        "1001": map[string]any{"name": "Alice", "email": "alice@example.com"},
+        "1002": map[string]any{"name": "Bob", "email": "bob@example.com"},
+    },
+}
+
+registry, _ := dd.New[UserRegistry](data)
+alice := registry.Users[1001]  // *User
+fmt.Println(alice.Name)        // "Alice"
+```
+
+**maps with slice values**
+
+```go
+type GroupRegistry struct {
+    Groups map[string][]string `dd:"groups"`
+}
+
+data := map[string]any{
+    "groups": map[string]any{
+        "admins":     []any{"alice", "bob"},
+        "developers": []any{"charlie", "diana", "eve"},
+        "viewers":    []any{"frank"},
+    },
+}
+
+registry, _ := dd.New[GroupRegistry](data)
+admins := registry.Groups["admins"]  // []string{"alice", "bob"}
+```
+
+**unbind with typed maps**
+
+when unbinding, all map keys are converted to strings for JSON/YAML compatibility:
+
+```go
+type Config struct {
+    Servers map[int]string `dd:"servers"`
+}
+
+config := Config{
+    Servers: map[int]string{
+        1:  "server1.example.com",
+        2:  "server2.example.com",
+        10: "server10.example.com",
+    },
+}
+
+data, _ := dd.Unbind(config)
+// result: {"servers": {"1": "server1.example.com", "2": "server2.example.com", "10": "server10.example.com"}}
+// int keys 1, 2, 10 → string keys "1", "2", "10"
+```
+
+**use cases**
+
+typed maps are ideal for:
+- **id-based lookups**: `map[int]User` for user registries
+- **configuration sets**: `map[string]ServerConfig` for environment-specific configs
+- **indexed data**: `map[uint64]Record` for database-style access
+- **flag mappings**: `map[bool]string` for conditional values
+- **enum-like keys**: when you need type-safe key access
+
 ### 6. Validation - Required Fields and Errors
 
 **Field validation and error handling**

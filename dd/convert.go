@@ -235,3 +235,72 @@ func coerceToFloat64(raw interface{}) (float64, bool) {
 	}
 	return 0, false
 }
+
+// stringToKey converts a string key (from JSON/YAML) to the target key type.
+// returns the converted key as a reflect.Value.
+func stringToKey(keyStr string, keyType reflect.Type) (reflect.Value, error) {
+	keyKind := keyType.Kind()
+
+	switch keyKind {
+	case reflect.String:
+		return reflect.ValueOf(keyStr).Convert(keyType), nil
+
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		i64, ok := coerceToInt64(keyStr)
+		if !ok {
+			return reflect.Value{}, fmt.Errorf("cannot convert key %q to %v", keyStr, keyKind)
+		}
+		keyVal := reflect.New(keyType).Elem()
+		keyVal.SetInt(i64)
+		return keyVal, nil
+
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		u64, ok := coerceToUint64(keyStr)
+		if !ok {
+			return reflect.Value{}, fmt.Errorf("cannot convert key %q to %v", keyStr, keyKind)
+		}
+		keyVal := reflect.New(keyType).Elem()
+		keyVal.SetUint(u64)
+		return keyVal, nil
+
+	case reflect.Float32, reflect.Float64:
+		f64, ok := coerceToFloat64(keyStr)
+		if !ok {
+			return reflect.Value{}, fmt.Errorf("cannot convert key %q to %v", keyStr, keyKind)
+		}
+		keyVal := reflect.New(keyType).Elem()
+		keyVal.SetFloat(f64)
+		return keyVal, nil
+
+	case reflect.Bool:
+		switch strings.ToLower(strings.TrimSpace(keyStr)) {
+		case "true", "1", "yes":
+			return reflect.ValueOf(true), nil
+		case "false", "0", "no", "":
+			return reflect.ValueOf(false), nil
+		default:
+			return reflect.Value{}, fmt.Errorf("cannot convert key %q to bool", keyStr)
+		}
+
+	default:
+		return reflect.Value{}, fmt.Errorf("unsupported map key type: %v", keyKind)
+	}
+}
+
+// keyToString converts any supported key type to its string representation for JSON/YAML output.
+func keyToString(key reflect.Value) string {
+	switch key.Kind() {
+	case reflect.String:
+		return key.String()
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return strconv.FormatInt(key.Int(), 10)
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		return strconv.FormatUint(key.Uint(), 10)
+	case reflect.Float32, reflect.Float64:
+		return strconv.FormatFloat(key.Float(), 'g', -1, 64)
+	case reflect.Bool:
+		return strconv.FormatBool(key.Bool())
+	default:
+		return fmt.Sprintf("%v", key.Interface())
+	}
+}

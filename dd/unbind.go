@@ -13,10 +13,11 @@ import (
 // - when no tag is provided, the key defaults to snake_case of the field name
 //
 // pointers to values: if nil, the key is omitted; otherwise the pointed value is emitted.
-// slices, structs, and nested pointers are handled recursively. time.Duration values
-// are emitted as strings using Duration.String() (e.g., "30s"). Interface fields are
-// not supported, except for fields of type `Dynamic` (and slices of `Dynamic`), which
-// are converted via their ToMap() method which now returns (map[string]any, error). Map-typed fields are not supported.
+// slices, structs, maps, and nested pointers are handled recursively. time.Duration values
+// are emitted as strings using Duration.String() (e.g., "30s"). map keys are converted to
+// strings for JSON/YAML compatibility. Interface fields are not supported, except for fields
+// of type `Dynamic` (and slices of `Dynamic`), which are converted via their ToMap() method
+// which now returns (map[string]any, error).
 //
 // opts are optional; pass nil or omit to use defaults.
 func Unbind(source interface{}, opts ...*Options) (map[string]any, error) {
@@ -233,33 +234,29 @@ func valueToInterface(v reflect.Value, opt *Options) (interface{}, bool, error) 
 		return arr, true, nil
 
 	case reflect.Map:
-		// support map[string]any and map[string]interface{}
-		if v.Type().Key().Kind() != reflect.String {
-			return nil, false, &UnsupportedError{Operation: fmt.Sprintf("map with %v keys", v.Type().Key().Kind())}
-		}
-		elemType := v.Type().Elem()
-		if elemType.Kind() != reflect.Interface {
-			return nil, false, &UnsupportedError{Operation: fmt.Sprintf("map with %v values", elemType)}
-		}
-
-		// convert map to map[string]any
+		// convert all map key types to strings for JSON/YAML compatibility
 		result := make(map[string]any)
 		for _, key := range v.MapKeys() {
-			keyStr := key.String()
+			// convert key to string
+			keyStr := keyToString(key)
 			mapVal := v.MapIndex(key)
 
-			// handle nil interface values
-			if !mapVal.IsValid() || (mapVal.Kind() == reflect.Interface && mapVal.IsNil()) {
+			// handle nil/invalid values
+			if !mapVal.IsValid() {
 				result[keyStr] = nil
 				continue
 			}
 
+			// recursively convert value
 			converted, present, err := valueToInterface(mapVal, opt)
 			if err != nil {
 				return nil, false, err
 			}
 			if present {
 				result[keyStr] = converted
+			} else {
+				// preserve nil values in map
+				result[keyStr] = nil
 			}
 		}
 		return result, true, nil

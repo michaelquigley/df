@@ -25,6 +25,7 @@ user, _ := dd.New[User](userData)
 - **🔄 Bidirectional Binding**: Seamlessly convert structs ↔ maps
 - **🏷️ Struct Tags**: Control field mapping with `df` tags
 - **⚡ Type Coercion**: Automatic type conversion (strings→numbers, etc.)
+- **🗺️ Typed Maps**: Full support for `map[K]V` with any comparable key type
 - **📁 File I/O**: Direct JSON/YAML binding with `BindFromJSON()`, `UnbindToYAML()`
 - **🔗 Object References**: `Pointer[T]` type with cycle-safe linking
 - **🎭 Dynamic Types**: Runtime type discrimination via `Dynamic` interface
@@ -66,6 +67,19 @@ data := map[string]any{
     "name": "John",
 }
 obj, _ := dd.New[dd.Dynamic](data)  // Creates appropriate type
+```
+
+**Typed Maps**
+```go
+// Maps with typed keys and values
+type ServerConfig struct {
+    Servers map[int]Server  // int keys from JSON strings
+    Cache   map[string]CacheConfig
+}
+
+// JSON: {"servers": {"1": {...}, "2": {...}}}
+config, _ := dd.New[ServerConfig](data)
+server := config.Servers[1]  // Direct typed access
 ```
 
 ## Examples
