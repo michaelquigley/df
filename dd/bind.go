@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"time"
 )
 
 // Options configures binding behavior.
@@ -33,7 +34,7 @@ type Options struct {
 // object to bind off the heap.
 //
 // supported kinds:
-// - primitives: string, bool, all int/uint sizes, float32/64, time.Duration
+// - primitives: string, bool, all int/uint sizes, float32/64, time.Duration, time.Time (from RFC3339 strings)
 // - pointers to the above
 // - structs and pointers to structs (recursively bound from map[string]any)
 // - slices of the above (slice items are bound from []interface{})
@@ -282,6 +283,17 @@ func setField(fieldVal reflect.Value, raw interface{}, path string, opt *Options
 	// handle pointers by allocating as needed then setting the element
 	if fieldType.Kind() == reflect.Ptr {
 		elemType := fieldType.Elem()
+
+		// special-case *time.Time before checking for struct pointer
+		if elemType == reflect.TypeOf(time.Time{}) {
+			newPtr := reflect.New(elemType)
+			if err := setNonPtrValue(newPtr.Elem(), raw, path, opt, preserveExisting); err != nil {
+				return err
+			}
+			fieldVal.Set(newPtr)
+			return nil
+		}
+
 		if elemType.Kind() == reflect.Struct {
 			subMap, ok := raw.(map[string]any)
 			if !ok {
@@ -321,6 +333,29 @@ func setNonPtrValue(fieldVal reflect.Value, raw interface{}, path string, opt *O
 	} else if wasConverted {
 		fieldVal.Set(reflect.ValueOf(converted))
 		return nil
+	}
+
+	// special-case time.Time before checking struct kind (since time.Time is a struct)
+	if fieldVal.Type() == reflect.TypeOf(time.Time{}) {
+		switch v := raw.(type) {
+		case string:
+			// try RFC3339 first (what Unbind produces)
+			t, err := time.Parse(time.RFC3339, v)
+			if err != nil {
+				// try RFC3339Nano as fallback for higher precision timestamps
+				t, err = time.Parse(time.RFC3339Nano, v)
+				if err != nil {
+					return fmt.Errorf("%s: cannot parse time: %w", path, err)
+				}
+			}
+			fieldVal.Set(reflect.ValueOf(t))
+			return nil
+		case time.Time:
+			fieldVal.Set(reflect.ValueOf(v))
+			return nil
+		default:
+			return fmt.Errorf("%s: expected time (RFC3339 string or time.Time), got %T", path, raw)
+		}
 	}
 
 	switch fieldVal.Kind() {

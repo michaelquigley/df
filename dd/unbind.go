@@ -14,10 +14,11 @@ import (
 //
 // pointers to values: if nil, the key is omitted; otherwise the pointed value is emitted.
 // slices, structs, maps, and nested pointers are handled recursively. time.Duration values
-// are emitted as strings using Duration.String() (e.g., "30s"). map keys are converted to
-// strings for JSON/YAML compatibility. Interface fields are not supported, except for fields
-// of type `Dynamic` (and slices of `Dynamic`), which are converted via their ToMap() method
-// which now returns (map[string]any, error).
+// are emitted as strings using Duration.String() (e.g., "30s"). time.Time values are emitted
+// as RFC3339 strings (e.g., "2024-03-15T14:30:45Z"). map keys are converted to strings for
+// JSON/YAML compatibility. Interface fields are not supported, except for fields of type
+// `Dynamic` (and slices of `Dynamic`), which are converted via their ToMap() method which
+// now returns (map[string]any, error).
 //
 // opts are optional; pass nil or omit to use defaults.
 func Unbind(source interface{}, opts ...*Options) (map[string]any, error) {
@@ -147,6 +148,12 @@ func valueToInterface(v reflect.Value, opt *Options) (interface{}, bool, error) 
 	if v.Type() == reflect.TypeOf(time.Duration(0)) {
 		d := time.Duration(v.Int())
 		return d.String(), true, nil
+	}
+
+	// special-case time.Time (struct with unexported fields)
+	if v.Type() == reflect.TypeOf(time.Time{}) {
+		t := v.Interface().(time.Time)
+		return t.Format(time.RFC3339), true, nil
 	}
 
 	switch v.Kind() {

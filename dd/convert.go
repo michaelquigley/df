@@ -17,7 +17,6 @@ func convertAndSet(dst reflect.Value, raw interface{}, path string, opt *Options
 		return nil
 	}
 
-	dstKind := dst.Kind()
 	// special-case time.Duration (which is an int64 alias)
 	if dst.Type() == reflect.TypeOf(time.Duration(0)) {
 		switch v := raw.(type) {
@@ -39,6 +38,30 @@ func convertAndSet(dst reflect.Value, raw interface{}, path string, opt *Options
 		}
 	}
 
+	// special-case time.Time (struct with unexported fields)
+	if dst.Type() == reflect.TypeOf(time.Time{}) {
+		switch v := raw.(type) {
+		case string:
+			// try RFC3339 first (what Unbind produces)
+			t, err := time.Parse(time.RFC3339, v)
+			if err != nil {
+				// try RFC3339Nano as fallback for higher precision timestamps
+				t, err = time.Parse(time.RFC3339Nano, v)
+				if err != nil {
+					return &ConversionError{Path: path, Value: v, Type: "time", Cause: err}
+				}
+			}
+			dst.Set(reflect.ValueOf(t))
+			return nil
+		case time.Time:
+			dst.Set(reflect.ValueOf(v))
+			return nil
+		default:
+			return &TypeMismatchError{Path: path, Expected: "time (RFC3339 string or time.Time)", Actual: fmt.Sprintf("%T", raw)}
+		}
+	}
+
+	dstKind := dst.Kind()
 	switch dstKind {
 	case reflect.String:
 		// handle both string and custom string types

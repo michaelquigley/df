@@ -24,6 +24,18 @@ func Init(opts ...*Options) {
 	defaultChannelManager = NewChannelManager(options)
 }
 
+// ConfigureChannel sets a specific logger configuration for a channel
+func ConfigureChannel(name string, opts *Options) {
+	ensureInit()
+	defaultChannelManager.ConfigureChannel(name, opts)
+}
+
+// RemoveChannel removes a channel configuration, causing it to revert to defaults
+func RemoveChannel(name string) {
+	ensureInit()
+	defaultChannelManager.RemoveChannel(name)
+}
+
 // Debug logs a debug message using the default logger
 func Debug(msg any) {
 	ensureInit()
@@ -188,18 +200,6 @@ func ChannelLog(name string) *Builder {
 
 	// configured channels have their own loggers with built-in channel names
 	return &Builder{logger: logger}
-}
-
-// ConfigureChannel sets a specific logger configuration for a channel
-func ConfigureChannel(name string, opts *Options) {
-	ensureInit()
-	defaultChannelManager.ConfigureChannel(name, opts)
-}
-
-// RemoveChannel removes a channel configuration, causing it to revert to defaults
-func RemoveChannel(name string) {
-	ensureInit()
-	defaultChannelManager.RemoveChannel(name)
 }
 
 func ensureInit() {

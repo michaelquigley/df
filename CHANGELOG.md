@@ -1,4 +1,9 @@
+
 # CHANGELOG
+
+## v0.3.4
+
+FIX: `time.Time` struct fields were `Unbind`-ing as an empty `map`. Full pass to ensure that `time.Time` works properly with `Bind` and `Unbind`. (https://github.com/michaelquigley/df/issues/37)
 
 ## v0.3.3
 

@@ -115,6 +115,14 @@ func TestUnbindTimeDuration(t *testing.T) {
 	assert.Equal(t, map[string]any{"duration": "30s"}, m)
 }
 
+func TestUnbindTimeTime(t *testing.T) {
+	fixedTime := time.Date(2024, 3, 15, 14, 30, 45, 0, time.UTC)
+	s := &struct{ CreatedAt time.Time }{CreatedAt: fixedTime}
+	m, err := Unbind(s)
+	assert.Nil(t, err)
+	assert.Equal(t, map[string]any{"created_at": "2024-03-15T14:30:45Z"}, m)
+}
+
 func TestUnbindSnakeCaseDefault(t *testing.T) {
 	s := &struct{ OhWow int }{OhWow: 42}
 	m, err := Unbind(s)
