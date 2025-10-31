@@ -1,6 +1,10 @@
 
 # CHANGELOG
 
+## v0.3.5
+
+FEATURE: Add new `InitializeWithPaths` and `InitializeWithPathsAndOptions` along with new `RequiredPath` and `OptionalPath` functions, to allow for optionality in configuration paths. (https://github.com/michaelquigley/df/issues/38)
+
 ## v0.3.4
 
 FIX: `time.Time` struct fields were `Unbind`-ing as an empty `map`. Full pass to ensure that `time.Time` works properly with `Bind` and `Unbind`. (https://github.com/michaelquigley/df/issues/37)

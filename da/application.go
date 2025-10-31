@@ -1,6 +1,7 @@
 package da
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
 
@@ -36,6 +37,25 @@ type Startable interface {
 // Stoppable defines objects that require cleanup during shutdown.
 type Stoppable interface {
 	Stop() error
+}
+
+// ConfigPath represents a configuration file path with optional loading behavior.
+// When Optional is true, the file will be skipped if it doesn't exist without returning an error.
+type ConfigPath struct {
+	Path     string
+	Optional bool
+}
+
+// RequiredPath creates a ConfigPath for a required configuration file.
+// If the file doesn't exist, initialization will fail with an error.
+func RequiredPath(path string) ConfigPath {
+	return ConfigPath{Path: path, Optional: false}
+}
+
+// OptionalPath creates a ConfigPath for an optional configuration file.
+// If the file doesn't exist, it will be silently skipped during initialization.
+func OptionalPath(path string) ConfigPath {
+	return ConfigPath{Path: path, Optional: true}
 }
 
 // Application orchestrates the lifecycle of a dependency injection container with configuration.
@@ -92,16 +112,48 @@ func (a *Application[C]) InitializeWithOptions(opts *dd.Options, configPaths ...
 	return a.Link()
 }
 
+// InitializeWithPaths executes Configure, Build, and Link phases in sequence.
+// Config paths can be marked as optional using OptionalPath(), which will skip missing files
+// without returning an error. Required paths (using RequiredPath()) will fail if missing.
+func (a *Application[C]) InitializeWithPaths(configPaths ...ConfigPath) error {
+	return a.InitializeWithPathsAndOptions(nil, configPaths...)
+}
+
+// InitializeWithPathsAndOptions executes Configure, Build, and Link phases in sequence with custom options.
+// Config paths can be marked as optional using OptionalPath(), which will skip missing files
+// without returning an error. Required paths (using RequiredPath()) will fail if missing.
+// Non-existence errors are only ignored for optional paths; other errors (permissions, malformed files, etc.)
+// are always returned regardless of the optional flag.
+func (a *Application[C]) InitializeWithPathsAndOptions(opts *dd.Options, configPaths ...ConfigPath) error {
+	for _, cp := range configPaths {
+		if err := a.Configure(cp.Path, opts); err != nil {
+			// check if it's a not-found error and if the path is optional
+			var fileErr *dd.FileError
+			if errors.As(err, &fileErr) && fileErr.IsNotFound() && cp.Optional {
+				// skip this optional file
+				continue
+			}
+			return err
+		}
+	}
+
+	if err := a.Build(); err != nil {
+		return err
+	}
+
+	return a.Link()
+}
+
 // Configure loads additional configuration from a file and merges it with the existing configuration.
 // Supports JSON and YAML file formats based on file extension.
 func (a *Application[C]) Configure(path string, opts ...*dd.Options) error {
 	pathExt := filepath.Ext(path)
 	if pathExt == ".yaml" || pathExt == ".yml" {
-		if err := dd.MergeFromYAML(a.Cfg, path, opts...); err != nil {
+		if err := dd.MergeFromYAML(&a.Cfg, path, opts...); err != nil {
 			return err
 		}
 	} else if pathExt == ".json" {
-		if err := dd.MergeFromJSON(a.Cfg, path, opts...); err != nil {
+		if err := dd.MergeFromJSON(&a.Cfg, path, opts...); err != nil {
 			return err
 		}
 	} else {

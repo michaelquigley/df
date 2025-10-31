@@ -2,6 +2,8 @@ package da
 
 import (
 	"errors"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -432,4 +434,155 @@ func TestFactoryFunc_Error(t *testing.T) {
 	err := app.Build()
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "function factory failed")
+}
+
+func TestConfigPath_RequiredPath(t *testing.T) {
+	cp := RequiredPath("/path/to/config.json")
+	assert.Equal(t, "/path/to/config.json", cp.Path)
+	assert.False(t, cp.Optional)
+}
+
+func TestConfigPath_OptionalPath(t *testing.T) {
+	cp := OptionalPath("/path/to/config.yaml")
+	assert.Equal(t, "/path/to/config.yaml", cp.Path)
+	assert.True(t, cp.Optional)
+}
+
+func TestApplication_InitializeWithPaths_OptionalMissingFile(t *testing.T) {
+	cfg := testConfig{Name: "test", Port: 8080}
+	app := NewApplication(cfg)
+	WithFactory(app, &testApplicationDatabaseFactory{})
+
+	// optional file that doesn't exist should not error
+	err := app.InitializeWithPaths(
+		OptionalPath("/nonexistent/config.json"),
+	)
+	assert.NoError(t, err)
+
+	// verify app still initialized successfully
+	db, found := Get[*testApplicationDatabase](app.C)
+	assert.True(t, found)
+	assert.True(t, db.linked)
+}
+
+func TestApplication_InitializeWithPaths_RequiredMissingFile(t *testing.T) {
+	cfg := testConfig{Name: "test", Port: 8080}
+	app := NewApplication(cfg)
+
+	// required file that doesn't exist should error
+	err := app.InitializeWithPaths(
+		RequiredPath("/nonexistent/config.json"),
+	)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to read JSON file")
+}
+
+func TestApplication_InitializeWithPaths_OptionalExistingFile(t *testing.T) {
+	cfg := testConfig{Name: "test", Port: 8080}
+	app := NewApplication(cfg)
+	WithFactory(app, &testApplicationDatabaseFactory{})
+
+	// create a temporary JSON file
+	tmpFile := filepath.Join(t.TempDir(), "config.json")
+	jsonContent := `{"app_name": "updated", "port": 9090}`
+	err := os.WriteFile(tmpFile, []byte(jsonContent), 0644)
+	assert.NoError(t, err)
+
+	// optional file that exists should load
+	err = app.InitializeWithPaths(
+		OptionalPath(tmpFile),
+	)
+	assert.NoError(t, err)
+
+	// verify config was updated
+	assert.Equal(t, "updated", app.Cfg.Name)
+	assert.Equal(t, 9090, app.Cfg.Port)
+}
+
+func TestApplication_InitializeWithPaths_RequiredExistingFile(t *testing.T) {
+	cfg := testConfig{Name: "test", Port: 8080}
+	app := NewApplication(cfg)
+	WithFactory(app, &testApplicationDatabaseFactory{})
+
+	// create a temporary JSON file
+	tmpFile := filepath.Join(t.TempDir(), "config.json")
+	jsonContent := `{"app_name": "required-test", "port": 7070}`
+	err := os.WriteFile(tmpFile, []byte(jsonContent), 0644)
+	assert.NoError(t, err)
+
+	// required file that exists should load
+	err = app.InitializeWithPaths(
+		RequiredPath(tmpFile),
+	)
+	assert.NoError(t, err)
+
+	// verify config was updated
+	assert.Equal(t, "required-test", app.Cfg.Name)
+	assert.Equal(t, 7070, app.Cfg.Port)
+}
+
+func TestApplication_InitializeWithPaths_MixedPaths(t *testing.T) {
+	cfg := testConfig{Name: "test", Port: 8080}
+	app := NewApplication(cfg)
+	WithFactory(app, &testApplicationDatabaseFactory{})
+
+	// create a temporary JSON file
+	tmpFile := filepath.Join(t.TempDir(), "config.json")
+	jsonContent := `{"app_name": "mixed-test", "port": 6060}`
+	err := os.WriteFile(tmpFile, []byte(jsonContent), 0644)
+	assert.NoError(t, err)
+
+	// mix of required existing, optional missing files
+	err = app.InitializeWithPaths(
+		RequiredPath(tmpFile),
+		OptionalPath("/nonexistent/override.json"),
+	)
+	assert.NoError(t, err)
+
+	// verify config was updated from required file
+	assert.Equal(t, "mixed-test", app.Cfg.Name)
+	assert.Equal(t, 6060, app.Cfg.Port)
+}
+
+func TestApplication_InitializeWithPaths_OptionalFileWithOtherError(t *testing.T) {
+	cfg := testConfig{Name: "test", Port: 8080}
+	app := NewApplication(cfg)
+
+	// create a temporary file with invalid JSON
+	tmpFile := filepath.Join(t.TempDir(), "invalid.json")
+	invalidContent := `{"app_name": "broken", "port": not-a-number}`
+	err := os.WriteFile(tmpFile, []byte(invalidContent), 0644)
+	assert.NoError(t, err)
+
+	// optional file with malformed content should still error
+	err = app.InitializeWithPaths(
+		OptionalPath(tmpFile),
+	)
+	assert.Error(t, err)
+	// error should be about JSON parsing, not file not found
+	assert.NotContains(t, err.Error(), "no such file")
+}
+
+func TestApplication_InitializeWithPathsAndOptions(t *testing.T) {
+	cfg := testConfig{Name: "test", Port: 8080}
+	app := NewApplication(cfg)
+	WithFactory(app, &testApplicationDatabaseFactory{})
+
+	// create a temporary YAML file
+	tmpFile := filepath.Join(t.TempDir(), "config.yaml")
+	yamlContent := `app_name: with-options
+port: 5050`
+	err := os.WriteFile(tmpFile, []byte(yamlContent), 0644)
+	assert.NoError(t, err)
+
+	// test with options (nil options in this case)
+	err = app.InitializeWithPathsAndOptions(nil,
+		OptionalPath(tmpFile),
+		OptionalPath("/nonexistent/override.yaml"),
+	)
+	assert.NoError(t, err)
+
+	// verify config was updated
+	assert.Equal(t, "with-options", app.Cfg.Name)
+	assert.Equal(t, 5050, app.Cfg.Port)
 }
