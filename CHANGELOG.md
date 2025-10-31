@@ -3,7 +3,7 @@
 
 ## v0.3.5
 
-FEATURE: Add new `InitializeWithPaths` and `InitializeWithPathsAndOptions` along with new `RequiredPath` and `OptionalPath` functions, to allow for optionality in configuration paths. (https://github.com/michaelquigley/df/issues/38)
+FEATURE: Add new `InitializeWithPaths` and `InitializeWithPathsAndOptions` (in `da.Application`) along with new `da.RequiredPath` and `da.OptionalPath` functions, to allow for optionality in configuration paths. (https://github.com/michaelquigley/df/issues/38)
 
 ## v0.3.4
 
