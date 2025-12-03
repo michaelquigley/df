@@ -149,11 +149,11 @@ func (a *Application[C]) InitializeWithPathsAndOptions(opts *dd.Options, configP
 func (a *Application[C]) Configure(path string, opts ...*dd.Options) error {
 	pathExt := filepath.Ext(path)
 	if pathExt == ".yaml" || pathExt == ".yml" {
-		if err := dd.MergeFromYAML(&a.Cfg, path, opts...); err != nil {
+		if err := dd.MergeYAMLFile(&a.Cfg, path, opts...); err != nil {
 			return err
 		}
 	} else if pathExt == ".json" {
-		if err := dd.MergeFromJSON(&a.Cfg, path, opts...); err != nil {
+		if err := dd.MergeJSONFile(&a.Cfg, path, opts...); err != nil {
 			return err
 		}
 	} else {
