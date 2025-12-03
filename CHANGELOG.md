@@ -1,6 +1,10 @@
 
 # CHANGELOG
 
+## v0.3.6
+
+FEATURE: The bind and unbind functions have been renamed and improved to better support in-memory data (`[]byte`), `io.Reader` and `io.Writer`, and filesystem files. `dd.BindJSON`, `dd.BindJSONReader`, `dd.BindJSONFile`, etc. (https://github.com/michaelquigley/df/issues/39)
+
 ## v0.3.5
 
 FEATURE: Add new `InitializeWithPaths` and `InitializeWithPathsAndOptions` (in `da.Application`) along with new `da.RequiredPath` and `da.OptionalPath` functions, to allow for optionality in configuration paths. (https://github.com/michaelquigley/df/issues/38)
