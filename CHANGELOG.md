@@ -1,6 +1,10 @@
 
 # CHANGELOG
 
+## v0.3.7
+
+FEATURE: Add tagged objects support to `da.Container`. Tagged objects represent named collections where multiple objects can share the same tag. New functions: `AddTagged`, `Tagged`, `TaggedOfType`, `TaggedAsType`, `HasTagged`, `RemoveTaggedFrom`, `RemoveTagged`, `ClearTagged`, and `Tags`. Same object can belong to multiple tags. `Visit()` and `OfType()` now include tagged objects with deduplication. (https://github.com/michaelquigley/df/issues/40)
+
 ## v0.3.6
 
 FEATURE: The bind and unbind functions have been renamed and improved to better support in-memory data (`[]byte`), `io.Reader` and `io.Writer`, and filesystem files. `dd.BindJSON`, `dd.BindJSONReader`, `dd.BindJSONFile`, etc. (https://github.com/michaelquigley/df/issues/39)
