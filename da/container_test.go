@@ -23,6 +23,7 @@ func TestNewContainer(t *testing.T) {
 	assert.NotNil(t, container)
 	assert.NotNil(t, container.singletons)
 	assert.NotNil(t, container.namedObjects)
+	assert.NotNil(t, container.taggedObjects)
 }
 
 func TestContainer_Set_And_Get(t *testing.T) {
@@ -792,4 +793,331 @@ func TestContainer_Inspect_InvalidFormat(t *testing.T) {
 	assert.Error(t, err)
 	assert.Empty(t, output)
 	assert.Contains(t, err.Error(), "unsupported inspect format")
+}
+
+// Tagged object tests
+
+func TestContainer_AddTagged_And_Tagged(t *testing.T) {
+	container := NewContainer()
+
+	// add objects with a tag
+	service1 := &containerTestService{name: "service1"}
+	service2 := &containerTestService{name: "service2"}
+	AddTagged(container, "http-handlers", service1)
+	AddTagged(container, "http-handlers", service2)
+
+	// retrieve all objects with the tag
+	objects := Tagged(container, "http-handlers")
+	assert.Len(t, objects, 2)
+	assert.Contains(t, objects, service1)
+	assert.Contains(t, objects, service2)
+}
+
+func TestContainer_Tagged_NotFound(t *testing.T) {
+	container := NewContainer()
+
+	// try to get objects from a non-existent tag
+	objects := Tagged(container, "non-existent")
+	assert.Nil(t, objects)
+}
+
+func TestContainer_TaggedOfType(t *testing.T) {
+	container := NewContainer()
+
+	// add objects of different types with the same tag
+	service := &containerTestService{name: "service"}
+	repo := &containerTestRepository{database: "db"}
+	AddTagged(container, "components", service)
+	AddTagged(container, "components", repo)
+
+	// retrieve only services
+	services := TaggedOfType[*containerTestService](container, "components")
+	assert.Len(t, services, 1)
+	assert.Equal(t, service, services[0])
+
+	// retrieve only repositories
+	repos := TaggedOfType[*containerTestRepository](container, "components")
+	assert.Len(t, repos, 1)
+	assert.Equal(t, repo, repos[0])
+}
+
+func TestContainer_TaggedAsType(t *testing.T) {
+	container := NewContainer()
+
+	// add objects implementing an interface
+	service := &containerTestService{name: "service"}
+	repo := &containerTestRepository{database: "db"}
+	AddTagged(container, "all", service)
+	AddTagged(container, "all", repo)
+
+	// use fmt.Stringer as a test - neither implements it, so should return empty
+	stringers := TaggedAsType[fmt.Stringer](container, "all")
+	assert.Len(t, stringers, 0)
+
+	// retrieve all as any
+	all := Tagged(container, "all")
+	assert.Len(t, all, 2)
+}
+
+func TestContainer_HasTagged(t *testing.T) {
+	container := NewContainer()
+
+	// should not have any tags initially
+	assert.False(t, HasTagged(container, "test-tag"))
+
+	// add an object with a tag
+	service := &containerTestService{name: "service"}
+	AddTagged(container, "test-tag", service)
+
+	// should have the tag now
+	assert.True(t, HasTagged(container, "test-tag"))
+	assert.False(t, HasTagged(container, "other-tag"))
+}
+
+func TestContainer_RemoveTaggedFrom(t *testing.T) {
+	container := NewContainer()
+
+	service1 := &containerTestService{name: "service1"}
+	service2 := &containerTestService{name: "service2"}
+	AddTagged(container, "handlers", service1)
+	AddTagged(container, "handlers", service2)
+
+	// remove one object
+	removed := RemoveTaggedFrom(container, "handlers", service1)
+	assert.True(t, removed)
+
+	// only service2 should remain
+	objects := Tagged(container, "handlers")
+	assert.Len(t, objects, 1)
+	assert.Contains(t, objects, service2)
+
+	// try to remove again - should return false
+	removed = RemoveTaggedFrom(container, "handlers", service1)
+	assert.False(t, removed)
+}
+
+func TestContainer_RemoveTaggedFrom_CleansUpEmptyTags(t *testing.T) {
+	container := NewContainer()
+
+	service := &containerTestService{name: "service"}
+	AddTagged(container, "handlers", service)
+
+	// remove the only object
+	RemoveTaggedFrom(container, "handlers", service)
+
+	// tag should be removed entirely
+	assert.False(t, HasTagged(container, "handlers"))
+	assert.Len(t, container.Tags(), 0)
+}
+
+func TestContainer_RemoveTagged(t *testing.T) {
+	container := NewContainer()
+
+	service := &containerTestService{name: "service"}
+	AddTagged(container, "tag1", service)
+	AddTagged(container, "tag2", service)
+	AddTagged(container, "tag3", service)
+
+	// remove from all tags
+	count := RemoveTagged(container, service)
+	assert.Equal(t, 3, count)
+
+	// all tags should be gone
+	assert.False(t, HasTagged(container, "tag1"))
+	assert.False(t, HasTagged(container, "tag2"))
+	assert.False(t, HasTagged(container, "tag3"))
+}
+
+func TestContainer_ClearTagged(t *testing.T) {
+	container := NewContainer()
+
+	service1 := &containerTestService{name: "service1"}
+	service2 := &containerTestService{name: "service2"}
+	AddTagged(container, "handlers", service1)
+	AddTagged(container, "handlers", service2)
+
+	// clear all objects with the tag
+	count := ClearTagged(container, "handlers")
+	assert.Equal(t, 2, count)
+
+	// tag should be gone
+	assert.False(t, HasTagged(container, "handlers"))
+}
+
+func TestContainer_Tags(t *testing.T) {
+	container := NewContainer()
+
+	// initially empty
+	assert.Len(t, container.Tags(), 0)
+
+	// add objects with different tags
+	service := &containerTestService{name: "service"}
+	AddTagged(container, "handlers", service)
+	AddTagged(container, "middleware", service)
+	AddTagged(container, "filters", service)
+
+	tags := container.Tags()
+	assert.Len(t, tags, 3)
+	assert.Contains(t, tags, "handlers")
+	assert.Contains(t, tags, "middleware")
+	assert.Contains(t, tags, "filters")
+}
+
+func TestContainer_MultipleTagsPerObject(t *testing.T) {
+	container := NewContainer()
+
+	service := &containerTestService{name: "service"}
+	AddTagged(container, "tag1", service)
+	AddTagged(container, "tag2", service)
+
+	// should appear in both tags
+	objects1 := Tagged(container, "tag1")
+	assert.Len(t, objects1, 1)
+	assert.Equal(t, service, objects1[0])
+
+	objects2 := Tagged(container, "tag2")
+	assert.Len(t, objects2, 1)
+	assert.Equal(t, service, objects2[0])
+}
+
+func TestContainer_Visit_WithTaggedObjects(t *testing.T) {
+	container := NewContainer()
+
+	// add singleton, named, and tagged objects
+	singleton := &containerTestService{name: "singleton"}
+	named := &containerTestService{name: "named"}
+	tagged := &containerTestService{name: "tagged"}
+	Set(container, singleton)
+	SetNamed(container, "named", named)
+	AddTagged(container, "tag", tagged)
+
+	var visited []*containerTestService
+	err := container.Visit(func(obj any) error {
+		if s, ok := obj.(*containerTestService); ok {
+			visited = append(visited, s)
+		}
+		return nil
+	})
+
+	assert.NoError(t, err)
+	assert.Len(t, visited, 3)
+	assert.Contains(t, visited, singleton)
+	assert.Contains(t, visited, named)
+	assert.Contains(t, visited, tagged)
+}
+
+func TestContainer_Visit_DeduplicatesTaggedObjects(t *testing.T) {
+	container := NewContainer()
+
+	// add same object to multiple tags
+	service := &containerTestService{name: "service"}
+	AddTagged(container, "tag1", service)
+	AddTagged(container, "tag2", service)
+	AddTagged(container, "tag3", service)
+
+	visitCount := 0
+	err := container.Visit(func(obj any) error {
+		visitCount++
+		return nil
+	})
+
+	assert.NoError(t, err)
+	assert.Equal(t, 1, visitCount) // should only visit once
+}
+
+func TestContainer_Visit_DeduplicatesSingletonAndTagged(t *testing.T) {
+	container := NewContainer()
+
+	// add same object as singleton and tagged
+	service := &containerTestService{name: "service"}
+	Set(container, service)
+	AddTagged(container, "tag", service)
+
+	visitCount := 0
+	err := container.Visit(func(obj any) error {
+		visitCount++
+		return nil
+	})
+
+	assert.NoError(t, err)
+	assert.Equal(t, 1, visitCount) // should only visit once
+}
+
+func TestContainer_Clear_IncludesTagged(t *testing.T) {
+	container := NewContainer()
+
+	service := &containerTestService{name: "service"}
+	Set(container, &containerTestRepository{database: "db"})
+	SetNamed(container, "named", service)
+	AddTagged(container, "tag", service)
+
+	container.Clear()
+
+	assert.Len(t, container.Tags(), 0)
+	assert.False(t, HasTagged(container, "tag"))
+	assert.False(t, Has[*containerTestRepository](container))
+	assert.False(t, HasNamed[*containerTestService](container, "named"))
+}
+
+func TestContainer_OfType_IncludesTagged(t *testing.T) {
+	container := NewContainer()
+
+	singleton := &containerTestService{name: "singleton"}
+	named := &containerTestService{name: "named"}
+	tagged := &containerTestService{name: "tagged"}
+
+	Set(container, singleton)
+	SetNamed(container, "named", named)
+	AddTagged(container, "tag", tagged)
+
+	all := OfType[*containerTestService](container)
+	assert.Len(t, all, 3)
+	assert.Contains(t, all, singleton)
+	assert.Contains(t, all, named)
+	assert.Contains(t, all, tagged)
+}
+
+func TestContainer_OfType_DeduplicatesTagged(t *testing.T) {
+	container := NewContainer()
+
+	// add same object as singleton and tagged
+	service := &containerTestService{name: "service"}
+	Set(container, service)
+	AddTagged(container, "tag1", service)
+	AddTagged(container, "tag2", service)
+
+	all := OfType[*containerTestService](container)
+	assert.Len(t, all, 1) // should only appear once
+	assert.Equal(t, service, all[0])
+}
+
+func TestContainer_Inspect_WithTagged(t *testing.T) {
+	container := NewContainer()
+
+	Set(container, &containerTestService{name: "singleton"})
+	SetNamed(container, "named", &containerTestRepository{database: "db"})
+	AddTagged(container, "handlers", &containerTestService{name: "tagged"})
+
+	output, err := container.Inspect(InspectJSON)
+	assert.NoError(t, err)
+
+	var data InspectData
+	err = json.Unmarshal([]byte(output), &data)
+	assert.NoError(t, err)
+
+	assert.Equal(t, 3, data.Summary.Total)
+	assert.Equal(t, 1, data.Summary.Singletons)
+	assert.Equal(t, 1, data.Summary.Named)
+	assert.Equal(t, 1, data.Summary.Tagged)
+
+	// verify tagged object is in the list
+	foundTagged := false
+	for _, obj := range data.Objects {
+		if obj.Storage == "tagged" {
+			foundTagged = true
+			assert.NotNil(t, obj.Tag)
+			assert.Equal(t, "handlers", *obj.Tag)
+		}
+	}
+	assert.True(t, foundTagged)
 }

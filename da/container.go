@@ -11,30 +11,69 @@ import (
 
 // Container is an application container that manages singletons and objects by type and (optionally) by name.
 type Container struct {
-	singletons   map[reflect.Type]any
-	namedObjects map[namedKey]any
+	singletons    map[reflect.Type]any
+	namedObjects  map[namedKey]any
+	taggedObjects map[string][]any
 }
 
 // NewContainer creates and returns a new empty container.
 func NewContainer() *Container {
 	return &Container{
-		singletons:   make(map[reflect.Type]any),
-		namedObjects: make(map[namedKey]any),
+		singletons:    make(map[reflect.Type]any),
+		namedObjects:  make(map[namedKey]any),
+		taggedObjects: make(map[string][]any),
 	}
 }
 
 // Visit calls the provided function for each object in the container.
+// Objects that appear in multiple locations (e.g., both as singleton and tagged) are only visited once.
 func (c *Container) Visit(f func(object any) error) error {
+	// Track visited objects using pointer addresses for deduplication
+	// This works for pointer types; value types are tracked if comparable
+	visited := make(map[uintptr]bool)
+
+	markVisited := func(obj any) bool {
+		v := reflect.ValueOf(obj)
+		// For pointer types, use the pointer address
+		if v.Kind() == reflect.Ptr || v.Kind() == reflect.Interface {
+			if !v.IsNil() {
+				ptr := v.Pointer()
+				if visited[ptr] {
+					return true // already visited
+				}
+				visited[ptr] = true
+			}
+		}
+		return false
+	}
+
+	// Visit singletons
 	for _, object := range c.singletons {
+		markVisited(object)
 		if err := f(object); err != nil {
 			return err
 		}
 	}
+
+	// Visit named objects
 	for _, object := range c.namedObjects {
+		markVisited(object)
 		if err := f(object); err != nil {
 			return err
 		}
 	}
+
+	// Visit tagged objects (skip if already visited)
+	for _, objects := range c.taggedObjects {
+		for _, object := range objects {
+			if !markVisited(object) {
+				if err := f(object); err != nil {
+					return err
+				}
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -60,6 +99,12 @@ func SetNamed(c *Container, name string, object any) {
 		name: name,
 	}
 	c.namedObjects[key] = object
+}
+
+// AddTagged adds an object to a tagged collection in the container.
+// The same object can be added to multiple tags.
+func AddTagged(c *Container, tag string, object any) {
+	c.taggedObjects[tag] = append(c.taggedObjects[tag], object)
 }
 
 // Get retrieves an object of type T from the container.
@@ -103,6 +148,53 @@ func GetNamed[T any](c *Container, name string) (T, bool) {
 	return typed, true
 }
 
+// Tagged retrieves all objects with the specified tag.
+func Tagged(c *Container, tag string) []any {
+	objects, exists := c.taggedObjects[tag]
+	if !exists {
+		return nil
+	}
+	// Return a copy to prevent external modification
+	result := make([]any, len(objects))
+	copy(result, objects)
+	return result
+}
+
+// TaggedOfType retrieves all objects with the specified tag that are of type T.
+func TaggedOfType[T any](c *Container, tag string) []T {
+	objects, exists := c.taggedObjects[tag]
+	if !exists {
+		return nil
+	}
+	var zero T
+	targetType := reflect.TypeOf(zero)
+	var results []T
+	for _, obj := range objects {
+		if reflect.TypeOf(obj) == targetType {
+			if typed, ok := obj.(T); ok {
+				results = append(results, typed)
+			}
+		}
+	}
+	return results
+}
+
+// TaggedAsType retrieves all objects with the specified tag that can be cast to type T.
+// This enables finding tagged objects by interface regardless of their concrete type.
+func TaggedAsType[T any](c *Container, tag string) []T {
+	objects, exists := c.taggedObjects[tag]
+	if !exists {
+		return nil
+	}
+	var results []T
+	for _, obj := range objects {
+		if typed, ok := obj.(T); ok {
+			results = append(results, typed)
+		}
+	}
+	return results
+}
+
 // Has checks if an object of type T exists in the container.
 func Has[T any](c *Container) bool {
 	var zero T
@@ -120,6 +212,12 @@ func HasNamed[T any](c *Container, name string) bool {
 	}
 	_, exists := c.namedObjects[key]
 	return exists
+}
+
+// HasTagged checks if any objects exist with the specified tag.
+func HasTagged(c *Container, tag string) bool {
+	objects, exists := c.taggedObjects[tag]
+	return exists && len(objects) > 0
 }
 
 // Remove removes an object of type T from the container.
@@ -151,10 +249,64 @@ func RemoveNamed[T any](c *Container, name string) bool {
 	return false
 }
 
+// RemoveTaggedFrom removes a specific object from a specific tag.
+// Returns true if the object was found and removed, false otherwise.
+func RemoveTaggedFrom(c *Container, tag string, object any) bool {
+	objects, exists := c.taggedObjects[tag]
+	if !exists {
+		return false
+	}
+	for i, obj := range objects {
+		if obj == object {
+			c.taggedObjects[tag] = append(objects[:i], objects[i+1:]...)
+			// Clean up empty tags
+			if len(c.taggedObjects[tag]) == 0 {
+				delete(c.taggedObjects, tag)
+			}
+			return true
+		}
+	}
+	return false
+}
+
+// RemoveTagged removes a specific object from ALL tags.
+// Returns the number of tags the object was removed from.
+func RemoveTagged(c *Container, object any) int {
+	count := 0
+	for tag := range c.taggedObjects {
+		if RemoveTaggedFrom(c, tag, object) {
+			count++
+		}
+	}
+	return count
+}
+
+// ClearTagged removes all objects with the specified tag.
+// Returns the number of objects that were removed.
+func ClearTagged(c *Container, tag string) int {
+	objects, exists := c.taggedObjects[tag]
+	if !exists {
+		return 0
+	}
+	count := len(objects)
+	delete(c.taggedObjects, tag)
+	return count
+}
+
 // Clear removes all objects from the container.
 func (c *Container) Clear() {
 	c.singletons = make(map[reflect.Type]any)
 	c.namedObjects = make(map[namedKey]any)
+	c.taggedObjects = make(map[string][]any)
+}
+
+// Tags returns a slice of all tags in the container.
+func (c *Container) Tags() []string {
+	tags := make([]string, 0, len(c.taggedObjects))
+	for tag := range c.taggedObjects {
+		tags = append(tags, tag)
+	}
+	return tags
 }
 
 // Types returns a slice of all registered types in the container.
@@ -179,16 +331,34 @@ func (c *Container) Types() []reflect.Type {
 	return types
 }
 
-// OfType retrieves all objects of type T from the container (both singleton and named).
-// Returns a slice containing the singleton (if exists) followed by all named instances.
+// OfType retrieves all objects of type T from the container (singleton, named, and tagged).
+// Returns a slice containing the singleton (if exists), followed by named instances, then tagged instances.
+// Duplicate objects (same pointer instance in multiple locations) are deduplicated.
 func OfType[T any](c *Container) []T {
 	var zero T
 	targetType := reflect.TypeOf(zero)
 	var results []T
+	seen := make(map[uintptr]bool)
+
+	// Helper to check if an object (pointer) has been seen
+	markSeen := func(obj any) bool {
+		v := reflect.ValueOf(obj)
+		if v.Kind() == reflect.Ptr || v.Kind() == reflect.Interface {
+			if !v.IsNil() {
+				ptr := v.Pointer()
+				if seen[ptr] {
+					return true
+				}
+				seen[ptr] = true
+			}
+		}
+		return false
+	}
 
 	// Add singleton if it exists
 	if obj, exists := c.singletons[targetType]; exists {
 		if typed, ok := obj.(T); ok {
+			markSeen(obj)
 			results = append(results, typed)
 		}
 	}
@@ -197,7 +367,19 @@ func OfType[T any](c *Container) []T {
 	for key, obj := range c.namedObjects {
 		if key.typ == targetType {
 			if typed, ok := obj.(T); ok {
+				markSeen(obj)
 				results = append(results, typed)
+			}
+		}
+	}
+
+	// Add all tagged instances (deduplicated)
+	for _, objects := range c.taggedObjects {
+		for _, obj := range objects {
+			if reflect.TypeOf(obj) == targetType && !markSeen(obj) {
+				if typed, ok := obj.(T); ok {
+					results = append(results, typed)
+				}
 			}
 		}
 	}
@@ -249,13 +431,15 @@ type InspectSummary struct {
 	Total      int `json:"total" yaml:"total"`
 	Singletons int `json:"singletons" yaml:"singletons"`
 	Named      int `json:"named" yaml:"named"`
+	Tagged     int `json:"tagged" yaml:"tagged"`
 }
 
 // InspectObject represents a single object in the container for inspection.
 type InspectObject struct {
 	Type    string  `json:"type" yaml:"type"`
 	Storage string  `json:"storage" yaml:"storage"`
-	Name    *string `json:"name" yaml:"name"`
+	Name    *string `json:"name,omitempty" yaml:"name,omitempty"`
+	Tag     *string `json:"tag,omitempty" yaml:"tag,omitempty"`
 	Value   string  `json:"value" yaml:"value"`
 }
 
@@ -286,6 +470,7 @@ func (c *Container) gatherInspectData() InspectData {
 			Type:    typ.String(),
 			Storage: "singleton",
 			Name:    nil,
+			Tag:     nil,
 			Value:   fmt.Sprintf("%+v", obj),
 		})
 	}
@@ -296,14 +481,32 @@ func (c *Container) gatherInspectData() InspectData {
 			Type:    key.typ.String(),
 			Storage: "named",
 			Name:    &key.name,
+			Tag:     nil,
 			Value:   fmt.Sprintf("%+v", obj),
 		})
 	}
 
+	// collect tagged objects
+	taggedCount := 0
+	for tag, objs := range c.taggedObjects {
+		tagCopy := tag // create a copy for the pointer
+		for _, obj := range objs {
+			objects = append(objects, InspectObject{
+				Type:    reflect.TypeOf(obj).String(),
+				Storage: "tagged",
+				Name:    nil,
+				Tag:     &tagCopy,
+				Value:   fmt.Sprintf("%+v", obj),
+			})
+			taggedCount++
+		}
+	}
+
 	summary := InspectSummary{
-		Total:      len(c.singletons) + len(c.namedObjects),
+		Total:      len(c.singletons) + len(c.namedObjects) + taggedCount,
 		Singletons: len(c.singletons),
 		Named:      len(c.namedObjects),
+		Tagged:     taggedCount,
 	}
 
 	return InspectData{
