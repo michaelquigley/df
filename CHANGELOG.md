@@ -1,6 +1,10 @@
 
 # CHANGELOG
 
+## v0.3.8
+
+FEATURE: New `dlpretty` command-line tool, which is useful for consuming JSON logs on stdin (`tail -f log.json | dlpretty`) and pretty-printing them as if they were formatted from a pretty `dl` console logger. (https://github.com/michaelquigley/df/issues/41)
+
 ## v0.3.7
 
 FEATURE: Add tagged objects support to `da.Container`. Tagged objects represent named collections where multiple objects can share the same tag. New functions: `AddTagged`, `Tagged`, `TaggedOfType`, `TaggedAsType`, `HasTagged`, `RemoveTaggedFrom`, `RemoveTagged`, `ClearTagged`, and `Tags`. Same object can belong to multiple tags. `Visit()` and `OfType()` now include tagged objects with deduplication. (https://github.com/michaelquigley/df/issues/40)
