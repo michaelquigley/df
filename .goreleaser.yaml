@@ -1,7 +1,9 @@
 project_name: df
 
 builds:
-  - skip: true
+  - id: dlpretty
+    main: ./dl/cmd/dlpretty
+    binary: dlpretty
 
 changelog:
   sort: asc
