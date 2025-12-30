@@ -49,11 +49,12 @@ type DdTag struct {
 	Skip       bool   // true if field should be skipped entirely
 	MatchValue string // expected value that must match during binding, empty means no constraint
 	HasMatch   bool   // true if a match constraint is specified
+	Extra      bool   // true if field should capture unmatched keys
 }
 
 // parseDdTag parses the `df` struct tag on a field.
 //
-// tag format: df:"[name][,+required][,+secret][,+match=\"expected_value\"|+match=expected_value]"
+// tag format: df:"[name][,+required][,+secret][,+extra][,+match=\"expected_value\"|+match=expected_value]"
 //
 // special cases:
 // - "-"          → skip the field entirely (skip=true)
@@ -61,9 +62,10 @@ type DdTag struct {
 //
 // rules:
 // - tokens are comma-separated; surrounding whitespace is ignored.
-// - if the first token is not "+required", "+secret", or "+match=...", it is taken as the external field name.
+// - if the first token is not "+required", "+secret", "+extra", or "+match=...", it is taken as the external field name.
 // - the presence of a "+required" token (any position) sets required=true.
 // - the presence of a "+secret" token (any position) sets secret=true.
+// - the presence of a "+extra" token (any position) sets extra=true; the field must be map[string]any and will capture unmatched keys.
 // - a "+match=\"value\"" or "+match=value" token sets a value constraint that must be satisfied during binding.
 // - unrecognized tokens are ignored.
 func parseDdTag(sf reflect.StructField) DdTag {
@@ -99,8 +101,8 @@ func parseDdTag(sf reflect.StructField) DdTag {
 			continue
 		}
 
-		if i == 0 && p != "+required" && p != "+secret" && !strings.HasPrefix(p, "+match=") {
-			// first token as name unless it's literally "+required", "+secret", or "+match=..."
+		if i == 0 && p != "+required" && p != "+secret" && p != "+extra" && !strings.HasPrefix(p, "+match=") {
+			// first token as name unless it's literally "+required", "+secret", "+extra", or "+match=..."
 			result.Name = p
 			continue
 		}
@@ -109,6 +111,9 @@ func parseDdTag(sf reflect.StructField) DdTag {
 		}
 		if p == "+secret" {
 			result.Secret = true
+		}
+		if p == "+extra" {
+			result.Extra = true
 		}
 	}
 	return result

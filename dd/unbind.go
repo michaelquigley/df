@@ -80,7 +80,7 @@ func structToMap(structVal reflect.Value, opt *Options) (map[string]any, error) 
 		}
 
 		tag := parseDdTag(field)
-		if tag.Skip {
+		if tag.Skip || tag.Extra {
 			continue
 		}
 		name := tag.Name
@@ -103,6 +103,35 @@ func structToMap(structVal reflect.Value, opt *Options) (map[string]any, error) 
 		}
 		out[name] = v
 	}
+
+	// merge extra field contents into output
+	for i := 0; i < structVal.NumField(); i++ {
+		field := structType.Field(i)
+		if field.PkgPath != "" {
+			continue
+		}
+		tag := parseDdTag(field)
+		if !tag.Extra {
+			continue
+		}
+
+		fieldVal := structVal.Field(i)
+		if fieldVal.IsNil() {
+			continue
+		}
+
+		extraMap := fieldVal.Interface().(map[string]any)
+		for key, value := range extraMap {
+			if _, exists := out[key]; exists {
+				return nil, &ValidationError{
+					Field:   field.Name,
+					Message: fmt.Sprintf("extra field key %q collides with struct field", key),
+				}
+			}
+			out[key] = value
+		}
+	}
+
 	return out, nil
 }
 

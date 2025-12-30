@@ -53,7 +53,7 @@ func Bind(target interface{}, data map[string]any, opts ...*Options) error {
 	if err != nil {
 		return err
 	}
-	return bindStruct(elem, data, elem.Type().Name(), opt, false)
+	return bindStruct(elem, data, elem.Type().Name(), opt, false, nil)
 }
 
 // New creates and populates a new instance of type T from the given data map.
@@ -111,10 +111,10 @@ func Merge(target interface{}, data map[string]any, opts ...*Options) error {
 	if err != nil {
 		return err
 	}
-	return bindStruct(elem, data, elem.Type().Name(), opt, true)
+	return bindStruct(elem, data, elem.Type().Name(), opt, true, nil)
 }
 
-func bindStruct(structValue reflect.Value, data map[string]any, path string, opt *Options, preserveExisting bool) error {
+func bindStruct(structValue reflect.Value, data map[string]any, path string, opt *Options, preserveExisting bool, consumedKeys map[string]bool) error {
 	structType := structValue.Type()
 
 	type deferredUnmarshal struct {
@@ -124,6 +124,14 @@ func bindStruct(structValue reflect.Value, data map[string]any, path string, opt
 		name     string
 	}
 	var deferred []deferredUnmarshal
+
+	// initialize consumed keys tracking if not provided (entry point call)
+	if consumedKeys == nil {
+		consumedKeys = make(map[string]bool)
+	}
+
+	// track extra field for capturing unmatched keys
+	var extraFieldVal reflect.Value
 
 	for i := 0; i < structValue.NumField(); i++ {
 		field := structType.Field(i)
@@ -174,7 +182,7 @@ func bindStruct(structValue reflect.Value, data map[string]any, path string, opt
 				if !fieldVal.IsNil() {
 					embeddedVal := fieldVal.Elem()
 					if embeddedVal.Kind() == reflect.Struct {
-						if err := bindStruct(embeddedVal, data, path, opt, preserveExisting); err != nil {
+						if err := bindStruct(embeddedVal, data, path, opt, preserveExisting, consumedKeys); err != nil {
 							return err
 						}
 					}
@@ -183,7 +191,7 @@ func bindStruct(structValue reflect.Value, data map[string]any, path string, opt
 				// value embedded struct
 				embeddedVal := fieldVal
 				if embeddedVal.Kind() == reflect.Struct {
-					if err := bindStruct(embeddedVal, data, path, opt, preserveExisting); err != nil {
+					if err := bindStruct(embeddedVal, data, path, opt, preserveExisting, consumedKeys); err != nil {
 						return err
 					}
 				}
@@ -195,12 +203,34 @@ func bindStruct(structValue reflect.Value, data map[string]any, path string, opt
 		if tag.Skip {
 			continue
 		}
+
+		// handle +extra field for capturing unmatched keys
+		if tag.Extra {
+			// validate type is map[string]any
+			if field.Type != reflect.TypeOf(map[string]any(nil)) {
+				return &TypeMismatchError{
+					Path:     path,
+					Expected: "map[string]any for +extra field",
+					Actual:   field.Type.String(),
+				}
+			}
+			// check for duplicate +extra field
+			if extraFieldVal.IsValid() {
+				return &MultipleExtraFieldsError{Path: path}
+			}
+			extraFieldVal = fieldVal
+			continue
+		}
+
 		name := tag.Name
 		if name == "" {
 			name = toSnakeCase(field.Name)
 		}
 
 		raw, ok := data[name]
+		if ok {
+			consumedKeys[name] = true
+		}
 		if !ok {
 			if tag.Required {
 				return &RequiredFieldError{Path: path, Field: field.Name}
@@ -241,6 +271,33 @@ func bindStruct(structValue reflect.Value, data map[string]any, path string, opt
 	for _, d := range deferred {
 		if err := unmarshalFromMap(d.fieldVal, d.rawData, d.path); err != nil {
 			return &BindingError{Path: d.path, Key: d.name, Cause: err}
+		}
+	}
+
+	// populate extra field with unconsumed keys
+	if extraFieldVal.IsValid() {
+		if preserveExisting && !extraFieldVal.IsNil() {
+			// merge new extras into existing map
+			existing := extraFieldVal.Interface().(map[string]any)
+			for key, value := range data {
+				if !consumedKeys[key] {
+					existing[key] = value
+				}
+			}
+		} else {
+			// collect unconsumed keys into new map
+			var extras map[string]any
+			for key, value := range data {
+				if !consumedKeys[key] {
+					if extras == nil {
+						extras = make(map[string]any)
+					}
+					extras[key] = value
+				}
+			}
+			if extras != nil {
+				extraFieldVal.Set(reflect.ValueOf(extras))
+			}
 		}
 	}
 
@@ -301,13 +358,13 @@ func setField(fieldVal reflect.Value, raw interface{}, path string, opt *Options
 			}
 			// if preserveExisting and pointer is not nil, bind to existing struct
 			if preserveExisting && !fieldVal.IsNil() {
-				if err := bindStruct(fieldVal.Elem(), subMap, path, opt, preserveExisting); err != nil {
+				if err := bindStruct(fieldVal.Elem(), subMap, path, opt, preserveExisting, nil); err != nil {
 					return err
 				}
 			} else {
 				// allocate new struct and bind into it
 				newPtr := reflect.New(elemType)
-				if err := bindStruct(newPtr.Elem(), subMap, path, opt, preserveExisting); err != nil {
+				if err := bindStruct(newPtr.Elem(), subMap, path, opt, preserveExisting, nil); err != nil {
 					return err
 				}
 				fieldVal.Set(newPtr)
@@ -364,7 +421,7 @@ func setNonPtrValue(fieldVal reflect.Value, raw interface{}, path string, opt *O
 		if !ok {
 			return fmt.Errorf("%s: expected object for struct, got %T", path, raw)
 		}
-		return bindStruct(fieldVal, subMap, path, opt, preserveExisting)
+		return bindStruct(fieldVal, subMap, path, opt, preserveExisting, nil)
 
 	case reflect.Slice:
 		rawVal := reflect.ValueOf(raw)
@@ -401,7 +458,7 @@ func setNonPtrValue(fieldVal reflect.Value, raw interface{}, path string, opt *O
 					if !ok {
 						return fmt.Errorf("%s: expected object for struct slice element, got %T", itemPath, item)
 					}
-					if err := bindStruct(elemPtr.Elem(), subMap, itemPath, opt, preserveExisting); err != nil {
+					if err := bindStruct(elemPtr.Elem(), subMap, itemPath, opt, preserveExisting, nil); err != nil {
 						return err
 					}
 					out = reflect.Append(out, elemPtr)
@@ -422,7 +479,7 @@ func setNonPtrValue(fieldVal reflect.Value, raw interface{}, path string, opt *O
 				if !ok {
 					return fmt.Errorf("%s: expected object for struct slice element, got %T", itemPath, item)
 				}
-				if err := bindStruct(elemVal, subMap, itemPath, opt, preserveExisting); err != nil {
+				if err := bindStruct(elemVal, subMap, itemPath, opt, preserveExisting, nil); err != nil {
 					return err
 				}
 				out = reflect.Append(out, elemVal)
@@ -482,7 +539,7 @@ func setNonPtrValue(fieldVal reflect.Value, raw interface{}, path string, opt *O
 					if !ok {
 						return fmt.Errorf("%s: expected object for struct map value, got %T", itemPath, value)
 					}
-					if err := bindStruct(elemPtr.Elem(), subMap, itemPath, opt, preserveExisting); err != nil {
+					if err := bindStruct(elemPtr.Elem(), subMap, itemPath, opt, preserveExisting, nil); err != nil {
 						return err
 					}
 					newMap.SetMapIndex(keyVal, elemPtr)
@@ -504,7 +561,7 @@ func setNonPtrValue(fieldVal reflect.Value, raw interface{}, path string, opt *O
 				if !ok {
 					return fmt.Errorf("%s: expected object for struct map value, got %T", itemPath, value)
 				}
-				if err := bindStruct(elemVal, subMap, itemPath, opt, preserveExisting); err != nil {
+				if err := bindStruct(elemVal, subMap, itemPath, opt, preserveExisting, nil); err != nil {
 					return err
 				}
 				newMap.SetMapIndex(keyVal, elemVal)

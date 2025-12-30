@@ -172,6 +172,15 @@ func (e *RequiredFieldError) Error() string {
 	return fmt.Sprintf("%s.%s: required field missing", e.Path, e.Field)
 }
 
+// MultipleExtraFieldsError represents the error when a struct has more than one +extra field
+type MultipleExtraFieldsError struct {
+	Path string
+}
+
+func (e *MultipleExtraFieldsError) Error() string {
+	return fmt.Sprintf("%s: multiple +extra fields not allowed", e.Path)
+}
+
 // ValueMismatchError represents errors when a field value doesn't match the expected constraint
 type ValueMismatchError struct {
 	Path     string

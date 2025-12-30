@@ -49,8 +49,50 @@ type User struct {
 - `dd:"custom_name"` - custom field name
 - `dd:"+required"` - field is required
 - `dd:",+secret"` - hidden in inspect output
+- `dd:",+extra"` - capture unmatched keys (map[string]any only)
 - `dd:"-"` - exclude from binding
 - No tag = automatic snake_case conversion
+
+### 2.5. Extra Fields - Capturing Unknown Data
+
+**Capture unmatched keys from input data**
+
+```go
+type Config struct {
+    Name  string         `dd:"name"`
+    Extra map[string]any `dd:",+extra"`
+}
+
+// Bind captures unknown fields
+data := map[string]any{
+    "name":       "myapp",
+    "custom_key": "value",
+    "version":    "1.0",
+}
+
+config, _ := dd.New[Config](data)
+// config.Name = "myapp"
+// config.Extra = map[string]any{"custom_key": "value", "version": "1.0"}
+
+// Unbind merges extras back
+result, _ := dd.Unbind(config)
+// result = map[string]any{"name": "myapp", "custom_key": "value", "version": "1.0"}
+```
+
+**Extra Field Rules:**
+- Tag: `dd:",+extra"` marks the capture field
+- Type: Must be `map[string]any`
+- Only one `+extra` field per struct
+- Nested structs capture their own extras independently
+- Embedded structs share parent's namespace
+- `Merge()` adds new extras to existing map
+- Field remains `nil` when no unknown keys exist
+
+**Use Cases:**
+- Forward compatibility - preserve unknown fields from newer data versions
+- Extension data - allow user-defined custom fields
+- Configuration passthrough - forward extra config to subsystems
+- Round-trip safety - preserve all data through bind/unbind cycles
 
 ### 3. Type Coercion - Automatic Conversion
 
