@@ -3,6 +3,8 @@
 
 ## v0.3.8
 
+FEATURE: New `dd:",+extra"` struct tag that captures unmatched data keys into a `map[string]any` field during binding. On unbind, these extras are merged back into the output map, enabling round-trip preservation of unknown fields. Useful for forward compatibility, extension data, and configuration passthrough. (https://github.com/michaelquigley/df/issues/42)
+
 FEATURE: New `dlpretty` command-line tool, which is useful for consuming JSON logs on stdin (`tail -f log.json | dlpretty`) and pretty-printing them as if they were formatted from a pretty `dl` console logger. (https://github.com/michaelquigley/df/issues/41)
 
 ## v0.3.7
