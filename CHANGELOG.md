@@ -1,6 +1,10 @@
 
 # CHANGELOG
 
+## v0.3.9
+
+FEATURE: New `dd:",+omitempty"` struct tag that will omit any fields that match `reflect.Zero` for the type. Existing handling of `nil` struct pointers remains unchanged. (https://github.com/michaelquigley/df/issues/43)
+
 ## v0.3.8
 
 FEATURE: New `dd:",+extra"` struct tag that captures unmatched data keys into a `map[string]any` field during binding. On unbind, these extras are merged back into the output map, enabling round-trip preservation of unknown fields. Useful for forward compatibility, extension data, and configuration passthrough. (https://github.com/michaelquigley/df/issues/42)
