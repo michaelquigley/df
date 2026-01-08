@@ -237,3 +237,84 @@ func TestUnbindCustomStringConstType(t *testing.T) {
 	}
 	assert.Equal(t, expected, m)
 }
+
+func TestUnbindOmitEmpty(t *testing.T) {
+	t.Run("omits zero string", func(t *testing.T) {
+		s := &struct {
+			Name  string `dd:",+omitempty"`
+			Count int
+		}{Name: "", Count: 5}
+		m, err := Unbind(s)
+		assert.NoError(t, err)
+		assert.Equal(t, map[string]any{"count": 5}, m)
+	})
+
+	t.Run("omits zero int", func(t *testing.T) {
+		s := &struct {
+			Name  string
+			Count int `dd:",+omitempty"`
+		}{Name: "test", Count: 0}
+		m, err := Unbind(s)
+		assert.NoError(t, err)
+		assert.Equal(t, map[string]any{"name": "test"}, m)
+	})
+
+	t.Run("omits zero bool", func(t *testing.T) {
+		s := &struct {
+			Name   string
+			Active bool `dd:",+omitempty"`
+		}{Name: "test", Active: false}
+		m, err := Unbind(s)
+		assert.NoError(t, err)
+		assert.Equal(t, map[string]any{"name": "test"}, m)
+	})
+
+	t.Run("omits nil slice", func(t *testing.T) {
+		s := &struct {
+			Name  string
+			Items []string `dd:",+omitempty"`
+		}{Name: "test", Items: nil}
+		m, err := Unbind(s)
+		assert.NoError(t, err)
+		assert.Equal(t, map[string]any{"name": "test"}, m)
+	})
+
+	t.Run("omits nil map", func(t *testing.T) {
+		s := &struct {
+			Name string
+			Data map[string]int `dd:",+omitempty"`
+		}{Name: "test", Data: nil}
+		m, err := Unbind(s)
+		assert.NoError(t, err)
+		assert.Equal(t, map[string]any{"name": "test"}, m)
+	})
+
+	t.Run("preserves non-zero values", func(t *testing.T) {
+		s := &struct {
+			Name  string `dd:",+omitempty"`
+			Count int    `dd:",+omitempty"`
+		}{Name: "hello", Count: 42}
+		m, err := Unbind(s)
+		assert.NoError(t, err)
+		assert.Equal(t, map[string]any{"name": "hello", "count": 42}, m)
+	})
+
+	t.Run("works with custom name", func(t *testing.T) {
+		s := &struct {
+			Name string `dd:"custom_name,+omitempty"`
+		}{Name: ""}
+		m, err := Unbind(s)
+		assert.NoError(t, err)
+		assert.Equal(t, map[string]any{}, m)
+	})
+
+	t.Run("without omitempty preserves zeros", func(t *testing.T) {
+		s := &struct {
+			Name  string
+			Count int
+		}{Name: "", Count: 0}
+		m, err := Unbind(s)
+		assert.NoError(t, err)
+		assert.Equal(t, map[string]any{"name": "", "count": 0}, m)
+	})
+}

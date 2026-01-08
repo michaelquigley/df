@@ -7,9 +7,10 @@ import (
 )
 
 // Unbind converts a struct (or pointer to struct) into a map[string]any
-// honoring the same `df` tags used by Bind:
+// honoring the same `dd` tags used by Bind:
 // - `dd:"name"` overrides the key name
 // - `dd:"-"` skips the field
+// - `dd:",+omitempty"` omits the field if it has a zero value
 // - when no tag is provided, the key defaults to snake_case of the field name
 //
 // pointers to values: if nil, the key is omitted; otherwise the pointed value is emitted.
@@ -90,6 +91,11 @@ func structToMap(structVal reflect.Value, opt *Options) (map[string]any, error) 
 
 		// omit nil pointer fields entirely
 		if fieldVal.Kind() == reflect.Ptr && fieldVal.IsNil() {
+			continue
+		}
+
+		// omit zero values if +omitempty tag is set
+		if tag.OmitEmpty && fieldVal.IsZero() {
 			continue
 		}
 

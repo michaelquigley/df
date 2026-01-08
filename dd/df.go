@@ -41,7 +41,7 @@ type Converter interface {
 	ToRaw(value interface{}) (interface{}, error)
 }
 
-// DdTag holds the parsed values from a `df` struct tag.
+// DdTag holds the parsed values from a `dd` struct tag.
 type DdTag struct {
 	Name       string // external field name override, empty means use default
 	Required   bool   // true if field is required during binding
@@ -50,11 +50,12 @@ type DdTag struct {
 	MatchValue string // expected value that must match during binding, empty means no constraint
 	HasMatch   bool   // true if a match constraint is specified
 	Extra      bool   // true if field should capture unmatched keys
+	OmitEmpty  bool   // true if field should be omitted when zero during unbinding
 }
 
-// parseDdTag parses the `df` struct tag on a field.
+// parseDdTag parses the `dd` struct tag on a field.
 //
-// tag format: df:"[name][,+required][,+secret][,+extra][,+match=\"expected_value\"|+match=expected_value]"
+// tag format: dd:"[name][,+required][,+secret][,+extra][,+omitempty][,+match=\"expected_value\"|+match=expected_value]"
 //
 // special cases:
 // - "-"          → skip the field entirely (skip=true)
@@ -62,10 +63,11 @@ type DdTag struct {
 //
 // rules:
 // - tokens are comma-separated; surrounding whitespace is ignored.
-// - if the first token is not "+required", "+secret", "+extra", or "+match=...", it is taken as the external field name.
+// - if the first token is not "+required", "+secret", "+extra", "+omitempty", or "+match=...", it is taken as the external field name.
 // - the presence of a "+required" token (any position) sets required=true.
 // - the presence of a "+secret" token (any position) sets secret=true.
 // - the presence of a "+extra" token (any position) sets extra=true; the field must be map[string]any and will capture unmatched keys.
+// - the presence of a "+omitempty" token (any position) sets omitEmpty=true; the field will be omitted during unbinding if it has a zero value.
 // - a "+match=\"value\"" or "+match=value" token sets a value constraint that must be satisfied during binding.
 // - unrecognized tokens are ignored.
 func parseDdTag(sf reflect.StructField) DdTag {
@@ -101,8 +103,8 @@ func parseDdTag(sf reflect.StructField) DdTag {
 			continue
 		}
 
-		if i == 0 && p != "+required" && p != "+secret" && p != "+extra" && !strings.HasPrefix(p, "+match=") {
-			// first token as name unless it's literally "+required", "+secret", "+extra", or "+match=..."
+		if i == 0 && p != "+required" && p != "+secret" && p != "+extra" && p != "+omitempty" && !strings.HasPrefix(p, "+match=") {
+			// first token as name unless it's literally "+required", "+secret", "+extra", "+omitempty", or "+match=..."
 			result.Name = p
 			continue
 		}
@@ -114,6 +116,9 @@ func parseDdTag(sf reflect.StructField) DdTag {
 		}
 		if p == "+extra" {
 			result.Extra = true
+		}
+		if p == "+omitempty" {
+			result.OmitEmpty = true
 		}
 	}
 	return result
