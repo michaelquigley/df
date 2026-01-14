@@ -10,6 +10,9 @@ import (
 )
 
 // Container is an application container that manages singletons and objects by type and (optionally) by name.
+//
+// Deprecated: Use concrete container pattern with Wireable[C] instead.
+// See da/examples/da_02_concrete_container for migration guidance.
 type Container struct {
 	singletons    map[reflect.Type]any
 	namedObjects  map[namedKey]any
@@ -17,6 +20,9 @@ type Container struct {
 }
 
 // NewContainer creates and returns a new empty container.
+//
+// Deprecated: Use concrete container pattern with Wireable[C] instead.
+// See da/examples/da_02_concrete_container for migration guidance.
 func NewContainer() *Container {
 	return &Container{
 		singletons:    make(map[reflect.Type]any),
@@ -27,6 +33,9 @@ func NewContainer() *Container {
 
 // Visit calls the provided function for each object in the container.
 // Objects that appear in multiple locations (e.g., both as singleton and tagged) are only visited once.
+//
+// Deprecated: Use concrete container pattern with Wireable[C] instead.
+// See da/examples/da_02_concrete_container for migration guidance.
 func (c *Container) Visit(f func(object any) error) error {
 	// Track visited objects using pointer addresses for deduplication
 	// This works for pointer types; value types are tracked if comparable
@@ -79,12 +88,18 @@ func (c *Container) Visit(f func(object any) error) error {
 
 // Set registers a singleton object in the container by its type.
 // If an object of the same type already exists, it will be replaced.
+//
+// Deprecated: Use concrete container pattern with Wireable[C] instead.
+// See da/examples/da_02_concrete_container for migration guidance.
 func Set(c *Container, object any) {
 	c.singletons[reflect.TypeOf(object)] = object
 }
 
 // SetAs registers a singleton object in the container by the specified type.
 // If an object of the same type already exists, it will be replaced.
+//
+// Deprecated: Use concrete container pattern with Wireable[C] instead.
+// See da/examples/da_02_concrete_container for migration guidance.
 func SetAs[T any](c *Container, object T) {
 	var zero T
 	targetType := reflect.TypeOf(zero)
@@ -93,6 +108,9 @@ func SetAs[T any](c *Container, object T) {
 
 // SetNamed registers a named object in the container by its type and name.
 // If an object with the same type and name already exists, it will be replaced.
+//
+// Deprecated: Use concrete container pattern with Wireable[C] instead.
+// See da/examples/da_02_concrete_container for migration guidance.
 func SetNamed(c *Container, name string, object any) {
 	key := namedKey{
 		typ:  reflect.TypeOf(object),
@@ -103,12 +121,18 @@ func SetNamed(c *Container, name string, object any) {
 
 // AddTagged adds an object to a tagged collection in the container.
 // The same object can be added to multiple tags.
+//
+// Deprecated: Use concrete container pattern with Wireable[C] instead.
+// See da/examples/da_02_concrete_container for migration guidance.
 func AddTagged(c *Container, tag string, object any) {
 	c.taggedObjects[tag] = append(c.taggedObjects[tag], object)
 }
 
 // Get retrieves an object of type T from the container.
 // Returns the object and true if found, or zero value and false if not found.
+//
+// Deprecated: Use concrete container pattern with Wireable[C] instead.
+// See da/examples/da_02_concrete_container for migration guidance.
 func Get[T any](c *Container) (T, bool) {
 	var zero T
 	targetType := reflect.TypeOf(zero)
@@ -128,6 +152,9 @@ func Get[T any](c *Container) (T, bool) {
 
 // GetNamed retrieves a named object of type T from the container.
 // Returns the object and true if found, or zero value and false if not found.
+//
+// Deprecated: Use concrete container pattern with Wireable[C] instead.
+// See da/examples/da_02_concrete_container for migration guidance.
 func GetNamed[T any](c *Container, name string) (T, bool) {
 	var zero T
 	key := namedKey{
@@ -149,6 +176,9 @@ func GetNamed[T any](c *Container, name string) (T, bool) {
 }
 
 // Tagged retrieves all objects with the specified tag.
+//
+// Deprecated: Use concrete container pattern with Wireable[C] instead.
+// See da/examples/da_02_concrete_container for migration guidance.
 func Tagged(c *Container, tag string) []any {
 	objects, exists := c.taggedObjects[tag]
 	if !exists {
@@ -161,6 +191,9 @@ func Tagged(c *Container, tag string) []any {
 }
 
 // TaggedOfType retrieves all objects with the specified tag that are of type T.
+//
+// Deprecated: Use concrete container pattern with Wireable[C] instead.
+// See da/examples/da_02_concrete_container for migration guidance.
 func TaggedOfType[T any](c *Container, tag string) []T {
 	objects, exists := c.taggedObjects[tag]
 	if !exists {
@@ -181,6 +214,9 @@ func TaggedOfType[T any](c *Container, tag string) []T {
 
 // TaggedAsType retrieves all objects with the specified tag that can be cast to type T.
 // This enables finding tagged objects by interface regardless of their concrete type.
+//
+// Deprecated: Use concrete container pattern with Wireable[C] instead.
+// See da/examples/da_02_concrete_container for migration guidance.
 func TaggedAsType[T any](c *Container, tag string) []T {
 	objects, exists := c.taggedObjects[tag]
 	if !exists {
@@ -196,6 +232,9 @@ func TaggedAsType[T any](c *Container, tag string) []T {
 }
 
 // Has checks if an object of type T exists in the container.
+//
+// Deprecated: Use concrete container pattern with Wireable[C] instead.
+// See da/examples/da_02_concrete_container for migration guidance.
 func Has[T any](c *Container) bool {
 	var zero T
 	targetType := reflect.TypeOf(zero)
@@ -204,6 +243,9 @@ func Has[T any](c *Container) bool {
 }
 
 // HasNamed checks if a named object of type T with the given name exists in the container.
+//
+// Deprecated: Use concrete container pattern with Wireable[C] instead.
+// See da/examples/da_02_concrete_container for migration guidance.
 func HasNamed[T any](c *Container, name string) bool {
 	var zero T
 	key := namedKey{
@@ -215,6 +257,9 @@ func HasNamed[T any](c *Container, name string) bool {
 }
 
 // HasTagged checks if any objects exist with the specified tag.
+//
+// Deprecated: Use concrete container pattern with Wireable[C] instead.
+// See da/examples/da_02_concrete_container for migration guidance.
 func HasTagged(c *Container, tag string) bool {
 	objects, exists := c.taggedObjects[tag]
 	return exists && len(objects) > 0
@@ -222,6 +267,9 @@ func HasTagged(c *Container, tag string) bool {
 
 // Remove removes an object of type T from the container.
 // Returns true if the object was found and removed, false if it didn't exist.
+//
+// Deprecated: Use concrete container pattern with Wireable[C] instead.
+// See da/examples/da_02_concrete_container for migration guidance.
 func Remove[T any](c *Container) bool {
 	var zero T
 	targetType := reflect.TypeOf(zero)
@@ -235,6 +283,9 @@ func Remove[T any](c *Container) bool {
 
 // RemoveNamed removes a named object of type T with the given name from the container.
 // Returns true if the object was found and removed, false if it didn't exist.
+//
+// Deprecated: Use concrete container pattern with Wireable[C] instead.
+// See da/examples/da_02_concrete_container for migration guidance.
 func RemoveNamed[T any](c *Container, name string) bool {
 	var zero T
 	key := namedKey{
@@ -251,6 +302,9 @@ func RemoveNamed[T any](c *Container, name string) bool {
 
 // RemoveTaggedFrom removes a specific object from a specific tag.
 // Returns true if the object was found and removed, false otherwise.
+//
+// Deprecated: Use concrete container pattern with Wireable[C] instead.
+// See da/examples/da_02_concrete_container for migration guidance.
 func RemoveTaggedFrom(c *Container, tag string, object any) bool {
 	objects, exists := c.taggedObjects[tag]
 	if !exists {
@@ -271,6 +325,9 @@ func RemoveTaggedFrom(c *Container, tag string, object any) bool {
 
 // RemoveTagged removes a specific object from ALL tags.
 // Returns the number of tags the object was removed from.
+//
+// Deprecated: Use concrete container pattern with Wireable[C] instead.
+// See da/examples/da_02_concrete_container for migration guidance.
 func RemoveTagged(c *Container, object any) int {
 	count := 0
 	for tag := range c.taggedObjects {
@@ -283,6 +340,9 @@ func RemoveTagged(c *Container, object any) int {
 
 // ClearTagged removes all objects with the specified tag.
 // Returns the number of objects that were removed.
+//
+// Deprecated: Use concrete container pattern with Wireable[C] instead.
+// See da/examples/da_02_concrete_container for migration guidance.
 func ClearTagged(c *Container, tag string) int {
 	objects, exists := c.taggedObjects[tag]
 	if !exists {
@@ -294,6 +354,9 @@ func ClearTagged(c *Container, tag string) int {
 }
 
 // Clear removes all objects from the container.
+//
+// Deprecated: Use concrete container pattern with Wireable[C] instead.
+// See da/examples/da_02_concrete_container for migration guidance.
 func (c *Container) Clear() {
 	c.singletons = make(map[reflect.Type]any)
 	c.namedObjects = make(map[namedKey]any)
@@ -301,6 +364,9 @@ func (c *Container) Clear() {
 }
 
 // Tags returns a slice of all tags in the container.
+//
+// Deprecated: Use concrete container pattern with Wireable[C] instead.
+// See da/examples/da_02_concrete_container for migration guidance.
 func (c *Container) Tags() []string {
 	tags := make([]string, 0, len(c.taggedObjects))
 	for tag := range c.taggedObjects {
@@ -311,6 +377,9 @@ func (c *Container) Tags() []string {
 
 // Types returns a slice of all registered types in the container.
 // Useful for debugging and introspection.
+//
+// Deprecated: Use concrete container pattern with Wireable[C] instead.
+// See da/examples/da_02_concrete_container for migration guidance.
 func (c *Container) Types() []reflect.Type {
 	types := make([]reflect.Type, 0, len(c.singletons))
 	for t := range c.singletons {
@@ -334,6 +403,9 @@ func (c *Container) Types() []reflect.Type {
 // OfType retrieves all objects of type T from the container (singleton, named, and tagged).
 // Returns a slice containing the singleton (if exists), followed by named instances, then tagged instances.
 // Duplicate objects (same pointer instance in multiple locations) are deduplicated.
+//
+// Deprecated: Use concrete container pattern with Wireable[C] instead.
+// See da/examples/da_02_concrete_container for migration guidance.
 func OfType[T any](c *Container) []T {
 	var zero T
 	targetType := reflect.TypeOf(zero)
@@ -389,6 +461,9 @@ func OfType[T any](c *Container) []T {
 
 // AsType visits all objects in the container and returns any that can be cast to type T.
 // This enables finding objects by interface or supertype regardless of their registration type.
+//
+// Deprecated: Use concrete container pattern with Wireable[C] instead.
+// See da/examples/da_02_concrete_container for migration guidance.
 func AsType[T any](c *Container) []T {
 	var results []T
 
@@ -412,6 +487,9 @@ type namedKey struct {
 }
 
 // InspectFormat defines the output format for container inspection.
+//
+// Deprecated: Use concrete container pattern with Wireable[C] instead.
+// See da/examples/da_02_concrete_container for migration guidance.
 type InspectFormat string
 
 const (
@@ -445,6 +523,9 @@ type InspectObject struct {
 
 // Inspect returns a formatted representation of the container contents.
 // Supports table, JSON, and YAML formats for human and machine consumption.
+//
+// Deprecated: Use concrete container pattern with Wireable[C] instead.
+// See da/examples/da_02_concrete_container for migration guidance.
 func (c *Container) Inspect(format InspectFormat) (string, error) {
 	data := c.gatherInspectData()
 
