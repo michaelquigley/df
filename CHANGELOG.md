@@ -1,6 +1,12 @@
 
 # CHANGELOG
 
+## v0.3.10
+
+FEATURE: New concrete container pattern for `da` package. Define your own container struct with explicit types and use `da.Wire`, `da.Start`, `da.Stop`, and `da.Run` for lifecycle management. Components implement `Wireable[C]` interface for type-safe dependency wiring. New `da.Config` function with `FileLoader`, `OptionalFileLoader`, and `ChainLoader` for flexible configuration loading. Struct tags `da:"order=N"` control processing order, `da:"-"` skips fields. Supports nested structs, slices, and maps. (https://github.com/michaelquigley/df/issues/44)
+
+DEPRECATION: The dynamic container components (`Container`, `Application`, `Factory`, `Linkable`, and related functions) are now deprecated in favor of the concrete container pattern. See `da/examples/da_02_concrete_container` for migration guidance. (https://github.com/michaelquigley/df/issues/45)
+
 ## v0.3.9
 
 FEATURE: New `dd:",+omitempty"` struct tag that will omit any fields that match `reflect.Zero` for the type. Existing handling of `nil` struct pointers remains unchanged. (https://github.com/michaelquigley/df/issues/43)
