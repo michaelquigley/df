@@ -68,7 +68,7 @@ func Run[C any](c *C) error {
 		return err
 	}
 	if err := Start(c); err != nil {
-		Stop(c)
+		_ = Stop(c)
 		return err
 	}
 	WaitForSignal()
