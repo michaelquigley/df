@@ -5,7 +5,139 @@ description: Complete reference for the da package - dependency injection and ap
 
 **Easily manage massive monoliths in code**
 
-The `da` package provides dependency injection and lifecycle management for complex applications. It enables factory pattern for configuration-driven object creation, automatic dependency resolution, and container introspection for large, manageable applications.
+The `da` package provides two complementary approaches to application lifecycle management:
+
+- **Concrete containers** - define your own container struct with explicit types
+- **Dynamic containers** - factory pattern with reflection-based object storage
+
+---
+
+## Concrete Containers
+
+Define your own container struct with explicit types. Components implement `Wireable[C]` to receive dependencies.
+
+### Basic Usage
+
+```go
+import "github.com/michaelquigley/df/da"
+
+// Define container with explicit types
+type App struct {
+    Config   *Config   `da:"-"`        // skip - not a component
+    Database *Database `da:"order=1"`  // wire/start first
+    Cache    *Cache    `da:"order=2"`  // wire/start second
+    API      *Server   `da:"order=10"` // wire/start last
+}
+
+// Load configuration
+cfg := &Config{}
+da.Config(cfg, da.FileLoader("config.yaml"))
+
+// Build container explicitly
+app := &App{
+    Config:   cfg,
+    Database: NewDatabase(cfg.DatabaseURL),
+    Cache:    NewCache(cfg.CacheURL),
+    API:      NewServer(cfg.Port),
+}
+
+// Run application (wire -> start -> wait for signal -> stop)
+da.Run(app)
+```
+
+### Component Wiring
+
+Components implement `Wireable[C]` to receive the container and wire dependencies:
+
+```go
+type UserService struct {
+    db    *Database
+    cache *Cache
+}
+
+// Wireable[App] - receives container for dependency wiring
+func (s *UserService) Wire(app *App) error {
+    s.db = app.Database
+    s.cache = app.Cache
+    return nil
+}
+
+// Startable - called during da.Start()
+func (s *UserService) Start() error {
+    return s.db.Ping()
+}
+
+// Stoppable - called during da.Stop()
+func (s *UserService) Stop() error {
+    return nil
+}
+```
+
+### Configuration Loading
+
+```go
+cfg := &Config{}
+
+// Load from required file
+da.Config(cfg, da.FileLoader("config.yaml"))
+
+// Load with optional overrides
+da.Config(cfg,
+    da.FileLoader("config.yaml"),
+    da.OptionalFileLoader("config.local.yaml"),
+)
+
+// Chain multiple loaders
+da.Config(cfg, da.ChainLoader(
+    da.FileLoader("base.yaml"),
+    da.OptionalFileLoader("env.yaml"),
+))
+```
+
+### Struct Tags
+
+| Tag | Purpose | Example |
+|-----|---------|---------|
+| `da:"-"` | Skip field | `Config *Config \`da:"-"\`` |
+| `da:"order=N"` | Process order | `DB *Database \`da:"order=1"\`` |
+
+### Lifecycle Functions
+
+| Function | Purpose |
+|----------|---------|
+| `da.Wire[C](c)` | Call `Wire(c)` on all `Wireable[C]` components |
+| `da.Start[C](c)` | Call `Start()` on all `Startable` components |
+| `da.Stop[C](c)` | Call `Stop()` on all `Stoppable` components (reverse order) |
+| `da.Run[C](c)` | Wire → Start → wait for signal → Stop |
+| `da.WaitForSignal()` | Block until SIGINT/SIGTERM |
+
+### Nested Structs and Collections
+
+Traversal automatically handles nested structs, slices, and maps:
+
+```go
+type App struct {
+    Config *Config `da:"-"`
+
+    // Nested struct - fields are traversed
+    Services struct {
+        Auth  *AuthService  `da:"order=10"`
+        Users *UserService  `da:"order=20"`
+    }
+
+    // Slices of pointers - each element processed
+    Workers []*Worker
+
+    // Maps with pointer values - each value processed
+    Handlers map[string]*Handler
+}
+```
+
+---
+
+## Dynamic Containers
+
+Factory pattern with reflection-based object storage for configuration-driven object creation.
 
 ## Quick Reference
 

@@ -38,23 +38,26 @@ dl.ChannelLog("errors").With("code", 500).Error("internal error")
 ### [`da`](da/) - dynamic foundation for applications
 **Easily manage massive monoliths in code**
 
-Dependency injection and lifecycle management for complex applications. Factory pattern for configuration-driven object creation, automatic dependency resolution, and container introspection.
+This is not "dependency injection". This is an idiomatic, clear, consistent approach to managing instantiation and lifecycle for large multi-component applications. Define your own container struct with explicit types and let `da` handle wiring and lifecycle.
 
 ```go
-// Build applications with automatic dependency resolution
-app := da.NewApplication(config)
-da.WithFactory(app, &DatabaseFactory{})
-da.WithFactory(app, &APIFactory{})
+// User-defined container with explicit types
+type App struct {
+    Config   *Config   `da:"-"`
+    Database *Database `da:"order=1"`
+    Cache    *Cache    `da:"order=2"`
+    API      *Server   `da:"order=10"`
+}
 
-app.Initialize()  // build + link dependencies
-app.Start()       // start all services
+app := &App{Config: cfg, Database: db, Cache: cache, API: server}
+da.Run(app)  // wire -> start -> wait for signal -> stop
 ```
 
 ## When to Use df
 
 - **Configuration-driven applications** that need to adapt behavior based on runtime config
-- **Large monolithic applications** that need organized dependency management
-- **Systems integration** where data flows between different formats and protocols  
+- **Large monolithic applications** that need organized component management
+- **Systems integration** where data flows between different formats and protocols
 - **Plugin architectures** with dynamic component loading and lifecycle management
 - **Microservice orchestration** with shared infrastructure and service discovery
 
@@ -66,7 +69,7 @@ Each package works independently:
 
 - **Start with `dd`** for struct ↔ map conversion and configuration loading
 - **Add `dl`** for intelligent logging with channel routing
-- **Use `da`** for dependency injection and application lifecycle management
+- **Use `da`** for application container and lifecycle management
 
 See examples in each package: [dd/examples/](dd/examples/), [dl/examples/](dl/examples/), [da/examples/](da/examples/)
 
