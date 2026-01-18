@@ -553,3 +553,249 @@ func TestNilPointerSkipped(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, app.Present.started)
 }
+
+// test top-level slice traversal
+type testTopLevelSliceComponent struct {
+	name    string
+	started bool
+	stopped bool
+}
+
+func (c *testTopLevelSliceComponent) Start() error {
+	c.started = true
+	return nil
+}
+
+func (c *testTopLevelSliceComponent) Stop() error {
+	c.stopped = true
+	return nil
+}
+
+func TestStartSlice(t *testing.T) {
+	workers := []*testTopLevelSliceComponent{
+		{name: "worker1"},
+		{name: "worker2"},
+		{name: "worker3"},
+	}
+
+	err := Start(&workers)
+	assert.NoError(t, err)
+
+	for _, w := range workers {
+		assert.True(t, w.started, "worker %s should be started", w.name)
+	}
+}
+
+func TestStopSlice(t *testing.T) {
+	workers := []*testTopLevelSliceComponent{
+		{name: "worker1"},
+		{name: "worker2"},
+		{name: "worker3"},
+	}
+
+	err := Stop(&workers)
+	assert.NoError(t, err)
+
+	for _, w := range workers {
+		assert.True(t, w.stopped, "worker %s should be stopped", w.name)
+	}
+}
+
+// test Wire with slice
+type testWireSliceComponent struct {
+	name  string
+	wired bool
+}
+
+func (c *testWireSliceComponent) Wire(components *[]*testWireSliceComponent) error {
+	c.wired = true
+	return nil
+}
+
+func TestWireSlice(t *testing.T) {
+	components := []*testWireSliceComponent{
+		{name: "first"},
+		{name: "second"},
+		{name: "third"},
+	}
+
+	err := Wire(&components)
+	assert.NoError(t, err)
+
+	for _, c := range components {
+		assert.True(t, c.wired, "component %s should be wired", c.name)
+	}
+}
+
+// test top-level map traversal
+type testTopLevelMapComponent struct {
+	name    string
+	started bool
+	stopped bool
+}
+
+func (c *testTopLevelMapComponent) Start() error {
+	c.started = true
+	return nil
+}
+
+func (c *testTopLevelMapComponent) Stop() error {
+	c.stopped = true
+	return nil
+}
+
+func TestStartMap(t *testing.T) {
+	handlers := map[string]*testTopLevelMapComponent{
+		"get":    {name: "get"},
+		"post":   {name: "post"},
+		"delete": {name: "delete"},
+	}
+
+	err := Start(&handlers)
+	assert.NoError(t, err)
+
+	for _, h := range handlers {
+		assert.True(t, h.started, "handler %s should be started", h.name)
+	}
+}
+
+func TestStopMap(t *testing.T) {
+	handlers := map[string]*testTopLevelMapComponent{
+		"get":    {name: "get"},
+		"post":   {name: "post"},
+		"delete": {name: "delete"},
+	}
+
+	err := Stop(&handlers)
+	assert.NoError(t, err)
+
+	for _, h := range handlers {
+		assert.True(t, h.stopped, "handler %s should be stopped", h.name)
+	}
+}
+
+// test interface slice traversal
+type testInterfaceComponent struct {
+	name    string
+	started bool
+	stopped bool
+}
+
+func (c *testInterfaceComponent) Start() error {
+	c.started = true
+	return nil
+}
+
+func (c *testInterfaceComponent) Stop() error {
+	c.stopped = true
+	return nil
+}
+
+func TestStartInterfaceSlice(t *testing.T) {
+	c1 := &testInterfaceComponent{name: "first"}
+	c2 := &testInterfaceComponent{name: "second"}
+	c3 := &testInterfaceComponent{name: "third"}
+
+	// slice of interfaces
+	components := []Startable{c1, c2, c3}
+
+	err := Start(&components)
+	assert.NoError(t, err)
+
+	assert.True(t, c1.started, "first should be started")
+	assert.True(t, c2.started, "second should be started")
+	assert.True(t, c3.started, "third should be started")
+}
+
+func TestStopInterfaceSlice(t *testing.T) {
+	c1 := &testInterfaceComponent{name: "first"}
+	c2 := &testInterfaceComponent{name: "second"}
+	c3 := &testInterfaceComponent{name: "third"}
+
+	// slice of interfaces
+	components := []Stoppable{c1, c2, c3}
+
+	err := Stop(&components)
+	assert.NoError(t, err)
+
+	assert.True(t, c1.stopped, "first should be stopped")
+	assert.True(t, c2.stopped, "second should be stopped")
+	assert.True(t, c3.stopped, "third should be stopped")
+}
+
+func TestStartInterfaceMap(t *testing.T) {
+	c1 := &testInterfaceComponent{name: "first"}
+	c2 := &testInterfaceComponent{name: "second"}
+
+	// map of interfaces
+	components := map[string]Startable{
+		"first":  c1,
+		"second": c2,
+	}
+
+	err := Start(&components)
+	assert.NoError(t, err)
+
+	assert.True(t, c1.started, "first should be started")
+	assert.True(t, c2.started, "second should be started")
+}
+
+// test interface field on struct
+type testAppWithInterfaceField struct {
+	Worker Startable
+}
+
+func TestStartStructWithInterfaceField(t *testing.T) {
+	c := &testInterfaceComponent{name: "worker"}
+	app := &testAppWithInterfaceField{
+		Worker: c,
+	}
+
+	err := Start(app)
+	assert.NoError(t, err)
+
+	assert.True(t, c.started, "worker should be started")
+}
+
+// test struct with interface slice field
+type testAppWithInterfaceSliceField struct {
+	Workers []Startable
+}
+
+func TestStartStructWithInterfaceSliceField(t *testing.T) {
+	c1 := &testInterfaceComponent{name: "first"}
+	c2 := &testInterfaceComponent{name: "second"}
+
+	app := &testAppWithInterfaceSliceField{
+		Workers: []Startable{c1, c2},
+	}
+
+	err := Start(app)
+	assert.NoError(t, err)
+
+	assert.True(t, c1.started, "first should be started")
+	assert.True(t, c2.started, "second should be started")
+}
+
+// test struct with interface map field
+type testAppWithInterfaceMapField struct {
+	Handlers map[string]Stoppable
+}
+
+func TestStopStructWithInterfaceMapField(t *testing.T) {
+	c1 := &testInterfaceComponent{name: "get"}
+	c2 := &testInterfaceComponent{name: "post"}
+
+	app := &testAppWithInterfaceMapField{
+		Handlers: map[string]Stoppable{
+			"get":  c1,
+			"post": c2,
+		},
+	}
+
+	err := Stop(app)
+	assert.NoError(t, err)
+
+	assert.True(t, c1.stopped, "get should be stopped")
+	assert.True(t, c2.stopped, "post should be stopped")
+}
