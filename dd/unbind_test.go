@@ -279,11 +279,31 @@ func TestUnbindOmitEmpty(t *testing.T) {
 		assert.Equal(t, map[string]any{"name": "test"}, m)
 	})
 
+	t.Run("omits empty slice", func(t *testing.T) {
+		s := &struct {
+			Name  string
+			Items []string `dd:",+omitempty"`
+		}{Name: "test", Items: []string{}}
+		m, err := Unbind(s)
+		assert.NoError(t, err)
+		assert.Equal(t, map[string]any{"name": "test"}, m)
+	})
+
 	t.Run("omits nil map", func(t *testing.T) {
 		s := &struct {
 			Name string
 			Data map[string]int `dd:",+omitempty"`
 		}{Name: "test", Data: nil}
+		m, err := Unbind(s)
+		assert.NoError(t, err)
+		assert.Equal(t, map[string]any{"name": "test"}, m)
+	})
+
+	t.Run("omits empty map", func(t *testing.T) {
+		s := &struct {
+			Name string
+			Data map[string]int `dd:",+omitempty"`
+		}{Name: "test", Data: map[string]int{}}
 		m, err := Unbind(s)
 		assert.NoError(t, err)
 		assert.Equal(t, map[string]any{"name": "test"}, m)

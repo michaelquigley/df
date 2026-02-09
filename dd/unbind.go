@@ -95,7 +95,7 @@ func structToMap(structVal reflect.Value, opt *Options) (map[string]any, error) 
 		}
 
 		// omit zero values if +omitempty tag is set
-		if tag.OmitEmpty && fieldVal.IsZero() {
+		if tag.OmitEmpty && isEmpty(fieldVal) {
 			continue
 		}
 
@@ -329,6 +329,17 @@ func valueToInterface(v reflect.Value, opt *Options) (interface{}, bool, error) 
 	}
 
 	return nil, false, &UnsupportedError{Operation: fmt.Sprintf("kind %s", v.Kind())}
+}
+
+func isEmpty(v reflect.Value) bool {
+	if v.IsZero() {
+		return true
+	}
+	switch v.Kind() {
+	case reflect.Slice, reflect.Map:
+		return v.Len() == 0
+	}
+	return false
 }
 
 // dynamicToMap converts a Dynamic value to a map and enforces that the discriminator key "type" is present and
