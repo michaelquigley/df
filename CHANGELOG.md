@@ -1,6 +1,12 @@
 
 # CHANGELOG
 
+## v0.3.11
+
+CHANGE: Improvements to `+omitempty` handling in `dd`. We weren't properly handling empty slices, and empty struct outputs. (https://github.com/michaelquigley/df/issues/47)
+
+CHANGE: Fixes and improvements to concrete container traversal.
+
 ## v0.3.10
 
 FEATURE: New concrete container pattern for `da` package. Define your own container struct with explicit types and use `da.Wire`, `da.Start`, `da.Stop`, and `da.Run` for lifecycle management. Components implement `Wireable[C]` interface for type-safe dependency wiring. New `da.Config` function with `FileLoader`, `OptionalFileLoader`, and `ChainLoader` for flexible configuration loading. Struct tags `da:"order=N"` control processing order, `da:"-"` skips fields. Supports nested structs, slices, and maps. (https://github.com/michaelquigley/df/issues/44)
