@@ -107,6 +107,12 @@ func structToMap(structVal reflect.Value, opt *Options) (map[string]any, error) 
 			// nothing to emit (e.g., nil pointer)
 			continue
 		}
+		// omit struct fields that unbind to empty maps when +omitempty is set
+		if tag.OmitEmpty {
+			if m, ok := v.(map[string]any); ok && len(m) == 0 {
+				continue
+			}
+		}
 		out[name] = v
 	}
 

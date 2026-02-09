@@ -328,6 +328,38 @@ func TestUnbindOmitEmpty(t *testing.T) {
 		assert.Equal(t, map[string]any{}, m)
 	})
 
+	t.Run("omits empty struct", func(t *testing.T) {
+		type inner struct {
+			Name  *string
+			Value *int
+		}
+		s := &struct {
+			Label  string
+			Nested inner `dd:",+omitempty"`
+		}{Label: "test", Nested: inner{Name: nil, Value: nil}}
+		m, err := Unbind(s)
+		assert.NoError(t, err)
+		assert.Equal(t, map[string]any{"label": "test"}, m)
+	})
+
+	t.Run("preserves non-empty struct", func(t *testing.T) {
+		type inner struct {
+			Name  *string
+			Value *int
+		}
+		name := "hello"
+		s := &struct {
+			Label  string
+			Nested inner `dd:",+omitempty"`
+		}{Label: "test", Nested: inner{Name: &name, Value: nil}}
+		m, err := Unbind(s)
+		assert.NoError(t, err)
+		assert.Equal(t, map[string]any{
+			"label":  "test",
+			"nested": map[string]any{"name": "hello"},
+		}, m)
+	})
+
 	t.Run("without omitempty preserves zeros", func(t *testing.T) {
 		s := &struct {
 			Name  string
