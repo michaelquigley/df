@@ -157,6 +157,28 @@ func TestTimeTimeRFC3339Nano(t *testing.T) {
 	assert.Equal(t, expected, root.CreatedAt)
 }
 
+func TestTimeTimeToString(t *testing.T) {
+	// YAML parsers interpret unquoted date-like strings as time.Time;
+	// when the destination field is a string, we should coerce back to string
+	root := &struct {
+		Title string
+	}{}
+
+	// date-only (zero time component) should produce date-only string
+	data := map[string]any{
+		"title": time.Date(2025, 3, 15, 0, 0, 0, 0, time.UTC),
+	}
+	err := Bind(root, data)
+	assert.Nil(t, err)
+	assert.Equal(t, "2025-03-15", root.Title)
+
+	// with time component should produce RFC3339
+	data["title"] = time.Date(2025, 3, 15, 14, 30, 0, 0, time.UTC)
+	err = Bind(root, data)
+	assert.Nil(t, err)
+	assert.Equal(t, "2025-03-15T14:30:00Z", root.Title)
+}
+
 func TestFloatWithIntData(t *testing.T) {
 	basic := &struct {
 		FloatValue float64

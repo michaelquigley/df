@@ -69,6 +69,15 @@ func convertAndSet(dst reflect.Value, raw interface{}, path string, opt *Options
 		case string:
 			dst.SetString(v)
 			return nil
+		case time.Time:
+			// YAML parsers interpret unquoted date-like strings (e.g. "2025-03-15") as time.Time;
+			// coerce back to string when the destination field is a string type
+			if v.Hour() == 0 && v.Minute() == 0 && v.Second() == 0 && v.Nanosecond() == 0 {
+				dst.SetString(v.Format(time.DateOnly))
+			} else {
+				dst.SetString(v.Format(time.RFC3339))
+			}
+			return nil
 		default:
 			// check if raw value is also a string-based custom type
 			rawValue := reflect.ValueOf(raw)
