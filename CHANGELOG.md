@@ -1,6 +1,10 @@
 
 # CHANGELOG
 
+## v0.3.13
+
+FEATURE: Optional nested structs in `dd.Merge()` can now provide merge-time defaults by implementing `dd.Defaulter` and `ApplyDefaults()`. Freshly allocated instances receive defaults before incoming data is overlaid, while existing pointers and `dd.Bind()`/`dd.New()` behavior remain unchanged. (https://github.com/michaelquigley/df/issues/50)
+
 ## v0.3.12
 
 FIX: Unquoted "time-like" string values (example: `2025-01-01`) are provided by the YAML parser as a `time.Time`, which fails to assign to `string` fields. Type coercion fixed to properly handle this. (https://github.com/michaelquigley/df/issues/48)
