@@ -95,7 +95,8 @@ func New[T any](data map[string]any, opts ...*Options) (*T, error) {
 
 // Merge populates the exported fields of an existing target struct from the given data map, preserving
 // any existing field values that are not present in the data. This allows binding partial data to
-// pre-initialized structs with default values.
+// pre-initialized structs with default values. If Merge has to allocate a fresh struct instance and
+// that type implements Defaulter, ApplyDefaults is called before incoming data is bound.
 //
 // uses the same field mapping rules as Bind: struct tags, snake_case conversion, etc.
 //
@@ -112,6 +113,27 @@ func Merge(target interface{}, data map[string]any, opts ...*Options) error {
 		return err
 	}
 	return bindStruct(elem, data, elem.Type().Name(), opt, true, nil)
+}
+
+func applyDefaultsIfSupported(v reflect.Value) {
+	if !v.IsValid() {
+		return
+	}
+	if v.Kind() == reflect.Ptr {
+		if v.IsNil() {
+			return
+		}
+		if v.Type().Implements(defaulterInterfaceType) {
+			v.Interface().(Defaulter).ApplyDefaults()
+		}
+		return
+	}
+	if v.CanAddr() {
+		ptr := v.Addr()
+		if ptr.Type().Implements(defaulterInterfaceType) {
+			ptr.Interface().(Defaulter).ApplyDefaults()
+		}
+	}
 }
 
 func bindStruct(structValue reflect.Value, data map[string]any, path string, opt *Options, preserveExisting bool, consumedKeys map[string]bool) error {
@@ -173,6 +195,9 @@ func bindStruct(structValue reflect.Value, data map[string]any, path string, opt
 					if hasEmbeddedFields {
 						// allocate new instance for pointer embedded struct
 						fieldVal.Set(reflect.New(field.Type.Elem()))
+						if preserveExisting {
+							applyDefaultsIfSupported(fieldVal)
+						}
 					} else {
 						// skip if no embedded fields in data
 						continue
@@ -269,7 +294,7 @@ func bindStruct(structValue reflect.Value, data map[string]any, path string, opt
 
 	// run deferred unmarshalers now that all other fields are populated.
 	for _, d := range deferred {
-		if err := unmarshalFromMap(d.fieldVal, d.rawData, d.path); err != nil {
+		if err := unmarshalFromMap(d.fieldVal, d.rawData, d.path, preserveExisting); err != nil {
 			return &BindingError{Path: d.path, Key: d.name, Cause: err}
 		}
 	}
@@ -305,7 +330,7 @@ func bindStruct(structValue reflect.Value, data map[string]any, path string, opt
 }
 
 // unmarshalFromMap handles calling the UnmarshalDd method on a field.
-func unmarshalFromMap(fieldVal reflect.Value, raw interface{}, path string) error {
+func unmarshalFromMap(fieldVal reflect.Value, raw interface{}, path string, preserveExisting bool) error {
 	subMap, ok := raw.(map[string]any)
 	if !ok {
 		return &TypeMismatchError{Path: path, Expected: "object for unmarshaler", Actual: fmt.Sprintf("%T", raw)}
@@ -327,6 +352,9 @@ func unmarshalFromMap(fieldVal reflect.Value, raw interface{}, path string) erro
 	if fieldVal.Type().Implements(unmarshalerInterfaceType) {
 		if fieldVal.Kind() == reflect.Ptr && fieldVal.IsNil() {
 			fieldVal.Set(reflect.New(fieldVal.Type().Elem()))
+			if preserveExisting {
+				applyDefaultsIfSupported(fieldVal)
+			}
 		}
 		return fieldVal.Interface().(Unmarshaler).UnmarshalDd(subMap)
 	}
@@ -364,6 +392,9 @@ func setField(fieldVal reflect.Value, raw interface{}, path string, opt *Options
 			} else {
 				// allocate new struct and bind into it
 				newPtr := reflect.New(elemType)
+				if preserveExisting {
+					applyDefaultsIfSupported(newPtr)
+				}
 				if err := bindStruct(newPtr.Elem(), subMap, path, opt, preserveExisting, nil); err != nil {
 					return err
 				}
@@ -458,6 +489,9 @@ func setNonPtrValue(fieldVal reflect.Value, raw interface{}, path string, opt *O
 					if !ok {
 						return fmt.Errorf("%s: expected object for struct slice element, got %T", itemPath, item)
 					}
+					if preserveExisting {
+						applyDefaultsIfSupported(elemPtr)
+					}
 					if err := bindStruct(elemPtr.Elem(), subMap, itemPath, opt, preserveExisting, nil); err != nil {
 						return err
 					}
@@ -478,6 +512,9 @@ func setNonPtrValue(fieldVal reflect.Value, raw interface{}, path string, opt *O
 				subMap, ok := item.(map[string]any)
 				if !ok {
 					return fmt.Errorf("%s: expected object for struct slice element, got %T", itemPath, item)
+				}
+				if preserveExisting {
+					applyDefaultsIfSupported(elemVal)
 				}
 				if err := bindStruct(elemVal, subMap, itemPath, opt, preserveExisting, nil); err != nil {
 					return err
@@ -539,6 +576,9 @@ func setNonPtrValue(fieldVal reflect.Value, raw interface{}, path string, opt *O
 					if !ok {
 						return fmt.Errorf("%s: expected object for struct map value, got %T", itemPath, value)
 					}
+					if preserveExisting {
+						applyDefaultsIfSupported(elemPtr)
+					}
 					if err := bindStruct(elemPtr.Elem(), subMap, itemPath, opt, preserveExisting, nil); err != nil {
 						return err
 					}
@@ -560,6 +600,9 @@ func setNonPtrValue(fieldVal reflect.Value, raw interface{}, path string, opt *O
 				subMap, ok := value.(map[string]any)
 				if !ok {
 					return fmt.Errorf("%s: expected object for struct map value, got %T", itemPath, value)
+				}
+				if preserveExisting {
+					applyDefaultsIfSupported(elemVal)
 				}
 				if err := bindStruct(elemVal, subMap, itemPath, opt, preserveExisting, nil); err != nil {
 					return err

@@ -1,6 +1,6 @@
 # configuration defaults with merge
 
-this example demonstrates how to build robust configuration systems using `df.Merge()`. unlike `df.Bind()` which overwrites the entire struct, `Merge()` intelligently overlays external data onto pre-initialized structs with sensible defaults.
+this example demonstrates how to build robust configuration systems using `dd.Merge()`. unlike `dd.Bind()` which overwrites the entire struct, `Merge()` intelligently overlays external data onto pre-initialized structs with sensible defaults.
 
 ## key concepts demonstrated
 
@@ -9,6 +9,7 @@ this example demonstrates how to build robust configuration systems using `df.Me
 - **selective overrides**: external config only specifies what should change
 - **preserved defaults**: unspecified fields keep their original values
 - **layered configuration**: multiple sources can be merged progressively
+- **optional nested defaults**: `ApplyDefaults()` can initialize optional pointer fields when `Merge()` allocates them
 
 ### **configuration hierarchies**
 - **layer 1**: application defaults (compiled into code)
@@ -25,9 +26,9 @@ this example demonstrates how to build robust configuration systems using `df.Me
 ## workflow demonstrated
 
 1. **initialize with defaults**: create structs with sensible default values
-2. **apply partial config**: use `df.Merge()` to overlay external configuration  
+2. **apply partial config**: use `dd.Merge()` to overlay external configuration  
 3. **verify preservation**: show which values were overridden vs preserved
-4. **configuration layering**: demonstrate multiple merge operations
+4. **instantiate optional config**: show a nil optional pointer becoming populated with merge-time defaults
 
 ## example structure
 
@@ -46,6 +47,7 @@ config := &AppConfig{
         Database: "myapp",
         SSL:      true,
     },
+    TLS: nil, // remain optional until external data requests it
 }
 
 // Partial override (from config file/env/CLI)
@@ -55,11 +57,28 @@ partialData := map[string]any{
         "debug": true,
         // port and timeout not specified - will be preserved
     },
+    "tls": map[string]any{
+        "server_name": "api.example.com",
+        // min_version comes from ApplyDefaults on TLSConfig
+    },
 }
 
 // intelligent merge
-df.Merge(config, partialData)
+dd.Merge(config, partialData)
 ```
+
+## optional nested structs
+
+the example adds a `TLS *TLSConfig` field that starts as `nil`. `TLSConfig` implements:
+
+```go
+func (c *TLSConfig) ApplyDefaults() {
+    c.ServerName = "localhost"
+    c.MinVersion = "1.3"
+}
+```
+
+when merge input contains a `tls` object, `dd.Merge()` allocates `TLSConfig`, applies defaults, and then overlays external values. this keeps `TLS` optional when omitted, while still allowing internal defaults when it is present.
 
 ## running
 

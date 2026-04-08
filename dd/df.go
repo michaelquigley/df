@@ -41,6 +41,12 @@ type Converter interface {
 	ToRaw(value interface{}) (interface{}, error)
 }
 
+// Defaulter allows a type to initialize its own default values when Merge allocates
+// a fresh instance before overlaying external data.
+type Defaulter interface {
+	ApplyDefaults()
+}
+
 // DdTag holds the parsed values from a `dd` struct tag.
 type DdTag struct {
 	Name       string // external field name override, empty means use default
@@ -170,6 +176,7 @@ var dynamicInterfaceType = reflect.TypeOf((*Dynamic)(nil)).Elem()
 var identifiableInterfaceType = reflect.TypeOf((*Identifiable)(nil)).Elem()
 var marshalerInterfaceType = reflect.TypeOf((*Marshaler)(nil)).Elem()
 var unmarshalerInterfaceType = reflect.TypeOf((*Unmarshaler)(nil)).Elem()
+var defaulterInterfaceType = reflect.TypeOf((*Defaulter)(nil)).Elem()
 
 // validateTarget validates that the target is a non-nil pointer to a struct.
 // returns the struct element and any validation error.

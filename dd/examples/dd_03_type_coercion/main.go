@@ -21,9 +21,20 @@ type DatabaseConfig struct {
 	SSL      bool
 }
 
+type TLSConfig struct {
+	ServerName string
+	MinVersion string
+}
+
+func (c *TLSConfig) ApplyDefaults() {
+	c.ServerName = "localhost"
+	c.MinVersion = "1.3"
+}
+
 type AppConfig struct {
 	Server   ServerConfig
 	Database DatabaseConfig
+	TLS      *TLSConfig
 	Features []string
 }
 
@@ -33,6 +44,7 @@ func main() {
 	fmt.Println("• application defaults (compiled-in)")
 	fmt.Println("• environment overrides (dev/staging/prod)")
 	fmt.Println("• user preferences (runtime customization)")
+	fmt.Println("• optional nested structs with merge-time defaults")
 
 	// step 1: pre-initialized config with sensible defaults
 	config := &AppConfig{
@@ -54,6 +66,7 @@ func main() {
 	fmt.Println("\n=== step 1: application defaults (compiled-in) ===")
 	fmt.Printf("server: %+v\n", config.Server)
 	fmt.Printf("database: %+v\n", config.Database)
+	fmt.Printf("tls: %v\n", config.TLS)
 	fmt.Printf("features: %v\n", config.Features)
 
 	// step 2: partial configuration from environment/config file (only specifies overrides)
@@ -67,6 +80,10 @@ func main() {
 			"host": "db.example.com", // production database server
 			"port": 3306,             // mysql instead of postgresql
 			// note: database, ssl not specified - will preserve defaults
+		},
+		"tls": map[string]any{
+			"server_name": "api.example.com",
+			// note: min_version not specified - ApplyDefaults will provide it
 		},
 		"features": []string{"basic", "auth", "premium"}, // add premium features
 	}
@@ -83,6 +100,11 @@ func main() {
 	fmt.Println("\n=== step 3: final merged configuration ===")
 	fmt.Printf("server: %+v\n", config.Server)
 	fmt.Printf("database: %+v\n", config.Database)
+	if config.TLS != nil {
+		fmt.Printf("tls: %+v\n", *config.TLS)
+	} else {
+		fmt.Println("tls: <nil>")
+	}
 	fmt.Printf("features: %v\n", config.Features)
 
 	fmt.Println("\n=== key differences vs df.Bind() ===")
@@ -90,6 +112,10 @@ func main() {
 	fmt.Printf("✓ server.timeout: %d (preserved - not in partial data)\n", config.Server.Timeout)
 	fmt.Printf("✓ database.database: %s (preserved - not in partial data)\n", config.Database.Database)
 	fmt.Printf("✓ database.ssl: %t (preserved - not in partial data)\n", config.Database.SSL)
+	if config.TLS != nil {
+		fmt.Printf("✓ tls.min_version: %s (from ApplyDefaults on fresh allocation)\n", config.TLS.MinVersion)
+	}
 	fmt.Printf("• df.Bind() would have zeroed these fields, df.Merge() preserves them\n")
+	fmt.Printf("• df.Bind() would not call ApplyDefaults for a fresh tls pointer\n")
 	fmt.Printf("• this enables minimal config files with maximum flexibility\n")
 }

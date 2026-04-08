@@ -22,21 +22,22 @@ user, _ := dd.New[User](userData)
 
 ## Key Features
 
-- **🔄 Bidirectional Binding**: Seamlessly convert structs ↔ maps
-- **🏷️ Struct Tags**: Control field mapping with `df` tags
-- **⚡ Type Coercion**: Automatic type conversion (strings→numbers, etc.)
-- **🗺️ Typed Maps**: Full support for `map[K]V` with any comparable key type
-- **📁 File I/O**: Direct JSON/YAML binding with `BindFromJSON()`, `UnbindToYAML()`
-- **🔗 Object References**: `Pointer[T]` type with cycle-safe linking
-- **🎭 Dynamic Types**: Runtime type discrimination via `Dynamic` interface
-- **✅ Validation**: Required fields and custom validation rules
+- **Bidirectional Binding**: Seamlessly convert structs ↔ maps
+- **Struct Tags**: Control field mapping with `dd` tags
+- **Type Coercion**: Automatic type conversion (strings→numbers, etc.)
+- **Typed Maps**: Full support for `map[K]V` with any comparable key type
+- **File I/O**: Direct JSON/YAML binding with `BindFromJSON()`, `UnbindToYAML()`
+- **Object References**: `Pointer[T]` type with cycle-safe linking
+- **Dynamic Types**: Runtime type discrimination via `Dynamic` interface
+- **Merge-Time Defaults**: Optional nested structs can provide defaults when `Merge()` allocates them
+- **Validation**: Required fields and custom validation rules
 
 ## Core Functions
 
 - **`dd.New[T](data)`** - Type-safe struct creation from map
 - **`dd.Bind(target, data)`** - Bind data to existing struct
 - **`dd.Unbind(struct)`** - Convert struct to map
-- **`dd.Merge(base, override)`** - Deep merge two data maps
+- **`dd.Merge(target, data)`** - Overlay partial data onto an existing struct while preserving existing values
 
 ## Common Patterns
 
@@ -46,9 +47,43 @@ type User struct {
     Name  string `dd:"+required"`           // required field
     Email string `dd:"email_address"`       // custom field name
     Token string `dd:"-"`                   // excluded from binding
-    Age   int    `dd:",default=18"`         // default value
+    Age   int    `dd:",+omitempty"`         // omitted during Unbind when zero
 }
 ```
+
+**Merge-Time Defaults For Optional Nested Structs**
+```go
+type TLSConfig struct {
+    ServerName string
+    MinVersion string
+}
+
+func (c *TLSConfig) ApplyDefaults() {
+    c.ServerName = "localhost"
+    c.MinVersion = "1.3"
+}
+
+type Config struct {
+    TLS *TLSConfig
+}
+
+cfg := &Config{}
+dd.Merge(cfg, map[string]any{
+    "tls": map[string]any{
+        "server_name": "api.example.com",
+    },
+})
+
+// cfg.TLS.ServerName == "api.example.com"
+// cfg.TLS.MinVersion == "1.3"
+```
+
+`ApplyDefaults()` semantics:
+- `Merge()` only
+- runs only when `Merge()` allocates a fresh struct instance
+- not called by `Bind()` or `New()`
+- not called when `Merge()` is updating an existing non-nil pointer
+- incoming data is bound after defaults are applied, so explicit values still win
 
 **File Persistence**
 ```go
