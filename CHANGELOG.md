@@ -1,6 +1,10 @@
 
 # CHANGELOG
 
+## v0.3.14
+
+FEATURE: `dd.UnbindJSONFile` and `dd.UnbindYAMLFile` now support file-output options through `opts...`, including explicit file mode control. When no mode is provided, file writes preserve an existing file's mode and fall back to `0644` for newly created files. (https://github.com/michaelquigley/df/issues/51)
+
 ## v0.3.13
 
 FEATURE: Optional nested structs in `dd.Merge()` can now provide merge-time defaults by implementing `dd.Defaulter` and `ApplyDefaults()`. Freshly allocated instances receive defaults before incoming data is overlaid, while existing pointers and `dd.Bind()`/`dd.New()` behavior remain unchanged. (https://github.com/michaelquigley/df/issues/50)
