@@ -2,6 +2,7 @@ package dd
 
 import (
 	"fmt"
+	"io/fs"
 	"reflect"
 	"strings"
 	"time"
@@ -23,6 +24,16 @@ type Options struct {
 	// the key is the reflect.Type of the target field, and the value is a Converter
 	// that handles bidirectional conversion between raw data and the target type.
 	Converters map[reflect.Type]Converter
+
+	// File configures file I/O behavior for helpers such as UnbindJSONFile and UnbindYAMLFile.
+	File *FileOptions
+}
+
+// FileOptions configures file output behavior for file-oriented helpers.
+type FileOptions struct {
+	// Mode sets the file mode used when writing output. If nil, file helpers preserve an
+	// existing file's mode when possible and otherwise fall back to their default mode.
+	Mode *fs.FileMode
 }
 
 // Bind populates the exported fields of target (a pointer to a struct) from the given data map. Keys are matched using

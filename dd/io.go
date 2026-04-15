@@ -3,6 +3,7 @@ package dd
 import (
 	"encoding/json"
 	"io"
+	"io/fs"
 	"os"
 
 	"gopkg.in/yaml.v3"
@@ -228,11 +229,15 @@ func MergeYAMLFile(target interface{}, path string, opts ...*Options) error {
 
 // UnbindJSONFile converts a struct to JSON and writes it to the specified file path.
 func UnbindJSONFile(source interface{}, path string, opts ...*Options) error {
-	data, err := UnbindJSON(source, opts...)
+	opt, err := getOptions(opts...)
 	if err != nil {
 		return err
 	}
-	if err := os.WriteFile(path, data, 0644); err != nil {
+	data, err := UnbindJSON(source, opt)
+	if err != nil {
+		return err
+	}
+	if err := os.WriteFile(path, data, outputFileMode(path, opt)); err != nil {
 		return &FileError{Path: path, Operation: "write JSON", Cause: err}
 	}
 	return nil
@@ -240,12 +245,26 @@ func UnbindJSONFile(source interface{}, path string, opts ...*Options) error {
 
 // UnbindYAMLFile converts a struct to YAML and writes it to the specified file path.
 func UnbindYAMLFile(source interface{}, path string, opts ...*Options) error {
-	data, err := UnbindYAML(source, opts...)
+	opt, err := getOptions(opts...)
 	if err != nil {
 		return err
 	}
-	if err := os.WriteFile(path, data, 0644); err != nil {
+	data, err := UnbindYAML(source, opt)
+	if err != nil {
+		return err
+	}
+	if err := os.WriteFile(path, data, outputFileMode(path, opt)); err != nil {
 		return &FileError{Path: path, Operation: "write YAML", Cause: err}
 	}
 	return nil
+}
+
+func outputFileMode(path string, opt *Options) fs.FileMode {
+	if opt != nil && opt.File != nil && opt.File.Mode != nil {
+		return *opt.File.Mode
+	}
+	if info, err := os.Stat(path); err == nil {
+		return info.Mode().Perm()
+	}
+	return 0o644
 }

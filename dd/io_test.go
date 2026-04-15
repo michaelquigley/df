@@ -3,6 +3,7 @@ package dd
 import (
 	"bytes"
 	"errors"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -479,6 +480,14 @@ func TestUnbindJSONFile(t *testing.T) {
 	if result.Email != source.Email {
 		t.Errorf("expected Email='%s', got '%s'", source.Email, result.Email)
 	}
+
+	info, err := os.Stat(jsonFile)
+	if err != nil {
+		t.Fatalf("stat output JSON: %v", err)
+	}
+	if got := info.Mode().Perm(); got != 0o644 {
+		t.Fatalf("expected default JSON file mode 0644, got %03o", got)
+	}
 }
 
 func TestUnbindYAMLFile(t *testing.T) {
@@ -509,6 +518,89 @@ func TestUnbindYAMLFile(t *testing.T) {
 	}
 	if result.Email != source.Email {
 		t.Errorf("expected Email='%s', got '%s'", source.Email, result.Email)
+	}
+}
+
+func TestUnbindJSONFilePreservesExistingModeByDefault(t *testing.T) {
+	tmpDir := t.TempDir()
+	jsonFile := filepath.Join(tmpDir, "output.json")
+
+	if err := os.WriteFile(jsonFile, []byte(`{"name":"existing"}`), 0o600); err != nil {
+		t.Fatalf("write existing JSON file: %v", err)
+	}
+
+	source := IOTestStruct{
+		Name:  "Bob Smith",
+		Age:   35,
+		Email: "bob@example.com",
+	}
+
+	if err := UnbindJSONFile(source, jsonFile); err != nil {
+		t.Fatalf("UnbindJSONFile failed: %v", err)
+	}
+
+	info, err := os.Stat(jsonFile)
+	if err != nil {
+		t.Fatalf("stat output JSON: %v", err)
+	}
+	if got := info.Mode().Perm(); got != 0o600 {
+		t.Fatalf("expected preserved JSON file mode 0600, got %03o", got)
+	}
+}
+
+func TestUnbindJSONFileUsesExplicitModeOption(t *testing.T) {
+	tmpDir := t.TempDir()
+	jsonFile := filepath.Join(tmpDir, "output.json")
+
+	source := IOTestStruct{
+		Name:  "Bob Smith",
+		Age:   35,
+		Email: "bob@example.com",
+	}
+
+	mode := fs.FileMode(0o600)
+	if err := UnbindJSONFile(source, jsonFile, &Options{
+		File: &FileOptions{
+			Mode: &mode,
+		},
+	}); err != nil {
+		t.Fatalf("UnbindJSONFile with explicit mode failed: %v", err)
+	}
+
+	info, err := os.Stat(jsonFile)
+	if err != nil {
+		t.Fatalf("stat output JSON: %v", err)
+	}
+	if got := info.Mode().Perm(); got != 0o600 {
+		t.Fatalf("expected explicit JSON file mode 0600, got %03o", got)
+	}
+}
+
+func TestUnbindYAMLFileUsesExplicitModeOption(t *testing.T) {
+	tmpDir := t.TempDir()
+	yamlFile := filepath.Join(tmpDir, "output.yaml")
+
+	source := IOTestStruct{
+		Name:  "Alice Johnson",
+		Age:   28,
+		Email: "alice@example.com",
+	}
+
+	mode := fs.FileMode(0o600)
+	if err := UnbindYAMLFile(source, yamlFile, &Options{
+		File: &FileOptions{
+			Mode: &mode,
+		},
+	}); err != nil {
+		t.Fatalf("UnbindYAMLFile with explicit mode failed: %v", err)
+	}
+
+	info, err := os.Stat(yamlFile)
+	if err != nil {
+		t.Fatalf("stat output YAML: %v", err)
+	}
+	if got := info.Mode().Perm(); got != 0o600 {
+		t.Fatalf("expected explicit YAML file mode 0600, got %03o", got)
 	}
 }
 
