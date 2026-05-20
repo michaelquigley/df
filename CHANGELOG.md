@@ -1,6 +1,10 @@
 
 # CHANGELOG
 
+## v1.0.0
+
+Initial stable release.
+
 ## v0.3.14
 
 FEATURE: `dd.UnbindJSONFile` and `dd.UnbindYAMLFile` now support file-output options through `opts...`, including explicit file mode control. When no mode is provided, file writes preserve an existing file's mode and fall back to `0644` for newly created files. (https://github.com/michaelquigley/df/issues/51)
