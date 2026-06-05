@@ -1,6 +1,10 @@
 
 # CHANGELOG
 
+## v1.0.1
+
+FIX: `dd.Unbind` now preserves sub-second precision for `time.Time` fields by emitting RFC3339 timestamps with fractional seconds when present. `dd.Bind` accepts RFC3339 timestamps with or without fractional seconds, and `time.Time` values coerced into `string` fields preserve fractional seconds as well. (https://github.com/michaelquigley/df/issues/52)
+
 ## v1.0.0
 
 Initial stable release.

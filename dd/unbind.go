@@ -16,8 +16,8 @@ import (
 // pointers to values: if nil, the key is omitted; otherwise the pointed value is emitted.
 // slices, structs, maps, and nested pointers are handled recursively. time.Duration values
 // are emitted as strings using Duration.String() (e.g., "30s"). time.Time values are emitted
-// as RFC3339 strings (e.g., "2024-03-15T14:30:45Z"). map keys are converted to strings for
-// JSON/YAML compatibility. Interface fields are not supported, except for fields of type
+// as RFC3339 strings, preserving fractional seconds when present (e.g., "2024-03-15T14:30:45.123Z").
+// map keys are converted to strings for JSON/YAML compatibility. Interface fields are not supported, except for fields of type
 // `Dynamic` (and slices of `Dynamic`), which are converted via their ToMap() method which
 // now returns (map[string]any, error).
 //
@@ -194,7 +194,7 @@ func valueToInterface(v reflect.Value, opt *Options) (interface{}, bool, error) 
 	// special-case time.Time (struct with unexported fields)
 	if v.Type() == reflect.TypeOf(time.Time{}) {
 		t := v.Interface().(time.Time)
-		return t.Format(time.RFC3339), true, nil
+		return t.Format(time.RFC3339Nano), true, nil
 	}
 
 	switch v.Kind() {

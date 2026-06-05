@@ -43,7 +43,7 @@ func TestTimeTime(t *testing.T) {
 		CreatedAt time.Time
 	}{}
 
-	// test with RFC3339 string (what Unbind produces)
+	// test with RFC3339 string
 	data := map[string]any{
 		"created_at": "2024-03-15T14:30:45Z",
 	}
@@ -77,10 +77,10 @@ func TestTimeTimeRoundTrip(t *testing.T) {
 		UpdatedAt *time.Time
 	}
 
-	updatedTime := time.Date(2024, 3, 16, 10, 20, 30, 0, time.UTC)
+	updatedTime := time.Date(2024, 3, 16, 10, 20, 30, 123456789, time.UTC)
 	original := &TestStruct{
 		Name:      "test",
-		CreatedAt: time.Date(2024, 3, 15, 14, 30, 45, 0, time.UTC),
+		CreatedAt: time.Date(2024, 3, 15, 14, 30, 45, 123000000, time.UTC),
 		UpdatedAt: &updatedTime,
 	}
 
@@ -88,8 +88,8 @@ func TestTimeTimeRoundTrip(t *testing.T) {
 	m, err := Unbind(original)
 	assert.NoError(t, err)
 	assert.Equal(t, "test", m["name"])
-	assert.Equal(t, "2024-03-15T14:30:45Z", m["created_at"])
-	assert.Equal(t, "2024-03-16T10:20:30Z", m["updated_at"])
+	assert.Equal(t, "2024-03-15T14:30:45.123Z", m["created_at"])
+	assert.Equal(t, "2024-03-16T10:20:30.123456789Z", m["updated_at"])
 
 	// bind back to struct
 	result := &TestStruct{}
@@ -177,6 +177,12 @@ func TestTimeTimeToString(t *testing.T) {
 	err = Bind(root, data)
 	assert.Nil(t, err)
 	assert.Equal(t, "2025-03-15T14:30:00Z", root.Title)
+
+	// fractional seconds should be preserved
+	data["title"] = time.Date(2025, 3, 15, 14, 30, 0, 123000000, time.UTC)
+	err = Bind(root, data)
+	assert.Nil(t, err)
+	assert.Equal(t, "2025-03-15T14:30:00.123Z", root.Title)
 }
 
 func TestFloatWithIntData(t *testing.T) {

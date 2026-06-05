@@ -42,14 +42,9 @@ func convertAndSet(dst reflect.Value, raw interface{}, path string, opt *Options
 	if dst.Type() == reflect.TypeOf(time.Time{}) {
 		switch v := raw.(type) {
 		case string:
-			// try RFC3339 first (what Unbind produces)
-			t, err := time.Parse(time.RFC3339, v)
+			t, err := time.Parse(time.RFC3339Nano, v)
 			if err != nil {
-				// try RFC3339Nano as fallback for higher precision timestamps
-				t, err = time.Parse(time.RFC3339Nano, v)
-				if err != nil {
-					return &ConversionError{Path: path, Value: v, Type: "time", Cause: err}
-				}
+				return &ConversionError{Path: path, Value: v, Type: "time", Cause: err}
 			}
 			dst.Set(reflect.ValueOf(t))
 			return nil
@@ -57,7 +52,7 @@ func convertAndSet(dst reflect.Value, raw interface{}, path string, opt *Options
 			dst.Set(reflect.ValueOf(v))
 			return nil
 		default:
-			return &TypeMismatchError{Path: path, Expected: "time (RFC3339 string or time.Time)", Actual: fmt.Sprintf("%T", raw)}
+			return &TypeMismatchError{Path: path, Expected: "time (RFC3339 string with optional fractional seconds or time.Time)", Actual: fmt.Sprintf("%T", raw)}
 		}
 	}
 
@@ -75,7 +70,7 @@ func convertAndSet(dst reflect.Value, raw interface{}, path string, opt *Options
 			if v.Hour() == 0 && v.Minute() == 0 && v.Second() == 0 && v.Nanosecond() == 0 {
 				dst.SetString(v.Format(time.DateOnly))
 			} else {
-				dst.SetString(v.Format(time.RFC3339))
+				dst.SetString(v.Format(time.RFC3339Nano))
 			}
 			return nil
 		default:

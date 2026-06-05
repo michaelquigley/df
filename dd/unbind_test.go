@@ -123,6 +123,25 @@ func TestUnbindTimeTime(t *testing.T) {
 	assert.Equal(t, map[string]any{"created_at": "2024-03-15T14:30:45Z"}, m)
 }
 
+func TestUnbindTimeTimePreservesSubsecondPrecision(t *testing.T) {
+	fixedTime := time.Date(2024, 3, 15, 14, 30, 45, 123000000, time.UTC)
+	updatedTime := time.Date(2024, 3, 16, 10, 20, 30, 123456789, time.UTC)
+	s := &struct {
+		CreatedAt time.Time
+		UpdatedAt *time.Time
+	}{
+		CreatedAt: fixedTime,
+		UpdatedAt: &updatedTime,
+	}
+
+	m, err := Unbind(s)
+	assert.Nil(t, err)
+	assert.Equal(t, map[string]any{
+		"created_at": "2024-03-15T14:30:45.123Z",
+		"updated_at": "2024-03-16T10:20:30.123456789Z",
+	}, m)
+}
+
 func TestUnbindSnakeCaseDefault(t *testing.T) {
 	s := &struct{ OhWow int }{OhWow: 42}
 	m, err := Unbind(s)

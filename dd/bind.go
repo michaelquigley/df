@@ -45,11 +45,12 @@ type FileOptions struct {
 // object to bind off the heap.
 //
 // supported kinds:
-// - primitives: string, bool, all int/uint sizes, float32/64, time.Duration, time.Time (from RFC3339 strings)
-// - pointers to the above
-// - structs and pointers to structs (recursively bound from map[string]any)
-// - slices of the above (slice items are bound from []interface{})
-// - maps with comparable key types and any supported value type (map keys from JSON/YAML are coerced from strings)
+//   - primitives: string, bool, all int/uint sizes, float32/64, time.Duration,
+//     time.Time (from RFC3339 strings with optional fractional seconds)
+//   - pointers to the above
+//   - structs and pointers to structs (recursively bound from map[string]any)
+//   - slices of the above (slice items are bound from []interface{})
+//   - maps with comparable key types and any supported value type (map keys from JSON/YAML are coerced from strings)
 //
 // interface types are not supported and will return an error if encountered,
 // except for fields of type Dynamic which are resolved using Options.DynamicBinders.
@@ -438,14 +439,9 @@ func setNonPtrValue(fieldVal reflect.Value, raw interface{}, path string, opt *O
 	if fieldVal.Type() == reflect.TypeOf(time.Time{}) {
 		switch v := raw.(type) {
 		case string:
-			// try RFC3339 first (what Unbind produces)
-			t, err := time.Parse(time.RFC3339, v)
+			t, err := time.Parse(time.RFC3339Nano, v)
 			if err != nil {
-				// try RFC3339Nano as fallback for higher precision timestamps
-				t, err = time.Parse(time.RFC3339Nano, v)
-				if err != nil {
-					return fmt.Errorf("%s: cannot parse time: %w", path, err)
-				}
+				return fmt.Errorf("%s: cannot parse time: %w", path, err)
 			}
 			fieldVal.Set(reflect.ValueOf(t))
 			return nil
@@ -453,7 +449,7 @@ func setNonPtrValue(fieldVal reflect.Value, raw interface{}, path string, opt *O
 			fieldVal.Set(reflect.ValueOf(v))
 			return nil
 		default:
-			return fmt.Errorf("%s: expected time (RFC3339 string or time.Time), got %T", path, raw)
+			return fmt.Errorf("%s: expected time (RFC3339 string with optional fractional seconds or time.Time), got %T", path, raw)
 		}
 	}
 
