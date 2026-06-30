@@ -66,6 +66,13 @@ func MergeYAML(target interface{}, data []byte, opts ...*Options) error {
 }
 
 // UnbindJSON converts a struct to JSON bytes.
+//
+// output is deterministic: for a given input value the produced bytes are identical
+// across runs, processes, and versions. all keys — struct field names and map keys
+// alike — are emitted in sorted order (encoding/json sorts object keys
+// lexicographically), and slice and array element order is preserved as-is. fields
+// captured via `+extra` are interleaved in sorted order with the rest rather than
+// appended at the end.
 func UnbindJSON(source interface{}, opts ...*Options) ([]byte, error) {
 	m, err := Unbind(source, opts...)
 	if err != nil {
@@ -79,6 +86,12 @@ func UnbindJSON(source interface{}, opts ...*Options) ([]byte, error) {
 }
 
 // UnbindYAML converts a struct to YAML bytes.
+//
+// output is deterministic: for a given input value the produced bytes are identical
+// across runs, processes, and versions. all keys — struct field names and map keys
+// alike — are emitted in sorted order (yaml.v3 sorts mapping keys), and slice and
+// array element order is preserved as-is. fields captured via `+extra` are
+// interleaved in sorted order with the rest rather than appended at the end.
 func UnbindYAML(source interface{}, opts ...*Options) ([]byte, error) {
 	m, err := Unbind(source, opts...)
 	if err != nil {
@@ -148,6 +161,7 @@ func MergeYAMLReader(target interface{}, r io.Reader, opts ...*Options) error {
 }
 
 // UnbindJSONWriter converts a struct to JSON and writes it to an io.Writer.
+// output is deterministic with sorted keys; see UnbindJSON.
 func UnbindJSONWriter(source interface{}, w io.Writer, opts ...*Options) error {
 	data, err := UnbindJSON(source, opts...)
 	if err != nil {
@@ -160,6 +174,7 @@ func UnbindJSONWriter(source interface{}, w io.Writer, opts ...*Options) error {
 }
 
 // UnbindYAMLWriter converts a struct to YAML and writes it to an io.Writer.
+// output is deterministic with sorted keys; see UnbindYAML.
 func UnbindYAMLWriter(source interface{}, w io.Writer, opts ...*Options) error {
 	data, err := UnbindYAML(source, opts...)
 	if err != nil {
@@ -228,6 +243,7 @@ func MergeYAMLFile(target interface{}, path string, opts ...*Options) error {
 }
 
 // UnbindJSONFile converts a struct to JSON and writes it to the specified file path.
+// output is deterministic with sorted keys; see UnbindJSON.
 func UnbindJSONFile(source interface{}, path string, opts ...*Options) error {
 	opt, err := getOptions(opts...)
 	if err != nil {
@@ -244,6 +260,7 @@ func UnbindJSONFile(source interface{}, path string, opts ...*Options) error {
 }
 
 // UnbindYAMLFile converts a struct to YAML and writes it to the specified file path.
+// output is deterministic with sorted keys; see UnbindYAML.
 func UnbindYAMLFile(source interface{}, path string, opts ...*Options) error {
 	opt, err := getOptions(opts...)
 	if err != nil {

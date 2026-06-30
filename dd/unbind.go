@@ -21,6 +21,11 @@ import (
 // `Dynamic` (and slices of `Dynamic`), which are converted via their ToMap() method which
 // now returns (map[string]any, error).
 //
+// the returned map is a Go map and therefore unordered; deterministic, sorted-key
+// output is a property of the serialized forms (UnbindJSON, UnbindYAML, and their
+// writer/file variants), not of this return value. see those functions for the
+// determinism guarantee.
+//
 // opts are optional; pass nil or omit to use defaults.
 func Unbind(source interface{}, opts ...*Options) (map[string]any, error) {
 	if source == nil {

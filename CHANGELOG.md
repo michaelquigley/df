@@ -1,6 +1,10 @@
 
 # CHANGELOG
 
+## Unreleased
+
+FEATURE: `dd` now formally guarantees deterministic, sorted-key output for `UnbindJSON`, `UnbindYAML`, and their writer/file variants. For a given input value the serialized bytes are identical across runs, processes, and versions; struct fields and map keys are emitted in sorted order, slice order is preserved, and `+extra` fields interleave in sorted order. This was already the de facto behavior (both `encoding/json` and `yaml.v3` sort keys); it is now documented and covered by tests so consumers can rely on it.
+
 ## v1.0.1
 
 FIX: `dd.Unbind` now preserves sub-second precision for `time.Time` fields by emitting RFC3339 timestamps with fractional seconds when present. `dd.Bind` accepts RFC3339 timestamps with or without fractional seconds, and `time.Time` values coerced into `string` fields preserve fractional seconds as well. (https://github.com/michaelquigley/df/issues/52)

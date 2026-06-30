@@ -31,6 +31,7 @@ user, _ := dd.New[User](userData)
 - **Dynamic Types**: Runtime type discrimination via `Dynamic` interface
 - **Merge-Time Defaults**: Optional nested structs can provide defaults when `Merge()` allocates them
 - **Validation**: Required fields and custom validation rules
+- **Deterministic Output**: `UnbindJSON`/`UnbindYAML` produce byte-stable, sorted-key output
 
 ## Core Functions
 
@@ -38,6 +39,17 @@ user, _ := dd.New[User](userData)
 - **`dd.Bind(target, data)`** - Bind data to existing struct
 - **`dd.Unbind(struct)`** - Convert struct to map
 - **`dd.Merge(target, data)`** - Overlay partial data onto an existing struct while preserving existing values
+
+## Deterministic Output
+
+`UnbindJSON`, `UnbindYAML`, and their writer/file variants produce **deterministic** output: for a given input value, the serialized bytes are identical across runs, processes, and versions. All keys — struct field names and map keys alike — are emitted in **sorted order**, and slice/array element order is preserved as-is. Fields captured via `+extra` are interleaved in sorted order with the rest, not appended at the end. This makes `dd` output safe to commit to version control and diff without spurious churn.
+
+The guarantee applies to the serialized forms. The raw `Unbind()` return is a Go `map[string]any` and is therefore unordered; ordering is realized only at serialization.
+
+```go
+data, _ := dd.UnbindJSON(cfg)
+// identical bytes every time, keys sorted — clean git diffs
+```
 
 ## Common Patterns
 
