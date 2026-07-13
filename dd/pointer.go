@@ -3,6 +3,7 @@ package dd
 import (
 	"fmt"
 	"reflect"
+	"sort"
 	"strings"
 )
 
@@ -382,7 +383,7 @@ func (l *Linker) resolvePointerField(pointerValue reflect.Value, pointerType ref
 
 // bindPointer binds data to a Pointer[T] field during the bind phase. only the $ref field is populated; resolution
 // happens during the Link phase.
-func bindPointer(pointerValue reflect.Value, data map[string]any, path string) error {
+func bindPointer(pointerValue reflect.Value, data map[string]any, path string, opt *Options) error {
 	// get the Ref field and set it from the $ref key in the data
 	refField := pointerValue.FieldByName("Ref")
 	if !refField.IsValid() || !refField.CanSet() || refField.Kind() != reflect.String {
@@ -390,17 +391,27 @@ func bindPointer(pointerValue reflect.Value, data map[string]any, path string) e
 	}
 
 	refVal, ok := data[RefKey]
-	if !ok {
-		// empty reference is valid
-		return nil
+	if ok {
+		refStr, ok := refVal.(string)
+		if !ok {
+			return fmt.Errorf("%s: '%s' must be a string, got '%T'", path, RefKey, refVal)
+		}
+		refField.SetString(refStr)
 	}
 
-	refStr, ok := refVal.(string)
-	if !ok {
-		return fmt.Errorf("%s: '%s' must be a string, got '%T'", path, RefKey, refVal)
+	if opt != nil && opt.Strict {
+		var unknown []string
+		for key := range data {
+			if key != RefKey {
+				unknown = append(unknown, key)
+			}
+		}
+		if len(unknown) > 0 {
+			sort.Strings(unknown)
+			return &UnknownFieldError{Path: path, Key: unknown[0]}
+		}
 	}
 
-	refField.SetString(refStr)
 	return nil
 }
 

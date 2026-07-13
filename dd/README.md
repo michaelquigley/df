@@ -31,6 +31,7 @@ user, _ := dd.New[User](userData)
 - **Dynamic Types**: Runtime type discrimination via `Dynamic` interface
 - **Merge-Time Defaults**: Optional nested structs can provide defaults when `Merge()` allocates them
 - **Validation**: Required fields and custom validation rules
+- **Strict Mode**: Opt-in exact acceptance for contract data — duplicate-key/unknown-field rejection, zero coercion, `+opaque` subtrees
 - **Deterministic Output**: `UnbindJSON`/`UnbindYAML` produce byte-stable, sorted-key output
 
 ## Core Functions
@@ -50,6 +51,30 @@ The guarantee applies to the serialized forms. The raw `Unbind()` return is a Go
 data, _ := dd.UnbindJSON(cfg)
 // identical bytes every time, keys sorted — clean git diffs
 ```
+
+## Strict Acceptance Mode
+
+`dd`'s default posture is forgiving: unknown keys are ignored, duplicate JSON keys resolve last-wins inside the parser, and values coerce across types (`"5"` becomes an int, `5` becomes a string). Forgiving YAML retains `yaml.v3`'s existing duplicate-key rejection. That is right for config files and local records. **Strict mode** is the opposite posture, for data whose exact spelling is the contract — signed payloads, hash-pinned documents, normative wire formats:
+
+```go
+err := dd.BindJSON(&doc, data, dd.Strict())
+```
+
+With `dd.Strict()`:
+
+- **Intake** (`BindJSON`, `BindYAML`, and their reader/file variants) rejects duplicate keys anywhere, trailing data after the document, YAML aliases and anchors, and YAML scalars outside the JSON value model (quote timestamps to bind them as strings). Numbers are preserved as `json.Number` — an authored YAML `5.00` reaches binding as `"5.00"`, never a float.
+- **Binding** rejects input keys the target struct does not declare, and refuses type coercion entirely: a number arriving at a string field is an error, not a conversion. Integer fields require integer lexemes (no fractions, no exponents) and overflow is refused; native signed and unsigned Go values do not cross-bind. Map keys must have string as their underlying type; forgiving mode retains conversion into numeric and boolean map keys. `time.Time` accepts only its defined RFC3339 encoding; `time.Duration` only its duration string.
+- A field tagged `+opaque` (a `map[string]any`) accepts any members and captures its raw subtree uninterpreted — syntactic intake rules still apply inside it, binding rules do not. A field tagged `+extra` still captures unknown keys by declared intent.
+
+The strict decoders are public for pipelines that need to inspect or normalize the tree between intake and binding:
+
+```go
+tree, err := dd.DecodeStrictYAML(data)   // duplicate-key-checked, lexeme-preserving
+// ... normalize ...
+err = dd.Bind(&doc, tree, dd.Strict())
+```
+
+Custom `Converters`, `Dynamic` binders, and `UnmarshalDd` implementations remain in effect under strict mode. Strict intake validates syntax before delegation, but the custom machinery owns its field and type acceptance. In particular, `dd.Strict()` does not make an `Unmarshaler` strict; do not use a permissive or legacy unmarshaler at an exact contract boundary unless it independently validates every accepted key and value. `Merge` does not support strict mode (partial overlay is the opposite posture by design). The forgiving default is unchanged and pinned by tests.
 
 ## Common Patterns
 

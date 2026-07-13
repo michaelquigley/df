@@ -119,6 +119,42 @@ config, err := dd.New[Config](data)
 // All fields converted automatically
 ```
 
+### 3.5. Strict Mode - Exact Acceptance
+
+**The opposite posture, for data whose exact spelling is the contract**
+
+Type coercion and unknown-key tolerance are right for config files — and wrong for signed payloads, hash-pinned documents, and normative wire formats, where every place the binder "helps" is a place one document can mean two different things to two readers. `dd.Strict()` removes all forgiveness as an opt-in:
+
+```go
+type Payload struct {
+    Kind   string         `dd:"kind,+required"`
+    Count  int            `dd:"count"`
+    Config map[string]any `dd:"config,+opaque"`  // raw subtree, uninterpreted
+}
+
+var p Payload
+err := dd.BindJSON(&p, data, dd.Strict())
+// rejected: duplicate keys (anywhere), trailing data, unknown fields,
+// any type coercion ("5" → int is an error), integer overflow,
+// YAML aliases, multi-document YAML, unquoted timestamps
+```
+
+Numbers are preserved as `json.Number` carrying the authored lexeme — a YAML `5.00` arrives as `"5.00"`, never `float64(5)`. A field tagged `+opaque` (must be `map[string]any`) captures its raw subtree uninterpreted; syntactic rules like duplicate-key rejection still apply inside it. A `+extra` field still captures unknown keys by declared intent.
+
+Strict maps require keys with string as their underlying Go type. Forgiving mode retains its conversions from serialized string keys into numeric and boolean map key types.
+
+Custom `Converters`, `Dynamic` binders, and `UnmarshalDd` implementations retain authority over what they accept. Strict intake validates the subtree's syntax before delegation, but `dd.Strict()` cannot infer a custom unmarshaler's schema and does not make it strict. A permissive or legacy unmarshaler does not belong at an exact contract boundary unless it independently validates every accepted key and value.
+
+The strict decoders are public for pipelines that normalize the tree between intake and binding:
+
+```go
+tree, err := dd.DecodeStrictYAML(data)   // duplicate-key-checked, lexeme-preserving
+// ... canonicalize values in the tree ...
+err = dd.Bind(&p, tree, dd.Strict())
+```
+
+Strict mode answers only "are these bytes exactly one faithful spelling of this struct?" — domain validation (grammars, value constraints) stays in your code. The forgiving default is unchanged and pinned by tests: duplicate JSON keys remain last-wins, while forgiving YAML retains `yaml.v3`'s existing duplicate-key rejection. `Merge` does not support strict mode. See [dd_15_strict_mode](https://github.com/michaelquigley/df/tree/main/dd/examples/dd_15_strict_mode).
+
 ### 4. File I/O - Direct Persistence
 
 **Read/write JSON and YAML files directly**

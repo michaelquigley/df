@@ -57,11 +57,12 @@ type DdTag struct {
 	HasMatch   bool   // true if a match constraint is specified
 	Extra      bool   // true if field should capture unmatched keys
 	OmitEmpty  bool   // true if field should be omitted when zero during unbinding
+	Opaque     bool   // true if field captures its raw subtree uninterpreted
 }
 
 // parseDdTag parses the `dd` struct tag on a field.
 //
-// tag format: dd:"[name][,+required][,+secret][,+extra][,+omitempty][,+match=\"expected_value\"|+match=expected_value]"
+// tag format: dd:"[name][,+required][,+secret][,+extra][,+omitempty][,+opaque][,+match=\"expected_value\"|+match=expected_value]"
 //
 // special cases:
 // - "-"          → skip the field entirely (skip=true)
@@ -69,11 +70,12 @@ type DdTag struct {
 //
 // rules:
 // - tokens are comma-separated; surrounding whitespace is ignored.
-// - if the first token is not "+required", "+secret", "+extra", "+omitempty", or "+match=...", it is taken as the external field name.
+// - if the first token is not "+required", "+secret", "+extra", "+omitempty", "+opaque", or "+match=...", it is taken as the external field name.
 // - the presence of a "+required" token (any position) sets required=true.
 // - the presence of a "+secret" token (any position) sets secret=true.
 // - the presence of a "+extra" token (any position) sets extra=true; the field must be map[string]any and will capture unmatched keys.
 // - the presence of a "+omitempty" token (any position) sets omitEmpty=true; the field will be omitted during unbinding if it has a zero value.
+// - the presence of a "+opaque" token (any position) sets opaque=true; the field must be map[string]any and captures its raw subtree uninterpreted — strict binding rules do not descend into it.
 // - a "+match=\"value\"" or "+match=value" token sets a value constraint that must be satisfied during binding.
 // - unrecognized tokens are ignored.
 func parseDdTag(sf reflect.StructField) DdTag {
@@ -109,8 +111,8 @@ func parseDdTag(sf reflect.StructField) DdTag {
 			continue
 		}
 
-		if i == 0 && p != "+required" && p != "+secret" && p != "+extra" && p != "+omitempty" && !strings.HasPrefix(p, "+match=") {
-			// first token as name unless it's literally "+required", "+secret", "+extra", "+omitempty", or "+match=..."
+		if i == 0 && p != "+required" && p != "+secret" && p != "+extra" && p != "+omitempty" && p != "+opaque" && !strings.HasPrefix(p, "+match=") {
+			// first token as name unless it's literally "+required", "+secret", "+extra", "+omitempty", "+opaque", or "+match=..."
 			result.Name = p
 			continue
 		}
@@ -125,6 +127,9 @@ func parseDdTag(sf reflect.StructField) DdTag {
 		}
 		if p == "+omitempty" {
 			result.OmitEmpty = true
+		}
+		if p == "+opaque" {
+			result.Opaque = true
 		}
 	}
 	return result

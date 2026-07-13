@@ -11,38 +11,68 @@ import (
 
 // --- Bytes Layer (base) ---
 
-// BindJSON parses JSON data and binds it to the target struct.
-func BindJSON(target interface{}, data []byte, opts ...*Options) error {
+// intakeJSON parses JSON bytes into the binding tree, selecting the strict
+// decoder when strict mode is requested; the forgiving path is unchanged.
+func intakeJSON(data []byte, opts []*Options) (map[string]any, error) {
+	if opt, err := getOptions(opts...); err != nil {
+		return nil, err
+	} else if opt != nil && opt.Strict {
+		return DecodeStrictJSON(data)
+	}
 	var m map[string]any
 	if err := json.Unmarshal(data, &m); err != nil {
-		return &ConversionError{Type: "JSON", Message: "failed to parse", Cause: err}
+		return nil, &ConversionError{Type: "JSON", Message: "failed to parse", Cause: err}
+	}
+	return m, nil
+}
+
+// intakeYAML parses YAML bytes into the binding tree, selecting the strict
+// decoder when strict mode is requested; the forgiving path is unchanged.
+func intakeYAML(data []byte, opts []*Options) (map[string]any, error) {
+	if opt, err := getOptions(opts...); err != nil {
+		return nil, err
+	} else if opt != nil && opt.Strict {
+		return DecodeStrictYAML(data)
+	}
+	var m map[string]any
+	if err := yaml.Unmarshal(data, &m); err != nil {
+		return nil, &ConversionError{Type: "YAML", Message: "failed to parse", Cause: err}
+	}
+	return m, nil
+}
+
+// BindJSON parses JSON data and binds it to the target struct.
+func BindJSON(target interface{}, data []byte, opts ...*Options) error {
+	m, err := intakeJSON(data, opts)
+	if err != nil {
+		return err
 	}
 	return Bind(target, m, opts...)
 }
 
 // BindYAML parses YAML data and binds it to the target struct.
 func BindYAML(target interface{}, data []byte, opts ...*Options) error {
-	var m map[string]any
-	if err := yaml.Unmarshal(data, &m); err != nil {
-		return &ConversionError{Type: "YAML", Message: "failed to parse", Cause: err}
+	m, err := intakeYAML(data, opts)
+	if err != nil {
+		return err
 	}
 	return Bind(target, m, opts...)
 }
 
 // NewJSON parses JSON data and returns a new instance of type T.
 func NewJSON[T any](data []byte, opts ...*Options) (*T, error) {
-	var m map[string]any
-	if err := json.Unmarshal(data, &m); err != nil {
-		return nil, &ConversionError{Type: "JSON", Message: "failed to parse", Cause: err}
+	m, err := intakeJSON(data, opts)
+	if err != nil {
+		return nil, err
 	}
 	return New[T](m, opts...)
 }
 
 // NewYAML parses YAML data and returns a new instance of type T.
 func NewYAML[T any](data []byte, opts ...*Options) (*T, error) {
-	var m map[string]any
-	if err := yaml.Unmarshal(data, &m); err != nil {
-		return nil, &ConversionError{Type: "YAML", Message: "failed to parse", Cause: err}
+	m, err := intakeYAML(data, opts)
+	if err != nil {
+		return nil, err
 	}
 	return New[T](m, opts...)
 }

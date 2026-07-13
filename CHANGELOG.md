@@ -1,7 +1,10 @@
-
 # CHANGELOG
 
 ## Unreleased
+
+## v1.0.2
+
+FEATURE: `dd` strict acceptance mode for data whose exact spelling is the contract (signed payloads, hash-pinned documents). `dd.Strict()` enables it per call: intake rejects duplicate keys, trailing data, YAML aliases, and non-JSON scalars, preserving numbers as `json.Number` with their authored lexemes; binding rejects unknown input keys and refuses all type coercion, with integer-lexeme and overflow checks. A new `+opaque` struct tag captures a raw subtree uninterpreted (syntactic rules still apply inside). The strict decoders are public as `dd.DecodeStrictJSON`/`dd.DecodeStrictYAML` for pipelines that normalize the tree between intake and binding. The forgiving default posture is unchanged and now pinned by tests; `Merge` does not support strict mode.
 
 FEATURE: `dd` now formally guarantees deterministic, sorted-key output for `UnbindJSON`, `UnbindYAML`, and their writer/file variants. For a given input value the serialized bytes are identical across runs, processes, and versions; struct fields and map keys are emitted in sorted order, slice order is preserved, and `+extra` fields interleave in sorted order. This was already the de facto behavior (both `encoding/json` and `yaml.v3` sort keys); it is now documented and covered by tests so consumers can rely on it.
 
@@ -35,7 +38,7 @@ CHANGE: Fixes and improvements to concrete container traversal.
 
 FEATURE: New concrete container pattern for `da` package. Define your own container struct with explicit types and use `da.Wire`, `da.Start`, `da.Stop`, and `da.Run` for lifecycle management. Components implement `Wireable[C]` interface for type-safe dependency wiring. New `da.Config` function with `FileLoader`, `OptionalFileLoader`, and `ChainLoader` for flexible configuration loading. Struct tags `da:"order=N"` control processing order, `da:"-"` skips fields. Supports nested structs, slices, and maps. (https://github.com/michaelquigley/df/issues/44)
 
-DEPRECATION: The dynamic container components (`Container`, `Application`, `Factory`, `Linkable`, and related functions) are now deprecated in favor of the concrete container pattern. See `da/examples/da_02_concrete_container` for migration guidance. (https://github.com/michaelquigley/df/issues/45)
+CHANGE: The dynamic container components (`Container`, `Application`, `Factory`, `Linkable`, and related functions) are now deprecated in favor of the concrete container pattern. See `da/examples/da_02_concrete_container` for migration guidance. (https://github.com/michaelquigley/df/issues/45)
 
 ## v0.3.9
 

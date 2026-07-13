@@ -9,12 +9,19 @@ import (
 )
 
 func convertAndSet(dst reflect.Value, raw interface{}, path string, opt *Options) error {
-	// check for custom converter first
+	// check for custom converter first — explicitly registered machinery
+	// stays in effect in both modes
 	if converted, wasConverted, err := tryCustomConverter(dst.Type(), raw, opt, true); err != nil {
 		return &ConversionError{Path: path, Cause: err}
 	} else if wasConverted {
 		dst.Set(reflect.ValueOf(converted))
 		return nil
+	}
+
+	// strict mode refuses coercion entirely; the forgiving path below is
+	// unchanged
+	if opt != nil && opt.Strict {
+		return strictConvertAndSet(dst, raw, path)
 	}
 
 	// special-case time.Duration (which is an int64 alias)

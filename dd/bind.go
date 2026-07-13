@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/fs"
 	"reflect"
+	"sort"
 	"strings"
 	"time"
 )
@@ -27,6 +28,13 @@ type Options struct {
 
 	// File configures file I/O behavior for helpers such as UnbindJSONFile and UnbindYAMLFile.
 	File *FileOptions
+
+	// Strict enables strict acceptance mode: intake rejects duplicate keys
+	// and non-JSON scalars and preserves numbers as json.Number; binding
+	// rejects unknown input keys and refuses type coercion. see Strict() for
+	// the full behavior. the default (false) is dd's forgiving posture, which
+	// is unchanged.
+	Strict bool
 }
 
 // FileOptions configures file output behavior for file-oriented helpers.
@@ -124,6 +132,11 @@ func Merge(target interface{}, data map[string]any, opts ...*Options) error {
 	if err != nil {
 		return err
 	}
+	// merge is partial-overlay by design, the opposite posture of strict
+	// acceptance — the combination has no coherent meaning.
+	if opt != nil && opt.Strict {
+		return &ValidationError{Message: "strict mode is not supported for merge operations"}
+	}
 	return bindStruct(elem, data, elem.Type().Name(), opt, true, nil)
 }
 
@@ -148,7 +161,85 @@ func applyDefaultsIfSupported(v reflect.Value) {
 	}
 }
 
-func bindStruct(structValue reflect.Value, data map[string]any, path string, opt *Options, preserveExisting bool, consumedKeys map[string]bool) error {
+type bindingContext struct {
+	consumedKeys   map[string]bool
+	extraFieldPath []int
+	hasExtra       bool
+}
+
+func newBindingContext(structType reflect.Type, path string) (*bindingContext, error) {
+	ctx := &bindingContext{consumedKeys: make(map[string]bool)}
+	if err := scanExtraField(structType, nil, path, ctx); err != nil {
+		return nil, err
+	}
+	return ctx, nil
+}
+
+func scanExtraField(structType reflect.Type, prefix []int, path string, ctx *bindingContext) error {
+	for i := 0; i < structType.NumField(); i++ {
+		field := structType.Field(i)
+		if field.PkgPath != "" {
+			continue
+		}
+		fieldPath := append(append([]int(nil), prefix...), i)
+		if field.Anonymous {
+			embeddedType := field.Type
+			if embeddedType.Kind() == reflect.Ptr {
+				embeddedType = embeddedType.Elem()
+			}
+			if embeddedType.Kind() == reflect.Struct {
+				if err := scanExtraField(embeddedType, fieldPath, path, ctx); err != nil {
+					return err
+				}
+			}
+			continue
+		}
+
+		tag := parseDdTag(field)
+		if tag.Skip || !tag.Extra {
+			continue
+		}
+		if field.Type != reflect.TypeOf(map[string]any(nil)) {
+			return &TypeMismatchError{
+				Path:     path,
+				Expected: "map[string]any for +extra field",
+				Actual:   field.Type.String(),
+			}
+		}
+		if ctx.hasExtra {
+			return &MultipleExtraFieldsError{Path: path}
+		}
+		ctx.hasExtra = true
+		ctx.extraFieldPath = fieldPath
+	}
+	return nil
+}
+
+func resolveExtraField(structValue reflect.Value, fieldPath []int, preserveExisting bool) (reflect.Value, error) {
+	value := structValue
+	for i, fieldIndex := range fieldPath {
+		fieldVal := value.Field(fieldIndex)
+		if i == len(fieldPath)-1 {
+			return fieldVal, nil
+		}
+		if fieldVal.Kind() == reflect.Ptr {
+			if fieldVal.IsNil() {
+				fieldVal.Set(reflect.New(fieldVal.Type().Elem()))
+				if preserveExisting {
+					applyDefaultsIfSupported(fieldVal)
+				}
+			}
+			fieldVal = fieldVal.Elem()
+		}
+		if fieldVal.Kind() != reflect.Struct {
+			return reflect.Value{}, &ValidationError{Message: "invalid embedded path to +extra field"}
+		}
+		value = fieldVal
+	}
+	return reflect.Value{}, &ValidationError{Message: "missing +extra field path"}
+}
+
+func bindStruct(structValue reflect.Value, data map[string]any, path string, opt *Options, preserveExisting bool, ctx *bindingContext) error {
 	structType := structValue.Type()
 
 	type deferredUnmarshal struct {
@@ -159,13 +250,16 @@ func bindStruct(structValue reflect.Value, data map[string]any, path string, opt
 	}
 	var deferred []deferredUnmarshal
 
-	// initialize consumed keys tracking if not provided (entry point call)
-	if consumedKeys == nil {
-		consumedKeys = make(map[string]bool)
+	// embedded structs share one binding context with their flattened owner.
+	// nested named structs start their own context.
+	ownsContext := ctx == nil
+	if ownsContext {
+		var err error
+		ctx, err = newBindingContext(structType, path)
+		if err != nil {
+			return err
+		}
 	}
-
-	// track extra field for capturing unmatched keys
-	var extraFieldVal reflect.Value
 
 	for i := 0; i < structValue.NumField(); i++ {
 		field := structType.Field(i)
@@ -219,7 +313,7 @@ func bindStruct(structValue reflect.Value, data map[string]any, path string, opt
 				if !fieldVal.IsNil() {
 					embeddedVal := fieldVal.Elem()
 					if embeddedVal.Kind() == reflect.Struct {
-						if err := bindStruct(embeddedVal, data, path, opt, preserveExisting, consumedKeys); err != nil {
+						if err := bindStruct(embeddedVal, data, path, opt, preserveExisting, ctx); err != nil {
 							return err
 						}
 					}
@@ -228,7 +322,7 @@ func bindStruct(structValue reflect.Value, data map[string]any, path string, opt
 				// value embedded struct
 				embeddedVal := fieldVal
 				if embeddedVal.Kind() == reflect.Struct {
-					if err := bindStruct(embeddedVal, data, path, opt, preserveExisting, consumedKeys); err != nil {
+					if err := bindStruct(embeddedVal, data, path, opt, preserveExisting, ctx); err != nil {
 						return err
 					}
 				}
@@ -241,21 +335,38 @@ func bindStruct(structValue reflect.Value, data map[string]any, path string, opt
 			continue
 		}
 
-		// handle +extra field for capturing unmatched keys
-		if tag.Extra {
-			// validate type is map[string]any
+		// handle +opaque field: the raw subtree is captured uninterpreted —
+		// carried, never bound — in both modes.
+		if tag.Opaque {
 			if field.Type != reflect.TypeOf(map[string]any(nil)) {
 				return &TypeMismatchError{
 					Path:     path,
-					Expected: "map[string]any for +extra field",
+					Expected: "map[string]any for +opaque field",
 					Actual:   field.Type.String(),
 				}
 			}
-			// check for duplicate +extra field
-			if extraFieldVal.IsValid() {
-				return &MultipleExtraFieldsError{Path: path}
+			name := tag.Name
+			if name == "" {
+				name = toSnakeCase(field.Name)
 			}
-			extraFieldVal = fieldVal
+			raw, ok := data[name]
+			if !ok {
+				if tag.Required {
+					return &RequiredFieldError{Path: path, Field: field.Name}
+				}
+				continue
+			}
+			ctx.consumedKeys[name] = true
+			subMap, ok := raw.(map[string]any)
+			if !ok {
+				return &TypeMismatchError{Path: path + "." + field.Name, Expected: "object for +opaque field", Actual: fmt.Sprintf("%T", raw)}
+			}
+			fieldVal.Set(reflect.ValueOf(subMap))
+			continue
+		}
+
+		// handle +extra field for capturing unmatched keys
+		if tag.Extra {
 			continue
 		}
 
@@ -266,7 +377,7 @@ func bindStruct(structValue reflect.Value, data map[string]any, path string, opt
 
 		raw, ok := data[name]
 		if ok {
-			consumedKeys[name] = true
+			ctx.consumedKeys[name] = true
 		}
 		if !ok {
 			if tag.Required {
@@ -311,29 +422,38 @@ func bindStruct(structValue reflect.Value, data map[string]any, path string, opt
 		}
 	}
 
-	// populate extra field with unconsumed keys
-	if extraFieldVal.IsValid() {
-		if preserveExisting && !extraFieldVal.IsNil() {
-			// merge new extras into existing map
-			existing := extraFieldVal.Interface().(map[string]any)
-			for key, value := range data {
-				if !consumedKeys[key] {
-					existing[key] = value
-				}
+	// only the flattened owner handles unmatched keys after every parent and
+	// embedded field has had a chance to consume its declared input.
+	if ownsContext {
+		var unknown []string
+		for key := range data {
+			if !ctx.consumedKeys[key] {
+				unknown = append(unknown, key)
 			}
-		} else {
-			// collect unconsumed keys into new map
-			var extras map[string]any
-			for key, value := range data {
-				if !consumedKeys[key] {
-					if extras == nil {
-						extras = make(map[string]any)
+		}
+		sort.Strings(unknown)
+		if len(unknown) > 0 {
+			if !ctx.hasExtra {
+				if opt != nil && opt.Strict {
+					return &UnknownFieldError{Path: path, Key: unknown[0]}
+				}
+			} else {
+				extraFieldVal, err := resolveExtraField(structValue, ctx.extraFieldPath, preserveExisting)
+				if err != nil {
+					return err
+				}
+				if preserveExisting && !extraFieldVal.IsNil() {
+					existing := extraFieldVal.Interface().(map[string]any)
+					for _, key := range unknown {
+						existing[key] = data[key]
 					}
-					extras[key] = value
+				} else {
+					extras := make(map[string]any, len(unknown))
+					for _, key := range unknown {
+						extras[key] = data[key]
+					}
+					extraFieldVal.Set(reflect.ValueOf(extras))
 				}
-			}
-			if extras != nil {
-				extraFieldVal.Set(reflect.ValueOf(extras))
 			}
 		}
 	}
@@ -377,9 +497,28 @@ func unmarshalFromMap(fieldVal reflect.Value, raw interface{}, path string, pres
 func setField(fieldVal reflect.Value, raw interface{}, path string, opt *Options, preserveExisting bool) error {
 	fieldType := fieldVal.Type()
 
+	if isPointerType(fieldType) {
+		subMap, ok := raw.(map[string]any)
+		if !ok {
+			return fmt.Errorf("%s: expected object for Pointer, got %T", path, raw)
+		}
+		return bindPointer(fieldVal, subMap, path, opt)
+	}
+
 	// handle pointers by allocating as needed then setting the element
 	if fieldType.Kind() == reflect.Ptr {
 		elemType := fieldType.Elem()
+
+		if isPointerType(elemType) {
+			subMap, ok := raw.(map[string]any)
+			if !ok {
+				return fmt.Errorf("%s: expected object for Pointer, got %T", path, raw)
+			}
+			if fieldVal.IsNil() {
+				fieldVal.Set(reflect.New(elemType))
+			}
+			return bindPointer(fieldVal.Elem(), subMap, path, opt)
+		}
 
 		// special-case *time.Time before checking for struct pointer
 		if elemType == reflect.TypeOf(time.Time{}) {
@@ -435,8 +574,19 @@ func setNonPtrValue(fieldVal reflect.Value, raw interface{}, path string, opt *O
 		return nil
 	}
 
+	if isPointerType(fieldVal.Type()) {
+		subMap, ok := raw.(map[string]any)
+		if !ok {
+			return fmt.Errorf("%s: expected object for Pointer, got %T", path, raw)
+		}
+		return bindPointer(fieldVal, subMap, path, opt)
+	}
+
 	// special-case time.Time before checking struct kind (since time.Time is a struct)
 	if fieldVal.Type() == reflect.TypeOf(time.Time{}) {
+		if opt != nil && opt.Strict {
+			return strictConvertAndSet(fieldVal, raw, path)
+		}
 		switch v := raw.(type) {
 		case string:
 			t, err := time.Parse(time.RFC3339Nano, v)
@@ -491,6 +641,17 @@ func setNonPtrValue(fieldVal reflect.Value, raw interface{}, path string, opt *O
 			itemPath := fmt.Sprintf("%s[%d]", path, idx)
 			if elemType.Kind() == reflect.Ptr {
 				elemPtr := reflect.New(elemType.Elem())
+				if isPointerType(elemType.Elem()) {
+					subMap, ok := item.(map[string]any)
+					if !ok {
+						return fmt.Errorf("%s: expected object for Pointer, got %T", itemPath, item)
+					}
+					if err := bindPointer(elemPtr.Elem(), subMap, itemPath, opt); err != nil {
+						return err
+					}
+					out = reflect.Append(out, elemPtr)
+					continue
+				}
 				if elemType.Elem().Kind() == reflect.Struct {
 					subMap, ok := item.(map[string]any)
 					if !ok {
@@ -515,6 +676,17 @@ func setNonPtrValue(fieldVal reflect.Value, raw interface{}, path string, opt *O
 
 			// non-pointer element
 			elemVal := reflect.New(elemType).Elem()
+			if isPointerType(elemType) {
+				subMap, ok := item.(map[string]any)
+				if !ok {
+					return fmt.Errorf("%s: expected object for Pointer, got %T", itemPath, item)
+				}
+				if err := bindPointer(elemVal, subMap, itemPath, opt); err != nil {
+					return err
+				}
+				out = reflect.Append(out, elemVal)
+				continue
+			}
 			if elemType.Kind() == reflect.Struct {
 				subMap, ok := item.(map[string]any)
 				if !ok {
@@ -545,6 +717,9 @@ func setNonPtrValue(fieldVal reflect.Value, raw interface{}, path string, opt *O
 
 		keyType := fieldVal.Type().Key()
 		elemType := fieldVal.Type().Elem()
+		if opt != nil && opt.Strict && keyType.Kind() != reflect.String {
+			return &TypeMismatchError{Path: path, Expected: "map with string keys", Actual: fieldVal.Type().String()}
+		}
 
 		// create new map
 		newMap := reflect.MakeMap(fieldVal.Type())
@@ -553,10 +728,17 @@ func setNonPtrValue(fieldVal reflect.Value, raw interface{}, path string, opt *O
 		for keyStr, value := range rawMap {
 			itemPath := fmt.Sprintf("%s[%q]", path, keyStr)
 
-			// convert string key to target key type
-			keyVal, err := stringToKey(keyStr, keyType)
-			if err != nil {
-				return fmt.Errorf("%s: %w", path, err)
+			var keyVal reflect.Value
+			if opt != nil && opt.Strict {
+				keyVal = reflect.New(keyType).Elem()
+				keyVal.SetString(keyStr)
+			} else {
+				// forgiving mode converts string keys to supported target key types
+				var err error
+				keyVal, err = stringToKey(keyStr, keyType)
+				if err != nil {
+					return fmt.Errorf("%s: %w", path, err)
+				}
 			}
 
 			// handle different value types similar to slice element handling
@@ -577,6 +759,17 @@ func setNonPtrValue(fieldVal reflect.Value, raw interface{}, path string, opt *O
 			if elemType.Kind() == reflect.Ptr {
 				// pointer to value
 				elemPtr := reflect.New(elemType.Elem())
+				if isPointerType(elemType.Elem()) {
+					subMap, ok := value.(map[string]any)
+					if !ok {
+						return fmt.Errorf("%s: expected object for Pointer, got %T", itemPath, value)
+					}
+					if err := bindPointer(elemPtr.Elem(), subMap, itemPath, opt); err != nil {
+						return err
+					}
+					newMap.SetMapIndex(keyVal, elemPtr)
+					continue
+				}
 				if elemType.Elem().Kind() == reflect.Struct {
 					// pointer to struct
 					subMap, ok := value.(map[string]any)
@@ -602,6 +795,17 @@ func setNonPtrValue(fieldVal reflect.Value, raw interface{}, path string, opt *O
 
 			// non-pointer value
 			elemVal := reflect.New(elemType).Elem()
+			if isPointerType(elemType) {
+				subMap, ok := value.(map[string]any)
+				if !ok {
+					return fmt.Errorf("%s: expected object for Pointer, got %T", itemPath, value)
+				}
+				if err := bindPointer(elemVal, subMap, itemPath, opt); err != nil {
+					return err
+				}
+				newMap.SetMapIndex(keyVal, elemVal)
+				continue
+			}
 			if elemType.Kind() == reflect.Struct {
 				// struct value
 				subMap, ok := value.(map[string]any)
@@ -665,14 +869,6 @@ func setNonPtrValue(fieldVal reflect.Value, raw interface{}, path string, opt *O
 		return fmt.Errorf("%s: interface fields are not supported", path)
 
 	default:
-		// check if this is a Pointer[T] type before falling back to convertAndSet
-		if isPointerType(fieldVal.Type()) {
-			subMap, ok := raw.(map[string]any)
-			if !ok {
-				return fmt.Errorf("%s: expected object for Pointer, got %T", path, raw)
-			}
-			return bindPointer(fieldVal, subMap, path)
-		}
 		return convertAndSet(fieldVal, raw, path, opt)
 	}
 }

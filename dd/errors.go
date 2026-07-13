@@ -193,6 +193,29 @@ func (e *ValueMismatchError) Error() string {
 	return fmt.Sprintf("%s.%s: expected value %q, got %q", e.Path, e.Field, e.Expected, e.Actual)
 }
 
+// DuplicateKeyError represents a duplicate member name rejected by strict
+// intake — parsers legally disagree on which duplicate wins, so one document
+// must not have two meanings.
+type DuplicateKeyError struct {
+	Path string
+	Key  string
+}
+
+func (e *DuplicateKeyError) Error() string {
+	return fmt.Sprintf("%s: duplicate key %q", e.Path, e.Key)
+}
+
+// UnknownFieldError represents an input key the target struct does not
+// declare, rejected under strict binding.
+type UnknownFieldError struct {
+	Path string
+	Key  string
+}
+
+func (e *UnknownFieldError) Error() string {
+	return fmt.Sprintf("%s: unknown field %q", e.Path, e.Key)
+}
+
 // IndexError represents errors with array/slice indexing
 type IndexError struct {
 	Index int
