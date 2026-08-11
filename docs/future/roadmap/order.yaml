@@ -1,0 +1,15 @@
+horizon:
+  - pointer-to-struct-converters.md
+  - godump-integration.md
+  - startable-and-stoppable-ordering.md
+  - channelmanager-access-and-reconfiguration.md
+  - use-dd-to-configure-logging.md
+  - binding-from-environment-variables.md
+  - sub-logger-output.md
+  - application-statistics.md
+inbox:
+  - dynamic-and-strict-do-not-compose.md
+  - nullable-tag.md
+  - secret-values-reach-error-strings.md
+  - strict-intake-rejects-yaml-timestamps.md
+  - idiomatic-setters-for-private-fields.md
