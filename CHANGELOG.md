@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v1.0.3
+
 FEATURE: `dd` fields tagged `+nullable` now treat an explicit JSON/YAML null as absent in both forgiving and strict binding. `Merge` preserves an existing value for a nullable null, while `+required,+nullable` rejects null as required-missing. Untagged null handling is unchanged.
 
 ## v1.0.2
