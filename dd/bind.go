@@ -46,8 +46,8 @@ type FileOptions struct {
 
 // Bind populates the exported fields of target (a pointer to a struct) from the given data map. Keys are matched using
 // either a struct tag `dd:"name,+required"` (where name overrides the key and the optional "+required" flag enforces
-// presence), `dd:"-"` to skip a field, or, when no tag is provided, a best-effort snake_case conversion of the
-// field name.
+// presence), `dd:",+nullable"` to treat an explicit null as absent, `dd:"-"` to skip a field, or, when no tag is
+// provided, a best-effort snake_case conversion of the field name.
 //
 // Use Bind when you need to control how the prototype object is allocated. Use New when you just want to allocate a new
 // object to bind off the heap.
@@ -291,7 +291,12 @@ func bindStruct(structValue reflect.Value, data map[string]any, path string, opt
 							if embeddedName == "" {
 								embeddedName = toSnakeCase(embeddedField.Name)
 							}
-							if _, exists := data[embeddedName]; exists {
+							raw, exists := data[embeddedName]
+							if exists && embeddedTag.Nullable && raw == nil && !embeddedTag.Required {
+								ctx.consumedKeys[embeddedName] = true
+								continue
+							}
+							if exists {
 								hasEmbeddedFields = true
 								break
 							}
@@ -357,6 +362,12 @@ func bindStruct(structValue reflect.Value, data map[string]any, path string, opt
 				continue
 			}
 			ctx.consumedKeys[name] = true
+			if tag.Nullable && raw == nil {
+				if tag.Required {
+					return &RequiredFieldError{Path: path, Field: field.Name}
+				}
+				continue
+			}
 			subMap, ok := raw.(map[string]any)
 			if !ok {
 				return &TypeMismatchError{Path: path + "." + field.Name, Expected: "object for +opaque field", Actual: fmt.Sprintf("%T", raw)}
@@ -380,6 +391,12 @@ func bindStruct(structValue reflect.Value, data map[string]any, path string, opt
 			ctx.consumedKeys[name] = true
 		}
 		if !ok {
+			if tag.Required {
+				return &RequiredFieldError{Path: path, Field: field.Name}
+			}
+			continue
+		}
+		if tag.Nullable && raw == nil {
 			if tag.Required {
 				return &RequiredFieldError{Path: path, Field: field.Name}
 			}

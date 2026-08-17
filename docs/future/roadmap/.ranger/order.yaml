@@ -9,7 +9,8 @@ horizon:
   - application-statistics.md
 inbox:
   - dynamic-and-strict-do-not-compose.md
-  - nullable-tag.md
   - secret-values-reach-error-strings.md
   - strict-intake-rejects-yaml-timestamps.md
   - idiomatic-setters-for-private-fields.md
+building:
+  - nullable-tag.md

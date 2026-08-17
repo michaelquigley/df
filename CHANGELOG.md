@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+FEATURE: `dd` fields tagged `+nullable` now treat an explicit JSON/YAML null as absent in both forgiving and strict binding. `Merge` preserves an existing value for a nullable null, while `+required,+nullable` rejects null as required-missing. Untagged null handling is unchanged.
+
 ## v1.0.2
 
 FEATURE: `dd` strict acceptance mode for data whose exact spelling is the contract (signed payloads, hash-pinned documents). `dd.Strict()` enables it per call: intake rejects duplicate keys, trailing data, YAML aliases, and non-JSON scalars, preserving numbers as `json.Number` with their authored lexemes; binding rejects unknown input keys and refuses all type coercion, with integer-lexeme and overflow checks. A new `+opaque` struct tag captures a raw subtree uninterpreted (syntactic rules still apply inside). The strict decoders are public as `dd.DecodeStrictJSON`/`dd.DecodeStrictYAML` for pipelines that normalize the tree between intake and binding. The forgiving default posture is unchanged and now pinned by tests; `Merge` does not support strict mode.

@@ -1,6 +1,6 @@
 ---
 title: nullable tag
-state: inbox
+state: building
 created: 2026-08-10
 tags: [feature]
 subsystems: [dd]

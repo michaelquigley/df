@@ -31,6 +31,7 @@ user, _ := dd.New[User](userData)
 - **Dynamic Types**: Runtime type discrimination via `Dynamic` interface
 - **Merge-Time Defaults**: Optional nested structs can provide defaults when `Merge()` allocates them
 - **Validation**: Required fields and custom validation rules
+- **Nullable Fields**: Per-field `+nullable` handling for explicit nulls
 - **Strict Mode**: Opt-in exact acceptance for contract data — duplicate-key/unknown-field rejection, zero coercion, `+opaque` subtrees
 - **Deterministic Output**: `UnbindJSON`/`UnbindYAML` produce byte-stable, sorted-key output
 
@@ -64,7 +65,7 @@ With `dd.Strict()`:
 
 - **Intake** (`BindJSON`, `BindYAML`, and their reader/file variants) rejects duplicate keys anywhere, trailing data after the document, YAML aliases and anchors, and YAML scalars outside the JSON value model (quote timestamps to bind them as strings). Numbers are preserved as `json.Number` — an authored YAML `5.00` reaches binding as `"5.00"`, never a float.
 - **Binding** rejects input keys the target struct does not declare, and refuses type coercion entirely: a number arriving at a string field is an error, not a conversion. Integer fields require integer lexemes (no fractions, no exponents) and overflow is refused; native signed and unsigned Go values do not cross-bind. Map keys must have string as their underlying type; forgiving mode retains conversion into numeric and boolean map keys. `time.Time` accepts only its defined RFC3339 encoding; `time.Duration` only its duration string.
-- A field tagged `+opaque` (a `map[string]any`) accepts any members and captures its raw subtree uninterpreted — syntactic intake rules still apply inside it, binding rules do not. A field tagged `+extra` still captures unknown keys by declared intent.
+- A field tagged `+opaque` (a `map[string]any`) accepts any members and captures its raw subtree uninterpreted — syntactic intake rules still apply inside it, binding rules do not. A field tagged `+extra` still captures unknown keys by declared intent. A field tagged `+nullable` treats an explicit null as absent in both strict and forgiving mode; when combined with `+required`, null is rejected as required-missing.
 
 The strict decoders are public for pipelines that need to inspect or normalize the tree between intake and binding:
 
@@ -85,6 +86,7 @@ type User struct {
     Email string `dd:"email_address"`       // custom field name
     Token string `dd:"-"`                   // excluded from binding
     Age   int    `dd:",+omitempty"`         // omitted during Unbind when zero
+    Bio   *string `dd:",+nullable"`          // explicit null binds as absent
 }
 ```
 

@@ -40,6 +40,7 @@ type User struct {
     Email    string `dd:"email_address"`     // custom field name
     Age      int    `dd:",+required"`        // default name, required
     Password string `dd:",+secret"`          // hidden in output
+    Bio      *string `dd:",+nullable"`        // explicit null binds as absent
     Internal string `dd:"-"`                 // skip completely
     Active   bool                            // uses snake_case: "active"
 }
@@ -50,6 +51,7 @@ type User struct {
 - `dd:"+required"` - field is required
 - `dd:",+secret"` - hidden in inspect output
 - `dd:",+extra"` - capture unmatched keys (map[string]any only)
+- `dd:",+nullable"` - treat an explicit null as an absent field
 - `dd:"-"` - exclude from binding
 - No tag = automatic snake_case conversion
 
@@ -139,7 +141,7 @@ err := dd.BindJSON(&p, data, dd.Strict())
 // YAML aliases, multi-document YAML, unquoted timestamps
 ```
 
-Numbers are preserved as `json.Number` carrying the authored lexeme — a YAML `5.00` arrives as `"5.00"`, never `float64(5)`. A field tagged `+opaque` (must be `map[string]any`) captures its raw subtree uninterpreted; syntactic rules like duplicate-key rejection still apply inside it. A `+extra` field still captures unknown keys by declared intent.
+Numbers are preserved as `json.Number` carrying the authored lexeme — a YAML `5.00` arrives as `"5.00"`, never `float64(5)`. A field tagged `+opaque` (must be `map[string]any`) captures its raw subtree uninterpreted; syntactic rules like duplicate-key rejection still apply inside it. A `+extra` field still captures unknown keys by declared intent. A `+nullable` field treats an explicit null as absent in both strict and forgiving mode. Combining `+required` and `+nullable` still rejects null as required-missing.
 
 Strict maps require keys with string as their underlying Go type. Forgiving mode retains its conversions from serialized string keys into numeric and boolean map key types.
 
