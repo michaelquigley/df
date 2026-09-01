@@ -20,12 +20,12 @@ dl.ChannelLog("http").With("status", 200).Info("request processed")
 
 ## Key Features
 
-- **📡 Channel Routing**: Route logs to different destinations by category
-- **⚙️ Per-Channel Config**: Independent format, level, and output per channel
-- **🎨 Multiple Formats**: Pretty console output or structured JSON
-- **🔗 Builder Pattern**: Fluent API with `.With()` for contextual attributes
-- **🎯 Smart Defaults**: Works immediately, configure only what you need
-- **🔄 Thread-Safe**: Concurrent logging across all channels
+- **Channel Routing**: Route logs to different destinations by category
+- **Per-Channel Config**: Independent format, level, and output per channel
+- **Multiple Formats**: Pretty console output or structured JSON
+- **Builder Pattern**: Fluent API with `.With()` for contextual attributes
+- **Smart Defaults**: Works immediately, configure only what you need
+- **Thread-Safe**: Concurrent logging across all channels
 
 ## Core Functions
 

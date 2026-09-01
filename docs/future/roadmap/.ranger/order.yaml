@@ -14,4 +14,5 @@ inbox:
   - idiomatic-setters-for-private-fields.md
 building:
 evaluating:
-  - nullable-tag.md
+researching:
+  - unbind-collapses-colliding-map-keys-nondeterministically.md

@@ -1,12 +1,15 @@
 ---
 title: unbind collapses colliding map keys nondeterministically
-state: inbox
+state: researching
 created: 2026-09-01
 tags: [defect]
 subsystems: [dd]
+milestone: v1.0.x
 log:
   - stamp: 2026-09-01
     note: vetoed in terminus review 25c161a328ba on the JSONL change — see docs/journal/2026-09-01.md
+  - stamp: 2026-09-01
+    note: terminus-canon `projects/df/dd-deterministic-serialization` now names this collision and carries a boundary exemption pointing at this card — remove that exemption paragraph when this lands
 ---
 
 `valueToInterface`'s `reflect.Map` case (`dd/unbind.go`) stringifies every key through `keyToString` and assigns `result[keyStr]` without checking whether that spelling is already taken. interface-keyed maps can collide — `map[any]string{1: "int", "1": "str"}` yields two keys that both stringify to `"1"` via the `fmt.Sprintf("%v")` default — and whichever key go's randomized iteration visits last wins. `UnbindJSON`, `UnbindJSONL`, and `UnbindYAML` all inherit it, which breaks the deterministic-output guarantee documented in v1.0.2 for exactly this input.

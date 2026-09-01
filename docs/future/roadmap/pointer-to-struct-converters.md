@@ -4,7 +4,7 @@ state: horizon
 created: 2026-07-13
 tags: [defect, spike]
 subsystems: [dd]
-milestone: v0.1.x
+milestone: v1.0.x
 source: docs/future/pointer-to-struct-converters.md
 log:
   - stamp: 2026-07-13
