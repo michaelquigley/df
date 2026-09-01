@@ -80,6 +80,10 @@ tags:
 zebra: z
 `
 
+// compact form of detGoldenJSON: the same keys in the same sorted order on one
+// line, newline-terminated.
+const detGoldenJSONL = `{"alpha_extra":"first","apple":"a","mango":"m","nested":{"rank":7,"title":"hello"},"omega":"last","scores":{"alpha":1,"beta":2,"gamma":3},"tags":["red","green","blue"],"zebra":"z"}` + "\n"
+
 // TestUnbindJSONGolden locks the exact sorted-key JSON output. it fails if the
 // serialized format ever drifts from the documented determinism guarantee.
 func TestUnbindJSONGolden(t *testing.T) {
@@ -89,6 +93,17 @@ func TestUnbindJSONGolden(t *testing.T) {
 	}
 	if string(data) != detGoldenJSON {
 		t.Errorf("JSON output does not match golden.\n--- got ---\n%s\n--- want ---\n%s", data, detGoldenJSON)
+	}
+}
+
+// TestUnbindJSONLGolden locks the exact compact sorted-key JSONL output.
+func TestUnbindJSONLGolden(t *testing.T) {
+	data, err := UnbindJSONL(newDetConfig())
+	if err != nil {
+		t.Fatalf("UnbindJSONL failed: %v", err)
+	}
+	if string(data) != detGoldenJSONL {
+		t.Errorf("JSONL output does not match golden.\n--- got ---\n%s\n--- want ---\n%s", data, detGoldenJSONL)
 	}
 }
 
@@ -118,6 +133,10 @@ func TestUnbindDeterminism(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UnbindYAML failed: %v", err)
 	}
+	firstJSONL, err := UnbindJSONL(src)
+	if err != nil {
+		t.Fatalf("UnbindJSONL failed: %v", err)
+	}
 
 	for i := 0; i < iterations; i++ {
 		gotJSON, err := UnbindJSON(src)
@@ -134,6 +153,14 @@ func TestUnbindDeterminism(t *testing.T) {
 		}
 		if string(gotYAML) != string(firstYAML) {
 			t.Fatalf("YAML output varied on iteration %d.\n--- got ---\n%s\n--- first ---\n%s", i, gotYAML, firstYAML)
+		}
+
+		gotJSONL, err := UnbindJSONL(src)
+		if err != nil {
+			t.Fatalf("UnbindJSONL failed on iteration %d: %v", i, err)
+		}
+		if string(gotJSONL) != string(firstJSONL) {
+			t.Fatalf("JSONL output varied on iteration %d.\n--- got ---\n%s\n--- first ---\n%s", i, gotJSONL, firstJSONL)
 		}
 	}
 }

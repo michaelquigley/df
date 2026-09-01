@@ -159,19 +159,22 @@ Strict mode answers only "are these bytes exactly one faithful spelling of this 
 
 ### 4. File I/O - Direct Persistence
 
-**Read/write JSON and YAML files directly**
+**Read/write JSON and YAML files directly, or stream JSON Lines records**
 
 ```go
 // From files
-config, err := dd.BindFromJSON[Config]("config.json")
-config, err := dd.BindFromYAML[Config]("config.yaml")
+config, err := dd.NewJSONFile[Config]("config.json")
+config, err := dd.NewYAMLFile[Config]("config.yaml")
 
 // To files
-err := dd.UnbindToJSON(config, "output.json")
-err := dd.UnbindToYAML(config, "output.yaml")
+err := dd.UnbindJSONFile(config, "output.json")
+err := dd.UnbindYAMLFile(config, "output.yaml")
 
-// With formatting options
-err := dd.UnbindToJSONIndent(config, "pretty.json", "", "  ")
+// JSON Lines: one compact, newline-terminated record per call, appended to any io.Writer
+for _, ev := range events {
+    err := dd.UnbindJSONLWriter(ev, w)
+}
+// reading back needs nothing new: bufio.Scanner + dd.BindJSON per line
 ```
 
 ### 5. Nested Structures - Complex Data
@@ -635,8 +638,9 @@ err := linker.Link(&container) // register + resolve in one call
 | `dd.Bind(&struct, data)` | Populate existing struct | Manual allocation control |
 | `dd.Unbind(struct)` | Convert struct to map | Serialization, APIs |
 | `dd.Merge(&struct, data)` | Overlay data on defaults | Configuration systems |
-| `dd.BindFromJSON[T](file)` | Load from JSON file | Configuration loading |
-| `dd.UnbindToYAML(struct, file)` | Save to YAML file | Configuration persistence |
+| `dd.NewJSONFile[T](file)` | Load from JSON file | Configuration loading |
+| `dd.UnbindYAMLFile(struct, file)` | Save to YAML file | Configuration persistence |
+| `dd.UnbindJSONLWriter(struct, w)` | Append one JSON Lines record | Event logs, exports |
 | `dd.Link(&container)` | Resolve object references | Complex data relationships |
 
 ## Common Patterns
@@ -645,8 +649,8 @@ err := linker.Link(&container) // register + resolve in one call
 ```go
 // Multi-layer configuration
 config := getDefaultConfig()
-dd.MergeFromYAML(config, "app.yaml")        // base config
-dd.MergeFromYAML(config, "app.prod.yaml")   // environment
+dd.MergeYAMLFile(config, "app.yaml")        // base config
+dd.MergeYAMLFile(config, "app.prod.yaml")   // environment
 dd.Merge(config, getEnvOverrides())         // environment vars
 ```
 

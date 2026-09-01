@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## v1.0.4
+
+FEATURE: `dd.UnbindJSONL` and `dd.UnbindJSONLWriter` emit a struct as one JSON Lines record — compact JSON terminated by a single newline — filling the gap left by `UnbindJSON`, whose indented output can't be streamed as JSONL. The record keeps `dd`'s deterministic sorted-key guarantee, and reading a stream back needs nothing new: one `BindJSON` per line.
+
 ## v1.0.3
 
 FEATURE: `dd` fields tagged `+nullable` now treat an explicit JSON/YAML null as absent in both forgiving and strict binding. `Merge` preserves an existing value for a nullable null, while `+required,+nullable` rejects null as required-missing. Untagged null handling is unchanged.

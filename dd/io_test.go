@@ -206,6 +206,66 @@ func TestUnbindJSON(t *testing.T) {
 	}
 }
 
+func TestUnbindJSONL(t *testing.T) {
+	source := IOTestStruct{
+		Name:  "Line User",
+		Age:   41,
+		Email: "line@example.com",
+	}
+
+	data, err := UnbindJSONL(source)
+	if err != nil {
+		t.Fatalf("UnbindJSONL failed: %v", err)
+	}
+
+	// exactly one record: compact, sorted keys, newline-terminated
+	want := "{\"age\":41,\"email\":\"line@example.com\",\"name\":\"Line User\"}\n"
+	if string(data) != want {
+		t.Errorf("expected %q, got %q", want, data)
+	}
+
+	// verify round-trip through the ordinary JSON path
+	var result IOTestStruct
+	if err := BindJSON(&result, data); err != nil {
+		t.Fatalf("failed to read back JSONL record: %v", err)
+	}
+	if result != source {
+		t.Errorf("expected %+v, got %+v", source, result)
+	}
+}
+
+// TestUnbindJSONLEscapesEmbeddedNewlines pins the single-line guarantee against
+// the one input that could break it: string values carrying line breaks.
+func TestUnbindJSONLEscapesEmbeddedNewlines(t *testing.T) {
+	source := IOTestStruct{
+		Name:  "multi\nline\r\nname",
+		Age:   1,
+		Email: "a\u2028b", // unicode line separator; encoding/json escapes it too
+	}
+
+	data, err := UnbindJSONL(source)
+	if err != nil {
+		t.Fatalf("UnbindJSONL failed: %v", err)
+	}
+	if n := bytes.Count(data, []byte("\n")); n != 1 {
+		t.Fatalf("expected exactly one newline, got %d in %q", n, data)
+	}
+	if !bytes.HasSuffix(data, []byte("\n")) {
+		t.Fatalf("expected trailing newline, got %q", data)
+	}
+	if bytes.Contains(data, []byte("\u2028")) {
+		t.Fatalf("expected U+2028 to be escaped, got %q", data)
+	}
+
+	var result IOTestStruct
+	if err := BindJSON(&result, data); err != nil {
+		t.Fatalf("failed to read back JSONL record: %v", err)
+	}
+	if result != source {
+		t.Errorf("expected %+v, got %+v", source, result)
+	}
+}
+
 func TestUnbindYAML(t *testing.T) {
 	source := IOTestStruct{
 		Name:  "Alice Johnson",
@@ -364,6 +424,37 @@ func TestUnbindJSONWriter(t *testing.T) {
 
 	if result.Name != source.Name {
 		t.Errorf("expected Name='%s', got '%s'", source.Name, result.Name)
+	}
+}
+
+func TestUnbindJSONLWriter(t *testing.T) {
+	records := []IOTestStruct{
+		{Name: "first", Age: 1, Email: "first@example.com"},
+		{Name: "second", Age: 2, Email: "second@example.com"},
+		{Name: "third", Age: 3, Email: "third@example.com"},
+	}
+
+	// one call per record against the same writer yields a JSON Lines stream
+	var buf bytes.Buffer
+	for _, rec := range records {
+		if err := UnbindJSONLWriter(rec, &buf); err != nil {
+			t.Fatalf("UnbindJSONLWriter failed: %v", err)
+		}
+	}
+
+	// read the stream back line by line through the ordinary JSON path
+	lines := strings.Split(strings.TrimSuffix(buf.String(), "\n"), "\n")
+	if len(lines) != len(records) {
+		t.Fatalf("expected %d lines, got %d in %q", len(records), len(lines), buf.String())
+	}
+	for i, line := range lines {
+		var result IOTestStruct
+		if err := BindJSON(&result, []byte(line)); err != nil {
+			t.Fatalf("failed to read back line %d: %v", i, err)
+		}
+		if result != records[i] {
+			t.Errorf("line %d: expected %+v, got %+v", i, records[i], result)
+		}
 	}
 }
 

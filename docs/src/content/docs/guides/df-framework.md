@@ -68,7 +68,7 @@ type LoggingConfig struct {
 
 func main() {
     // 1. Load configuration with dd
-    config, err := dd.BindFromYAML[AppConfig]("config.yaml")
+    config, err := dd.NewYAMLFile[AppConfig]("config.yaml")
     if err != nil {
         panic(err)
     }
@@ -182,7 +182,7 @@ func (a *ConfigurableApp) Start() error {
 
 func (a *ConfigurableApp) LoadConfig() error {
     // Load configuration with dd
-    config, err := dd.BindFromYAML[AppConfig](a.configFile)
+    config, err := dd.NewYAMLFile[AppConfig](a.configFile)
     if err != nil {
         return err
     }
@@ -315,7 +315,7 @@ func loadPluginConfigs(dir string) ([]PluginConfig, error) {
     var configs []PluginConfig
     for _, file := range files {
         // Use dd to load each plugin config
-        config, err := dd.BindFromYAML[PluginConfig](file)
+        config, err := dd.NewYAMLFile[PluginConfig](file)
         if err != nil {
             dl.ChannelLog("plugins").With("file", file).Warn("failed to load plugin config")
             continue
@@ -396,7 +396,7 @@ func (o *ServiceOrchestrator) LoadServices(configDir string) error {
 
 func (o *ServiceOrchestrator) loadService(configFile string) error {
     // Load service configuration with dd
-    config, err := dd.BindFromYAML[ServiceConfig](configFile)
+    config, err := dd.NewYAMLFile[ServiceConfig](configFile)
     if err != nil {
         return err
     }
@@ -532,10 +532,13 @@ func (m *ConfigMigrator) migrateFrom1_0To1_1(data map[string]any) (map[string]an
 }
 
 func LoadAndMigrateConfig(filename string) (*AppConfig, error) {
-    // Load as generic data first
-    var rawData map[string]any
-    err := dd.BindFromYAML(&rawData, filename)
+    // load as generic data first (dd binds to structs, so read the raw tree directly)
+    data, err := os.ReadFile(filename)
     if err != nil {
+        return nil, err
+    }
+    var rawData map[string]any
+    if err := yaml.Unmarshal(data, &rawData); err != nil {
         return nil, err
     }
     

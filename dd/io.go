@@ -95,7 +95,22 @@ func MergeYAML(target interface{}, data []byte, opts ...*Options) error {
 	return Merge(target, m, opts...)
 }
 
-// UnbindJSON converts a struct to JSON bytes.
+// unbindJSON unbinds source and encodes the resulting tree with the given
+// encoding/json marshal function; UnbindJSON and UnbindJSONL differ only in
+// which one they pass.
+func unbindJSON(source interface{}, marshal func(any) ([]byte, error), opts []*Options) ([]byte, error) {
+	m, err := Unbind(source, opts...)
+	if err != nil {
+		return nil, &ConversionError{Message: "failed to unbind source", Cause: err}
+	}
+	data, err := marshal(m)
+	if err != nil {
+		return nil, &ConversionError{Type: "JSON", Message: "failed to marshal", Cause: err}
+	}
+	return data, nil
+}
+
+// UnbindJSON converts a struct to indented JSON bytes.
 //
 // output is deterministic: for a given input value the produced bytes are identical
 // across runs, processes, and versions. all keys — struct field names and map keys
@@ -104,15 +119,24 @@ func MergeYAML(target interface{}, data []byte, opts ...*Options) error {
 // captured via `+extra` are interleaved in sorted order with the rest rather than
 // appended at the end.
 func UnbindJSON(source interface{}, opts ...*Options) ([]byte, error) {
-	m, err := Unbind(source, opts...)
+	return unbindJSON(source, func(v any) ([]byte, error) { return json.MarshalIndent(v, "", "  ") }, opts)
+}
+
+// UnbindJSONL converts a struct to a single JSONL record: compact JSON with no
+// interior newlines, terminated by exactly one '\n'. one call yields one line, so
+// writing successive records to the same destination produces a JSON Lines
+// stream. the encoding is otherwise identical to UnbindJSON — same keys, same
+// values, same escaping — only the whitespace differs.
+//
+// output is deterministic with sorted keys; see UnbindJSON. reading a stream back
+// needs no dedicated helper: split it on '\n' and hand each line to BindJSON or
+// NewJSON.
+func UnbindJSONL(source interface{}, opts ...*Options) ([]byte, error) {
+	data, err := unbindJSON(source, json.Marshal, opts)
 	if err != nil {
-		return nil, &ConversionError{Message: "failed to unbind source", Cause: err}
+		return nil, err
 	}
-	data, err := json.MarshalIndent(m, "", "  ")
-	if err != nil {
-		return nil, &ConversionError{Type: "JSON", Message: "failed to marshal", Cause: err}
-	}
-	return data, nil
+	return append(data, '\n'), nil
 }
 
 // UnbindYAML converts a struct to YAML bytes.
@@ -194,6 +218,20 @@ func MergeYAMLReader(target interface{}, r io.Reader, opts ...*Options) error {
 // output is deterministic with sorted keys; see UnbindJSON.
 func UnbindJSONWriter(source interface{}, w io.Writer, opts ...*Options) error {
 	data, err := UnbindJSON(source, opts...)
+	if err != nil {
+		return err
+	}
+	if _, err := w.Write(data); err != nil {
+		return &ConversionError{Message: "failed to write to writer", Cause: err}
+	}
+	return nil
+}
+
+// UnbindJSONLWriter converts a struct to a single JSONL record and writes it to an
+// io.Writer. call it once per record against the same writer to produce a JSON
+// Lines stream. output is deterministic with sorted keys; see UnbindJSONL.
+func UnbindJSONLWriter(source interface{}, w io.Writer, opts ...*Options) error {
+	data, err := UnbindJSONL(source, opts...)
 	if err != nil {
 		return err
 	}

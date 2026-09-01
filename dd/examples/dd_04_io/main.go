@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"log"
@@ -36,7 +37,7 @@ type AppConfig struct {
 
 func main() {
 	fmt.Println("=== df i/o example ===")
-	fmt.Println("demonstrates JSON/YAML binding and unbinding from bytes, readers/writers, and files")
+	fmt.Println("demonstrates JSON/YAML binding and unbinding from bytes, readers/writers, files, and JSONL streams")
 
 	// step 1: demonstrate bytes layer (base)
 	fmt.Println("\n=== step 1: bytes layer ===")
@@ -50,12 +51,16 @@ func main() {
 	fmt.Println("\n=== step 3: file layer ===")
 	demonstrateFileLayer()
 
-	// step 4: demonstrate format conversion
-	fmt.Println("\n=== step 4: format conversion (JSON to YAML) ===")
+	// step 4: demonstrate jsonl record streams
+	fmt.Println("\n=== step 4: jsonl record streams ===")
+	demonstrateJSONL()
+
+	// step 5: demonstrate format conversion
+	fmt.Println("\n=== step 5: format conversion (JSON to YAML) ===")
 	demonstrateFormatConversion()
 
-	// step 5: demonstrate error handling
-	fmt.Println("\n=== step 5: error handling ===")
+	// step 6: demonstrate error handling
+	fmt.Println("\n=== step 6: error handling ===")
 	demonstrateErrorHandling()
 
 	fmt.Println("\n=== i/o example completed successfully! ===")
@@ -63,6 +68,7 @@ func main() {
 	fmt.Println("- bind/unbind from bytes, strings, readers, writers, and files")
 	fmt.Println("- consistent error reporting across all i/o types")
 	fmt.Println("- seamless format conversion between JSON and YAML")
+	fmt.Println("- append records to JSONL streams with UnbindJSONLWriter")
 	fmt.Println("- layered api for flexibility and composability")
 }
 
@@ -192,6 +198,51 @@ func demonstrateFileLayer() {
 	os.Remove("config.json")
 	os.Remove("config.yaml")
 	fmt.Println("cleaned up temporary files")
+}
+
+func demonstrateJSONL() {
+	// jsonl is an append-only stream: open the file for appending and emit one
+	// compact, newline-terminated record per call
+	f, err := os.OpenFile("events.jsonl", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+	if err != nil {
+		log.Fatalf("failed to open events.jsonl: %v", err)
+	}
+	events := []ServerConfig{
+		{Host: "alpha", Port: 8080, Timeout: 30},
+		{Host: "beta", Port: 8081, Timeout: 30, Debug: true},
+		{Host: "gamma", Port: 8082, Timeout: 60},
+	}
+	for _, ev := range events {
+		if err := dd.UnbindJSONLWriter(ev, f); err != nil {
+			log.Fatalf("failed to append JSONL record: %v", err)
+		}
+	}
+	if err := f.Close(); err != nil {
+		log.Fatalf("failed to close events.jsonl: %v", err)
+	}
+	fmt.Printf("appended %d records to events.jsonl\n", len(events))
+
+	// reading back needs nothing new: one BindJSON per line
+	in, err := os.Open("events.jsonl")
+	if err != nil {
+		log.Fatalf("failed to open events.jsonl: %v", err)
+	}
+	scanner := bufio.NewScanner(in)
+	for scanner.Scan() {
+		var cfg ServerConfig
+		if err := dd.BindJSON(&cfg, scanner.Bytes()); err != nil {
+			log.Fatalf("failed to read JSONL record: %v", err)
+		}
+		fmt.Printf("%s -> %s:%d\n", scanner.Bytes(), cfg.Host, cfg.Port)
+	}
+	if err := scanner.Err(); err != nil {
+		log.Fatalf("failed to scan events.jsonl: %v", err)
+	}
+	in.Close()
+
+	// cleanup
+	os.Remove("events.jsonl")
+	fmt.Println("cleaned up events.jsonl")
 }
 
 func demonstrateFormatConversion() {

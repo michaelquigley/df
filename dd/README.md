@@ -26,7 +26,7 @@ user, _ := dd.New[User](userData)
 - **Struct Tags**: Control field mapping with `dd` tags
 - **Type Coercion**: Automatic type conversion (strings→numbers, etc.)
 - **Typed Maps**: Full support for `map[K]V` with any comparable key type
-- **File I/O**: Direct JSON/YAML binding with `BindFromJSON()`, `UnbindToYAML()`
+- **File I/O**: Direct JSON/YAML file binding with `NewJSONFile[T]()`, `UnbindYAMLFile()`
 - **Object References**: `Pointer[T]` type with cycle-safe linking
 - **Dynamic Types**: Runtime type discrimination via `Dynamic` interface
 - **Merge-Time Defaults**: Optional nested structs can provide defaults when `Merge()` allocates them
@@ -34,6 +34,7 @@ user, _ := dd.New[User](userData)
 - **Nullable Fields**: Per-field `+nullable` handling for explicit nulls
 - **Strict Mode**: Opt-in exact acceptance for contract data — duplicate-key/unknown-field rejection, zero coercion, `+opaque` subtrees
 - **Deterministic Output**: `UnbindJSON`/`UnbindYAML` produce byte-stable, sorted-key output
+- **JSON Lines**: `UnbindJSONL`/`UnbindJSONLWriter` emit one compact, newline-terminated record per call for JSONL streams
 
 ## Core Functions
 
@@ -44,7 +45,7 @@ user, _ := dd.New[User](userData)
 
 ## Deterministic Output
 
-`UnbindJSON`, `UnbindYAML`, and their writer/file variants produce **deterministic** output: for a given input value, the serialized bytes are identical across runs, processes, and versions. All keys — struct field names and map keys alike — are emitted in **sorted order**, and slice/array element order is preserved as-is. Fields captured via `+extra` are interleaved in sorted order with the rest, not appended at the end. This makes `dd` output safe to commit to version control and diff without spurious churn.
+`UnbindJSON`, `UnbindJSONL`, `UnbindYAML`, and their writer/file variants produce **deterministic** output: for a given input value, the serialized bytes are identical across runs, processes, and versions. All keys — struct field names and map keys alike — are emitted in **sorted order**, and slice/array element order is preserved as-is. Fields captured via `+extra` are interleaved in sorted order with the rest, not appended at the end. This makes `dd` output safe to commit to version control and diff without spurious churn.
 
 The guarantee applies to the serialized forms. The raw `Unbind()` return is a Go `map[string]any` and is therefore unordered; ordering is realized only at serialization.
 
@@ -126,11 +127,26 @@ dd.Merge(cfg, map[string]any{
 
 **File Persistence**
 ```go
-// Load config from JSON
-config, _ := dd.BindFromJSON[AppConfig]("config.json")
+// load config from JSON
+config, _ := dd.NewJSONFile[AppConfig]("config.json")
 
-// Save to YAML
-dd.UnbindToYAML(config, "config.yaml")
+// save to YAML
+dd.UnbindYAMLFile(config, "config.yaml")
+```
+
+**JSON Lines**
+```go
+// one compact, newline-terminated record per call; append to any io.Writer
+for _, ev := range events {
+    dd.UnbindJSONLWriter(ev, w)
+}
+
+// reading back needs nothing new: one BindJSON per line
+scanner := bufio.NewScanner(r)
+for scanner.Scan() {
+    var ev Event
+    dd.BindJSON(&ev, scanner.Bytes())
+}
 ```
 
 **Dynamic Types**
