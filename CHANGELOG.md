@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v1.0.5
+
 FIX: `dd.Unbind` now refuses a map whose distinct keys serialize to the same string — an interface-keyed `map[any]V` holding both `1` and `"1"` — with a `KeyCollisionError`, instead of letting Go's randomized map iteration decide which entry survives. Such a map has no lossless JSON/YAML form, and the silent collapse was the one input that falsified the deterministic-output guarantee documented in v1.0.2. Callers that previously got a map back from this input now get an error; `UnbindJSON`, `UnbindJSONL`, `UnbindYAML`, and their writer/file variants inherit it. Ordinary string-, integer-, and boolean-keyed maps are unaffected; any map whose keys stringify alike, such as a float-keyed map holding more than one NaN, is now rejected.
 
 ## v1.0.4
