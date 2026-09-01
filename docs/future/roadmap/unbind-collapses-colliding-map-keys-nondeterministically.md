@@ -1,6 +1,6 @@
 ---
 title: unbind collapses colliding map keys nondeterministically
-state: researching
+state: building
 created: 2026-09-01
 tags: [defect]
 subsystems: [dd]

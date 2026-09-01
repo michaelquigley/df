@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 )
 
 // ValidationError represents errors in input validation
@@ -214,6 +215,19 @@ type UnknownFieldError struct {
 
 func (e *UnknownFieldError) Error() string {
 	return fmt.Sprintf("%s: unknown field %q", e.Path, e.Key)
+}
+
+// KeyCollisionError represents two distinct map keys that serialize to the
+// same string spelling during unbinding. such a map has no lossless JSON or
+// YAML form, and which entry survived would depend on go's randomized map
+// iteration, so unbind refuses it rather than letting one entry silently win.
+type KeyCollisionError struct {
+	Key  string   // the spelling the keys collide on
+	Keys []string // the colliding source keys with their go types, sorted
+}
+
+func (e *KeyCollisionError) Error() string {
+	return fmt.Sprintf("map key collision: %s serialize to the same key %q", strings.Join(e.Keys, ", "), e.Key)
 }
 
 // IndexError represents errors with array/slice indexing

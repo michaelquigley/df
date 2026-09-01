@@ -347,7 +347,7 @@ admins := registry.Groups["admins"]  // []string{"alice", "bob"}
 
 **unbind with typed maps**
 
-when unbinding, all map keys are converted to strings for JSON/YAML compatibility:
+when unbinding, all map keys are converted to strings for JSON/YAML compatibility. two distinct keys that convert to the same string — an interface-keyed `map[any]V` holding both `1` and `"1"` — cannot be represented losslessly, so `Unbind` returns a `KeyCollisionError` instead of letting one entry silently win:
 
 ```go
 type Config struct {

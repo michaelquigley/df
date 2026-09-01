@@ -3,6 +3,7 @@ package dd
 import (
 	"fmt"
 	"reflect"
+	"sort"
 	"time"
 )
 
@@ -17,7 +18,9 @@ import (
 // slices, structs, maps, and nested pointers are handled recursively. time.Duration values
 // are emitted as strings using Duration.String() (e.g., "30s"). time.Time values are emitted
 // as RFC3339 strings, preserving fractional seconds when present (e.g., "2024-03-15T14:30:45.123Z").
-// map keys are converted to strings for JSON/YAML compatibility. Interface fields are not supported, except for fields of type
+// map keys are converted to strings for JSON/YAML compatibility; two distinct keys that convert to the
+// same string (an interface-keyed map holding both 1 and "1") are a KeyCollisionError, since such a map
+// has no lossless serialized form. Interface fields are not supported, except for fields of type
 // `Dynamic` (and slices of `Dynamic`), which are converted via their ToMap() method which
 // now returns (map[string]any, error).
 //
@@ -292,6 +295,12 @@ func valueToInterface(v reflect.Value, opt *Options) (interface{}, bool, error) 
 		for _, key := range v.MapKeys() {
 			// convert key to string
 			keyStr := keyToString(key)
+			// two distinct keys with one spelling cannot both survive, and letting
+			// iteration order pick the survivor is exactly the nondeterminism the
+			// serialized forms promise against; refuse instead
+			if _, taken := result[keyStr]; taken {
+				return nil, false, keyCollisionError(v, keyStr)
+			}
 			mapVal := v.MapIndex(key)
 
 			// handle nil/invalid values
@@ -351,6 +360,35 @@ func isEmpty(v reflect.Value) bool {
 		return v.Len() == 0
 	}
 	return false
+}
+
+// keyCollisionError builds the error for a map whose keys serialize to the same
+// spelling. it rescans the map for every key sharing that spelling so the error
+// names all of them, sorted, and reads the same regardless of iteration order.
+// the rescan runs only on the error path; the happy path pays nothing beyond
+// the lookup in the result map it is already filling.
+func keyCollisionError(m reflect.Value, keyStr string) error {
+	var keys []string
+	for _, key := range m.MapKeys() {
+		if keyToString(key) == keyStr {
+			keys = append(keys, describeKey(key))
+		}
+	}
+	sort.Strings(keys)
+	return &KeyCollisionError{Key: keyStr, Keys: keys}
+}
+
+// describeKey renders a map key with its go type so colliding keys stay
+// distinguishable in an error: `1 (int)` and `"1" (string)`.
+func describeKey(key reflect.Value) string {
+	if key.Kind() == reflect.Interface && !key.IsNil() {
+		key = key.Elem()
+	}
+	k := key.Interface()
+	if key.Kind() == reflect.String {
+		return fmt.Sprintf("%q (%T)", k, k)
+	}
+	return fmt.Sprintf("%v (%T)", k, k)
 }
 
 // dynamicToMap converts a Dynamic value to a map and enforces that the discriminator key "type" is present and

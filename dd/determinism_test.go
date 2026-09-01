@@ -1,6 +1,8 @@
 package dd
 
 import (
+	"errors"
+	"math"
 	"testing"
 )
 
@@ -162,5 +164,97 @@ func TestUnbindDeterminism(t *testing.T) {
 		if string(gotJSONL) != string(firstJSONL) {
 			t.Fatalf("JSONL output varied on iteration %d.\n--- got ---\n%s\n--- first ---\n%s", i, gotJSONL, firstJSONL)
 		}
+	}
+}
+
+// collisionHolder carries the one input that can falsify the guarantee: an
+// interface-keyed map whose distinct keys stringify alike.
+type collisionHolder struct {
+	M map[any]string `dd:"m"`
+}
+
+// TestUnbindRejectsCollidingMapKeys pins that a map whose distinct keys
+// serialize to one spelling is refused rather than collapsed. last-write-wins
+// would let go's randomized iteration pick the survivor, so unbind refuses,
+// and the refusal itself reads the same on every run.
+func TestUnbindRejectsCollidingMapKeys(t *testing.T) {
+	src := collisionHolder{M: map[any]string{1: "int", "1": "str"}}
+
+	_, err := Unbind(src)
+	if err == nil {
+		t.Fatal("expected Unbind to refuse colliding map keys")
+	}
+	var collision *KeyCollisionError
+	if !errors.As(err, &collision) {
+		t.Fatalf("expected *KeyCollisionError, got %T: %v", err, err)
+	}
+	if collision.Key != "1" {
+		t.Errorf("expected colliding spelling %q, got %q", "1", collision.Key)
+	}
+	want := `unbinding field collisionHolder.M to key "m": map key collision: "1" (string), 1 (int) serialize to the same key "1"`
+	if err.Error() != want {
+		t.Errorf("error text mismatch.\n--- got ---\n%s\n--- want ---\n%s", err.Error(), want)
+	}
+
+	// the refusal must not depend on iteration order either: same text every time
+	const iterations = 100
+	for i := 0; i < iterations; i++ {
+		_, err := Unbind(src)
+		if err == nil {
+			t.Fatalf("Unbind accepted colliding keys on iteration %d", i)
+		}
+		if err.Error() != want {
+			t.Fatalf("error text varied on iteration %d.\n--- got ---\n%s\n--- want ---\n%s", i, err.Error(), want)
+		}
+	}
+
+	// the serialized forms inherit the refusal
+	if _, err := UnbindJSON(src); err == nil {
+		t.Error("expected UnbindJSON to refuse colliding map keys")
+	}
+	if _, err := UnbindJSONL(src); err == nil {
+		t.Error("expected UnbindJSONL to refuse colliding map keys")
+	}
+	if _, err := UnbindYAML(src); err == nil {
+		t.Error("expected UnbindYAML to refuse colliding map keys")
+	}
+}
+
+// TestUnbindInterfaceKeyedMap pins that the collision check bites only on a real
+// collision: an interface-keyed map whose keys stringify distinctly unbinds as
+// before.
+func TestUnbindInterfaceKeyedMap(t *testing.T) {
+	src := collisionHolder{M: map[any]string{1: "int", "b": "str"}}
+	out, err := Unbind(src)
+	if err != nil {
+		t.Fatalf("Unbind failed: %v", err)
+	}
+	m, ok := out["m"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected map[string]any for m, got %T", out["m"])
+	}
+	if len(m) != 2 || m["1"] != "int" || m["b"] != "str" {
+		t.Errorf("unexpected map contents: %v", m)
+	}
+}
+
+// TestUnbindRejectsNaNMapKeys shows why the check is not limited to
+// interface-keyed maps: NaN never equals itself, so a float-keyed map can hold
+// several NaN entries, and every one of them stringifies to "NaN".
+func TestUnbindRejectsNaNMapKeys(t *testing.T) {
+	type holder struct {
+		M map[float64]int `dd:"m"`
+	}
+	src := holder{M: map[float64]int{math.NaN(): 1, math.NaN(): 2}}
+	if len(src.M) != 2 {
+		t.Fatalf("expected two NaN entries, got %d", len(src.M))
+	}
+	_, err := Unbind(src)
+	var collision *KeyCollisionError
+	if !errors.As(err, &collision) {
+		t.Fatalf("expected *KeyCollisionError, got %T: %v", err, err)
+	}
+	if collision.Key != "NaN" {
+		t.Errorf("expected colliding spelling %q, got %q", "NaN", collision.Key)
 	}
 }

@@ -49,6 +49,8 @@ user, _ := dd.New[User](userData)
 
 The guarantee applies to the serialized forms. The raw `Unbind()` return is a Go `map[string]any` and is therefore unordered; ordering is realized only at serialization.
 
+Two distinct keys of one map never collapse into one serialized key. Map keys are stringified on the way out, and a map whose keys share a spelling — an interface-keyed `map[any]string{1: "int", "1": "str"}` — has no lossless JSON or YAML form, so `Unbind` refuses it with a `KeyCollisionError` rather than letting map iteration order decide which entry survives. Typed maps (`map[int]V`, `map[string]V`) cannot collide in ordinary use.
+
 ```go
 data, _ := dd.UnbindJSON(cfg)
 // identical bytes every time, keys sorted — clean git diffs
