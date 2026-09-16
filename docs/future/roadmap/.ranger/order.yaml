@@ -15,3 +15,5 @@ inbox:
 building:
 evaluating:
 researching:
+  - dl-defaults-its-output-to-stderr.md
+  - format-detection-follows-the-output-writer.md
