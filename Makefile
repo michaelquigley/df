@@ -1,14 +1,19 @@
 .DEFAULT_GOAL := build
+GOBIN ?= $(shell go env GOPATH)/bin
 
-.PHONY: build clean test
+ifeq ($(filter-out /,$(abspath $(GOBIN))),)
+$(error GOBIN is '$(GOBIN)'; it must name a real directory)
+endif
+
+.PHONY: build test clean
 
 build:
 	go install ./...
 
-clean:
-	go clean ./...
-	rm -f ${GOPATH}/bin/*
-
 test:
 	go test ./... -count=1
 	go vet ./...
+
+clean:
+	go clean ./...
+	rm -f "$(GOBIN)"/*
