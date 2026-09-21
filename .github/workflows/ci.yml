@@ -15,6 +15,7 @@ jobs:
         with:
           go-version: ${{ matrix.go-version }}
       - run: go mod download
+      - run: go vet ./...
       - run: go test -v -race -coverprofile=coverage.out ./...
       - uses: codecov/codecov-action@v4
         with:
