@@ -8,6 +8,7 @@ horizon:
   - sub-logger-output.md
   - application-statistics.md
 inbox:
+  - unbind-serializes-identity-bearing-map-keys-as-runtime-addresses.md
   - dynamic-and-strict-do-not-compose.md
   - secret-values-reach-error-strings.md
   - strict-intake-rejects-yaml-timestamps.md
@@ -17,3 +18,4 @@ evaluating:
 researching:
   - dl-defaults-its-output-to-stderr.md
   - format-detection-follows-the-output-writer.md
+  - dlusecolorfalse-leaves-timestamp-and-caller-colors.md
