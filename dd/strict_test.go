@@ -435,7 +435,7 @@ func TestStrictOpaqueRequiresObject(t *testing.T) {
 		t.Fatalf("non-object opaque accepted or wrong error: %v", err)
 	}
 
-	// +opaque demands map[string]any at the field
+	// +opaque accepts map[string]any or an empty interface, never a string field
 	type badOpaque struct {
 		Config string `dd:"config,+opaque"`
 	}

@@ -1,6 +1,6 @@
 ---
 title: binding into interface fields
-state: researching
+state: evaluating
 created: 2026-10-13
 tags: [feature]
 subsystems: [dd]

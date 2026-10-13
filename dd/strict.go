@@ -28,9 +28,10 @@ import (
 //     intent) and refuses type coercion: a number arriving at a string field
 //     is an error, not a conversion; map keys must have string as their
 //     underlying type
-//   - a field tagged +opaque (a map[string]any) accepts any members and
-//     captures the raw subtree uninterpreted — syntactic intake rules still
-//     apply inside it, binding rules do not
+//   - a field tagged +opaque carries raw input without coercion or copying:
+//     map[string]any requires an object; an empty interface accepts any
+//     non-null value. syntactic intake rules still apply inside the value,
+//     binding rules do not; +nullable treats explicit null as absence
 //
 // custom Converters, Dynamic binders, and UnmarshalDd implementations remain
 // in effect under strict mode. strict intake checks the syntax before

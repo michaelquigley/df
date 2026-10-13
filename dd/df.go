@@ -57,8 +57,8 @@ type DdTag struct {
 	HasMatch   bool   // true if a match constraint is specified
 	Extra      bool   // true if field should capture unmatched keys
 	OmitEmpty  bool   // true if field should be omitted when zero during unbinding
-	Opaque     bool   // true if field captures its raw subtree uninterpreted
-	Nullable   bool   // true if an explicit null should bind as an absent field
+	Opaque     bool   // true if a map[string]any or empty interface carries raw input uninterpreted
+	Nullable   bool   // true if null binds as absence and nil values unbind as null unless omitted
 }
 
 // parseDdTag parses the `dd` struct tag on a field.
@@ -76,8 +76,8 @@ type DdTag struct {
 // - the presence of a "+secret" token (any position) sets secret=true.
 // - the presence of a "+extra" token (any position) sets extra=true; the field must be map[string]any and will capture unmatched keys.
 // - the presence of a "+omitempty" token (any position) sets omitEmpty=true; the field will be omitted during unbinding if it has a zero value.
-// - the presence of a "+opaque" token (any position) sets opaque=true; the field must be map[string]any and captures its raw subtree uninterpreted — strict binding rules do not descend into it.
-// - the presence of a "+nullable" token (any position) sets nullable=true; an explicit null binds as if the field were absent.
+// - the presence of a "+opaque" token (any position) sets opaque=true; map[string]any fields require objects, and empty interfaces accept any non-null value. raw input is assigned without coercion or copying; strict binding rules do not descend into it, but intake syntax rules still apply.
+// - the presence of a "+nullable" token (any position) sets nullable=true; an explicit null binds as if absent. nil pointers, interfaces (including typed nil pointers/maps/slices), maps, and slices emit null on output; +omitempty takes precedence using its existing field-level emptiness test.
 // - a "+match=\"value\"" or "+match=value" token sets a value constraint that must be satisfied during binding.
 // - unrecognized tokens are ignored.
 func parseDdTag(sf reflect.StructField) DdTag {

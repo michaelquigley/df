@@ -2,3 +2,5 @@
 .vscode
 .claude
 .codex
+.mercurius
+mercurius.yaml

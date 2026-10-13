@@ -9,20 +9,21 @@ import (
 
 // Unbind converts a struct (or pointer to struct) into a map[string]any
 // honoring the same `dd` tags used by Bind:
-// - `dd:"name"` overrides the key name
-// - `dd:"-"` skips the field
-// - `dd:",+omitempty"` omits the field if it has a zero value
-// - when no tag is provided, the key defaults to snake_case of the field name
+//   - `dd:"name"` overrides the key name
+//   - `dd:"-"` skips the field
+//   - `dd:",+omitempty"` omits the field if it has a zero value
+//   - `dd:",+nullable"` emits null for nil pointers, interfaces, maps, and slices,
+//     including interfaces holding typed nil values; +omitempty takes precedence
+//   - when no tag is provided, the key defaults to snake_case of the field name
 //
-// pointers to values: if nil, the key is omitted; otherwise the pointed value is emitted.
+// pointers to values: if nil, the key is omitted unless +nullable; otherwise the pointed value is emitted.
 // slices, structs, maps, and nested pointers are handled recursively. time.Duration values
 // are emitted as strings using Duration.String() (e.g., "30s"). time.Time values are emitted
 // as RFC3339 strings, preserving fractional seconds when present (e.g., "2024-03-15T14:30:45.123Z").
 // map keys are converted to strings for JSON/YAML compatibility; two distinct keys that convert to the
 // same string (an interface-keyed map holding both 1 and "1") are a KeyCollisionError, since such a map
-// has no lossless serialized form. Interface fields are not supported, except for fields of type
-// `Dynamic` (and slices of `Dynamic`), which are converted via their ToMap() method which
-// now returns (map[string]any, error).
+// has no lossless serialized form. interface values are unwrapped and converted using their
+// concrete types; Dynamic values use ToMap(). +opaque does not bypass output conversion.
 //
 // the returned map is a Go map and therefore unordered; deterministic, sorted-key
 // output is a property of the serialized forms (UnbindJSON, UnbindYAML, and their
@@ -97,13 +98,17 @@ func structToMap(structVal reflect.Value, opt *Options) (map[string]any, error) 
 			name = toSnakeCase(field.Name)
 		}
 
-		// omit nil pointer fields entirely
-		if fieldVal.Kind() == reflect.Ptr && fieldVal.IsNil() {
+		// omit zero values if +omitempty tag is set
+		if tag.OmitEmpty && isEmpty(fieldVal) {
+			continue
+		}
+		if tag.Nullable && isNullableNil(fieldVal) {
+			out[name] = nil
 			continue
 		}
 
-		// omit zero values if +omitempty tag is set
-		if tag.OmitEmpty && isEmpty(fieldVal) {
+		// omit nil pointer fields without nullable output
+		if fieldVal.Kind() == reflect.Ptr && fieldVal.IsNil() {
 			continue
 		}
 
@@ -153,6 +158,21 @@ func structToMap(structVal reflect.Value, opt *Options) (map[string]any, error) 
 	}
 
 	return out, nil
+}
+
+func isNullableNil(v reflect.Value) bool {
+	for v.Kind() == reflect.Interface {
+		if v.IsNil() {
+			return true
+		}
+		v = v.Elem()
+	}
+	switch v.Kind() {
+	case reflect.Ptr, reflect.Map, reflect.Slice:
+		return v.IsNil()
+	default:
+		return false
+	}
 }
 
 // valueToInterface converts a reflected value into an interface suitable for maps.

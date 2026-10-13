@@ -40,7 +40,7 @@ type User struct {
     Email    string `dd:"email_address"`     // custom field name
     Age      int    `dd:",+required"`        // default name, required
     Password string `dd:",+secret"`          // hidden in output
-    Bio      *string `dd:",+nullable"`        // explicit null binds as absent
+    Bio      *string `dd:",+nullable"`        // null binds as absent; nil emits null
     Internal string `dd:"-"`                 // skip completely
     Active   bool                            // uses snake_case: "active"
 }
@@ -51,9 +51,41 @@ type User struct {
 - `dd:"+required"` - field is required
 - `dd:",+secret"` - hidden in inspect output
 - `dd:",+extra"` - capture unmatched keys (map[string]any only)
-- `dd:",+nullable"` - treat an explicit null as an absent field
+- `dd:",+opaque"` - carry raw input in `map[string]any` (object only) or an empty interface (any non-null value)
+- `dd:",+nullable"` - treat explicit null as absence on input; emit null for nil pointers, interfaces, maps, and slices on output
+- `dd:",+omitempty"` - omit empty fields before applying nullable output
 - `dd:"-"` - exclude from binding
 - No tag = automatic snake_case conversion
+
+### 2.4. Opaque Interfaces And Nullable Output
+
+```go
+type Request struct {
+    Stop any `dd:",+opaque,+nullable,+omitempty"`
+}
+
+type Message struct {
+    Content any `dd:",+opaque,+nullable"`
+}
+
+type Chunk struct {
+    FinishReason *string `dd:",+nullable"`
+}
+
+var request Request
+err := dd.BindJSON(&request, []byte(`{"stop":"END"}`))
+// request.Stop == "END"; {"stop":["END","DONE"]} carries a []any instead
+data, err := dd.UnbindJSON(Chunk{})
+// {"finish_reason":null}
+```
+
+An opaque empty interface, including a named one, accepts a non-null scalar, list, or object without coercion or copying. Direct `Bind` retains concrete Go types and shares input maps and slices. Opaque `map[string]any` fields still require objects. Untagged interfaces, interfaces with methods (including `Dynamic`), pointers to interfaces, and typed slices gain no opaque binding support. Opaque assignment bypasses converters, dynamic binders, and unmarshalers; consumers validate any allowed shapes.
+
+Explicit null requires `+nullable` and behaves as absence in `Bind` and `Merge`, preserving existing values. `+required,+nullable` still rejects missing or null input. A supplied non-null opaque object replaces the entire field during `Merge`.
+
+On output, `+nullable` emits null for nil pointers, interfaces, maps, and slices, including interfaces holding typed nil pointers/maps/slices. Zero primitives stay primitive values. `+omitempty` takes precedence with its existing field-level emptiness semantics: a nil interface is omitted; a non-nil interface holding a typed nil emits null. A non-nil pointer to a zero value remains present, subject to the existing post-conversion omission of empty maps. Nil embedded struct pointers contribute no fields, and `+extra` contributes entries instead of a named null field.
+
+Missing and null input share one field state: a zero `Message` emits `{"content":null}` whether input omitted content or supplied null. Nullable output changes from omission for nil pointers/interfaces and from empty collections for nil maps/slices; add `+omitempty` when omission is desired. `+opaque` controls intake only: non-null output retains custom conversions and collision checks, and unsupported Go values still fail. JSON, JSONL, and YAML use this shared behavior; original bytes and arbitrary object identity are not round-trip guarantees.
 
 ### 2.5. Extra Fields - Capturing Unknown Data
 
@@ -141,7 +173,7 @@ err := dd.BindJSON(&p, data, dd.Strict())
 // YAML aliases, multi-document YAML, unquoted timestamps
 ```
 
-Numbers are preserved as `json.Number` carrying the authored lexeme — a YAML `5.00` arrives as `"5.00"`, never `float64(5)`. A field tagged `+opaque` (must be `map[string]any`) captures its raw subtree uninterpreted; syntactic rules like duplicate-key rejection still apply inside it. A `+extra` field still captures unknown keys by declared intent. A `+nullable` field treats an explicit null as absent in both strict and forgiving mode. Combining `+required` and `+nullable` still rejects null as required-missing.
+Numbers are preserved as `json.Number` carrying the authored lexeme — a YAML `5.00` arrives as `"5.00"`, never `float64(5)`. A field tagged `+opaque` carries raw input in `map[string]any` (object only) or an empty interface (any non-null value); syntactic rules like duplicate-key rejection still apply inside it. A `+extra` field still captures unknown keys by declared intent. A `+nullable` field treats an explicit null as absent in both strict and forgiving mode, and emits null for nil values on output unless omitted. Combining `+required` and `+nullable` still rejects null as required-missing.
 
 Strict maps require keys with string as their underlying Go type. Forgiving mode retains its conversions from serialized string keys into numeric and boolean map key types.
 
@@ -381,25 +413,38 @@ typed maps are ideal for:
 **Field validation and error handling**
 
 ```go
+import (
+    "errors"
+    "fmt"
+
+    "github.com/michaelquigley/df/dd"
+)
+
 type User struct {
     Name  string `dd:"+required"`
     Email string `dd:"+required"`
     Age   int    `dd:",+required"`
 }
 
-// Missing required field
+// missing required field
 data := map[string]any{
     "name": "John",
     // email missing
     "age": 30,
 }
 
-user, err := dd.New[User](data)
-// err: "User.Email: required field missing"
+_, err := dd.New[User](data)
+// err is a *dd.RequiredFieldError for User.Email
 
-// Check for specific error types
-if bindErr, ok := err.(*dd.BindError); ok {
-    fmt.Printf("Field: %s, Error: %s\n", bindErr.Field, bindErr.Message)
+// check for specific error types, including wrapped errors
+var requiredErr *dd.RequiredFieldError
+var bindingErr *dd.BindingError
+if errors.As(err, &requiredErr) {
+    fmt.Printf("field: %s, error: %s\n", requiredErr.Field, requiredErr)
+} else if errors.As(err, &bindingErr) {
+    fmt.Printf("field: %s, error: %s\n", bindingErr.Field, bindingErr)
+} else if err != nil {
+    fmt.Printf("error: %s\n", err)
 }
 ```
 
@@ -478,11 +523,11 @@ type CustomTime struct {
     time.Time
 }
 
-// Control how this type is created from data
-func (c *CustomTime) UnmarshalDf(data any) error {
-    dateStr, ok := data.(string)
+// control how this type is created from data
+func (c *CustomTime) UnmarshalDd(data map[string]any) error {
+    dateStr, ok := data["time"].(string)
     if !ok {
-        return fmt.Errorf("expected string for CustomTime")
+        return fmt.Errorf("expected time string for CustomTime")
     }
     t, err := time.Parse("2006-01-02", dateStr)
     if err != nil {
@@ -492,13 +537,15 @@ func (c *CustomTime) UnmarshalDf(data any) error {
     return nil
 }
 
-// Control how this type becomes data
-func (c CustomTime) MarshalDf() (any, error) {
-    return c.Time.Format("2006-01-02"), nil
+// control how this type becomes data
+func (c CustomTime) MarshalDd() (map[string]any, error) {
+    return map[string]any{"time": c.Time.Format("2006-01-02")}, nil
 }
 
 // dd automatically uses these methods
 ```
+
+Marshalers and unmarshalers exchange objects (`map[string]any`), so this example accepts and emits `{"time":"2026-10-13"}`. Use a `Converter` for a scalar representation instead.
 
 ### 10. Dynamic Types - Runtime Polymorphism
 

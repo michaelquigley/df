@@ -1,6 +1,6 @@
 ---
 title: nullable emits explicit null on unbind
-state: researching
+state: evaluating
 created: 2026-10-13
 tags: [enhancement]
 subsystems: [dd]

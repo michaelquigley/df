@@ -15,9 +15,9 @@ inbox:
   - idiomatic-setters-for-private-fields.md
 building:
 evaluating:
-researching:
-  - binding-into-interface-fields.md
   - nullable-emits-explicit-null-on-unbind.md
+  - binding-into-interface-fields.md
+researching:
   - dl-defaults-its-output-to-stderr.md
   - format-detection-follows-the-output-writer.md
   - dlusecolorfalse-leaves-timestamp-and-caller-colors.md

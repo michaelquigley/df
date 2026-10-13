@@ -5,8 +5,8 @@ this example demonstrates the `Marshaler` and `Unmarshaler` interfaces for types
 ## key concepts demonstrated
 
 ### **custom marshaling/unmarshaling**
-- **Marshaler interface**: types define their own unbinding logic via `MarshalDf()`
-- **Unmarshaler interface**: types define their own binding logic via `UnmarshalDf()`
+- **Marshaler interface**: types define their own unbinding logic via `MarshalDd() (map[string]any, error)`
+- **Unmarshaler interface**: types define their own binding logic via `UnmarshalDd(data map[string]any) error`
 - **complete control**: full control over the entire binding/unbinding process
 - **different from converters**: converters handle type conversion, marshalers handle the entire process
 

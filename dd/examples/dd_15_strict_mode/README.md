@@ -16,8 +16,10 @@ this example demonstrates `dd.Strict()`: the opt-in posture for data whose exact
 - **defined encodings only**: `time.Time` accepts only RFC3339 strings; `time.Duration` only duration strings
 
 ### **the +opaque tag**
-- **carried, never interpreted**: a `map[string]any` field tagged `+opaque` accepts any members and captures the raw subtree
+- **carried, never interpreted**: a `map[string]any` field tagged `+opaque` carries an object; an empty-interface field carries any non-null scalar, list, or object without coercion or copying
 - **syntax still applies**: duplicate keys inside the opaque subtree are still rejected — opaque is a binding exemption, not a parsing one
+
+For example, `Stop any` tagged `dd:",+opaque,+nullable,+omitempty"` carries either `"END"` or `["END","DONE"]`. `+nullable` treats null as absence on intake and emits null for nil pointers, interfaces, maps, and slices on output; `+omitempty` takes precedence using the existing field-level emptiness test. A non-nil interface holding a typed nil pointer/map/slice emits null even with `+omitempty`. Non-null output still uses the normal conversion path.
 
 ### **decode-then-bind pipelines**
 - **public decoders**: `dd.DecodeStrictJSON` / `dd.DecodeStrictYAML` return the checked tree so it can be normalized between intake and binding

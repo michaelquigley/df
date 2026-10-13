@@ -60,8 +60,10 @@ type FileOptions struct {
 //   - slices of the above (slice items are bound from []interface{})
 //   - maps with comparable key types and any supported value type (map keys from JSON/YAML are coerced from strings)
 //
-// interface types are not supported and will return an error if encountered,
-// except for fields of type Dynamic which are resolved using Options.DynamicBinders.
+// empty-interface fields tagged +opaque carry non-null input directly without coercion
+// or copying, as do +opaque map[string]any fields (which require objects). +nullable
+// treats explicit null as absence. other interface fields are unsupported, except
+// for Dynamic fields resolved using Options.DynamicBinders.
 //
 // opts are optional; pass nil or omit to use defaults.
 func Bind(target interface{}, data map[string]any, opts ...*Options) error {
@@ -343,10 +345,11 @@ func bindStruct(structValue reflect.Value, data map[string]any, path string, opt
 		// handle +opaque field: the raw subtree is captured uninterpreted —
 		// carried, never bound — in both modes.
 		if tag.Opaque {
-			if field.Type != reflect.TypeOf(map[string]any(nil)) {
+			emptyInterface := field.Type.Kind() == reflect.Interface && field.Type.NumMethod() == 0
+			if field.Type != reflect.TypeOf(map[string]any(nil)) && !emptyInterface {
 				return &TypeMismatchError{
 					Path:     path,
-					Expected: "map[string]any for +opaque field",
+					Expected: "map[string]any or empty interface for +opaque field",
 					Actual:   field.Type.String(),
 				}
 			}
@@ -366,6 +369,13 @@ func bindStruct(structValue reflect.Value, data map[string]any, path string, opt
 				if tag.Required {
 					return &RequiredFieldError{Path: path, Field: field.Name}
 				}
+				continue
+			}
+			if emptyInterface {
+				if raw == nil {
+					return &TypeMismatchError{Path: path + "." + field.Name, Expected: "non-null value for +opaque field", Actual: "<nil>"}
+				}
+				fieldVal.Set(reflect.ValueOf(raw))
 				continue
 			}
 			subMap, ok := raw.(map[string]any)

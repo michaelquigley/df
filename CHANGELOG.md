@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+CHANGE: **Nullable nil fields now emit explicit null**. `+nullable` emits null for nil pointers, interfaces, maps, and slices, including interfaces holding typed nil pointers/maps/slices; this replaces pointer/interface omission and empty collection output. Add `+omitempty` to retain omission under the existing field-level emptiness test; a non-nil interface holding a typed nil still emits null. Null intake remains absence, preserving existing values.
+
+FEATURE: `+opaque` now supports empty-interface fields, including named interfaces, so a field such as `Stop any` can carry a string, list, or object without coercion or copying in forgiving and strict binding. Supplied values replace the field during `Merge`; opaque `map[string]any` still requires an object, strict syntax checks still apply inside opaque data, and non-null output retains normal conversions.
+
 ## v1.0.5
 
 FIX: `dd.Unbind` now refuses a map whose distinct keys serialize to the same string — an interface-keyed `map[any]V` holding both `1` and `"1"` — with a `KeyCollisionError`, instead of letting Go's randomized map iteration decide which entry survives. Such a map has no lossless JSON/YAML form, and the silent collapse was the one input that falsified the deterministic-output guarantee documented in v1.0.2. Callers that previously got a map back from this input now get an error; `UnbindJSON`, `UnbindJSONL`, `UnbindYAML`, and their writer/file variants inherit it. Ordinary string-, integer-, and boolean-keyed maps are unaffected; any map whose keys stringify alike, such as a float-keyed map holding more than one NaN, is now rejected.

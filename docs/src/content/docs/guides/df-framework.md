@@ -22,9 +22,11 @@ This guide demonstrates integration patterns where configuration drives logging 
 
 The `df` framework consists of three complementary packages:
 
-- **`dd`** - Dynamic Data: Struct ↔ map conversion and configuration loading
+- **`dd`** - Dynamic Data: Struct ↔ map conversion, configuration loading, opaque interface fields, and explicit nullable output
 - **`dl`** - Dynamic Logging: Channel-based logging with intelligent routing  
 - **`da`** - Dynamic Application: Dependency injection and lifecycle management
+
+For external data with alternative field shapes, `Stop any` tagged `dd:",+opaque,+nullable,+omitempty"` can carry a string or list without coercion or copying. A `FinishReason *string` tagged `dd:",+nullable"` emits null while nil and a string when populated. Nullable input remains absence (preserving existing values); output uses `+omitempty` first, so add it when omission is desired. Opaque controls intake only, and strict parsing still checks its subtree. See the [dd guide](../dd/#24-opaque-interfaces-and-nullable-output) for type restrictions, typed nil values, and merge behavior.
 
 ## Progressive Integration Patterns
 
@@ -266,7 +268,7 @@ type PluginConfig struct {
     Type     string                 `dd:"type"`
     Enabled  bool                   `dd:"enabled"`
     Config   map[string]any         `dd:"config"`
-    Logging  *LoggingConfig         `dd:"logging,omitempty"`
+    Logging  *LoggingConfig         `dd:",+nullable,+omitempty"`
 }
 
 type PluginFactory struct{}

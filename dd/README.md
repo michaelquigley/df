@@ -31,7 +31,8 @@ user, _ := dd.New[User](userData)
 - **Dynamic Types**: Runtime type discrimination via `Dynamic` interface
 - **Merge-Time Defaults**: Optional nested structs can provide defaults when `Merge()` allocates them
 - **Validation**: Required fields and custom validation rules
-- **Nullable Fields**: Per-field `+nullable` handling for explicit nulls
+- **Nullable Fields**: Null binds as absence; nil fields emit explicit null unless omitted
+- **Opaque Fields**: `+opaque` carries objects in `map[string]any` or any non-null value in an empty interface
 - **Strict Mode**: Opt-in exact acceptance for contract data — duplicate-key/unknown-field rejection, zero coercion, `+opaque` subtrees
 - **Deterministic Output**: `UnbindJSON`/`UnbindYAML` produce byte-stable, sorted-key output
 - **JSON Lines**: `UnbindJSONL`/`UnbindJSONLWriter` emit one compact, newline-terminated record per call for JSONL streams
@@ -68,7 +69,7 @@ With `dd.Strict()`:
 
 - **Intake** (`BindJSON`, `BindYAML`, and their reader/file variants) rejects duplicate keys anywhere, trailing data after the document, YAML aliases and anchors, and YAML scalars outside the JSON value model (quote timestamps to bind them as strings). Numbers are preserved as `json.Number` — an authored YAML `5.00` reaches binding as `"5.00"`, never a float.
 - **Binding** rejects input keys the target struct does not declare, and refuses type coercion entirely: a number arriving at a string field is an error, not a conversion. Integer fields require integer lexemes (no fractions, no exponents) and overflow is refused; native signed and unsigned Go values do not cross-bind. Map keys must have string as their underlying type; forgiving mode retains conversion into numeric and boolean map keys. `time.Time` accepts only its defined RFC3339 encoding; `time.Duration` only its duration string.
-- A field tagged `+opaque` (a `map[string]any`) accepts any members and captures its raw subtree uninterpreted — syntactic intake rules still apply inside it, binding rules do not. A field tagged `+extra` still captures unknown keys by declared intent. A field tagged `+nullable` treats an explicit null as absent in both strict and forgiving mode; when combined with `+required`, null is rejected as required-missing.
+- A field tagged `+opaque` carries raw input without coercion or copying: `map[string]any` requires an object, while an empty interface accepts any non-null scalar, list, or object. Syntactic intake rules still apply inside it, binding rules do not. A field tagged `+extra` still captures unknown keys by declared intent. A field tagged `+nullable` treats an explicit null as absent in both strict and forgiving mode; when combined with `+required`, null is rejected as required-missing. On output, nullable nil values emit null unless `+omitempty` omits the field.
 
 The strict decoders are public for pipelines that need to inspect or normalize the tree between intake and binding:
 
@@ -89,9 +90,37 @@ type User struct {
     Email string `dd:"email_address"`       // custom field name
     Token string `dd:"-"`                   // excluded from binding
     Age   int    `dd:",+omitempty"`         // omitted during Unbind when zero
-    Bio   *string `dd:",+nullable"`          // explicit null binds as absent
+    Bio   *string `dd:",+nullable"`          // null binds as absent; nil emits null
 }
 ```
+
+**Opaque Interfaces And Nullable Output**
+```go
+type Request struct {
+    Stop any `dd:",+opaque,+nullable,+omitempty"`
+}
+
+type Message struct {
+    Content any `dd:",+opaque,+nullable"`
+}
+
+type Chunk struct {
+    FinishReason *string `dd:",+nullable"`
+}
+
+var request Request
+err := dd.BindJSON(&request, []byte(`{"stop":["END","DONE"]}`))
+// request.Stop is []any{"END", "DONE"}; {"stop":"END"} carries a string instead
+
+data, err := dd.UnbindJSON(Chunk{})
+// {"finish_reason":null}
+```
+
+`+opaque` supports empty interfaces (including named ones) and exactly `map[string]any`. It bypasses intake converters, dynamic binders, and unmarshalers, retains concrete Go types, and shares input maps and slices. A supplied object replaces the entire field during `Merge`; absent or nullable-null input preserves the existing value. Untagged interfaces, method-bearing interfaces, pointers to interfaces, and typed slices gain no opaque binding support. The consumer validates allowed shapes.
+
+`+nullable` emits null for nil pointers, interfaces, maps, and slices, including an interface holding a typed nil pointer/map/slice. Zero primitives remain their ordinary values. `+omitempty` takes precedence using the existing field-level emptiness test: a nil interface is omitted, but a non-nil interface holding a typed nil emits null. A non-nil pointer to a zero value remains present, subject to the existing omission of an empty converted map. Nil embedded struct pointers contribute no fields; `+extra` still contributes entries rather than a named null. Missing and null input are not tracked separately, so a zero `Message` emits `{"content":null}` in either case.
+
+Opaque controls binding only. Non-null output still uses normal converters, marshalers, `Dynamic` conversion, and map-key collision checks; carrying an arbitrary Go value does not guarantee that it can be serialized or preserve its original JSON/YAML bytes. To retain omission for nullable nil fields, add `+omitempty`. JSON, JSONL, and YAML helpers share these rules.
 
 **Merge-Time Defaults For Optional Nested Structs**
 ```go
