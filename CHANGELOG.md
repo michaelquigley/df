@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v1.0.6
+
 CHANGE: **Nullable nil fields now emit explicit null**. `+nullable` emits null for nil pointers, interfaces, maps, and slices, including interfaces holding typed nil pointers/maps/slices; this replaces pointer/interface omission and empty collection output. Add `+omitempty` to retain omission under the existing field-level emptiness test; a non-nil interface holding a typed nil still emits null. Null intake remains absence, preserving existing values.
 
 FEATURE: `+opaque` now supports empty-interface fields, including named interfaces, so a field such as `Stop any` can carry a string, list, or object without coercion or copying in forgiving and strict binding. Supplied values replace the field during `Merge`; opaque `map[string]any` still requires an object, strict syntax checks still apply inside opaque data, and non-null output retains normal conversions.
