@@ -19,6 +19,7 @@ evaluating:
   - nullable-emits-explicit-null-on-unbind.md
   - binding-into-interface-fields.md
 researching:
+  - opaque-accepts-raw-json-fields.md
   - dl-defaults-its-output-to-stderr.md
   - format-detection-follows-the-output-writer.md
   - dlusecolorfalse-leaves-timestamp-and-caller-colors.md
