@@ -1,6 +1,7 @@
 horizon:
   - dl-treats-dev-null-as-a-terminal.md
   - pointer-to-struct-converters.md
+  - dl-races-on-its-first-log-call.md
   - godump-integration.md
   - startable-and-stoppable-ordering.md
   - channelmanager-access-and-reconfiguration.md
@@ -9,6 +10,7 @@ horizon:
   - sub-logger-output.md
   - application-statistics.md
 inbox:
+  - separable-nullable-intake-and-emission.md
   - unbind-serializes-identity-bearing-map-keys-as-runtime-addresses.md
   - dynamic-and-strict-do-not-compose.md
   - secret-values-reach-error-strings.md
